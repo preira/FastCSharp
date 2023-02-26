@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "IFF3kCnUulQSQxf2TdomLJJUs9Otl8g2X/ZJet+0UahaQMo0oNweUn57OyRH4bAoBFIhwX2XO2ZWm1wEArzQOw==",
+  "dgSpecHash": "Hvl4IAyC2goZ6cpy4+2iWoA2KGwXaQkJ63pycmlh/Ma4B++NLDMut7yaZHIhgXRojkEYeUolibnXtaRrhRfonw==",
   "success": true,
   "projectFilePath": "C:\\Users\\João\\Projetos\\FastCSharp\\CircuitBreaker.Tests\\CircuitBreaker.Tests.csproj",
   "expectedPackageFiles": [

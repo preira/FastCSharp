@@ -10,7 +10,7 @@ public static class Util
     public static TimeSpan _2millisec_backoff = new TimeSpan(0, 0, 0, 0, 2);
     public static bool ExecuteThrowNotImplementedException(AbstractBreaker circuit, bool Success)
     {
-        Assert.Throws(typeof(NotImplementedException),
+        Assert.Throws<NotImplementedException>(
             () => circuit.Wrap(
                 () =>
                 {
@@ -23,7 +23,7 @@ public static class Util
 
     public static bool ExecuteThrowingCircuitException(AbstractBreaker circuit, bool Success)
     {
-        Assert.Throws(typeof(CircuitException),
+        Assert.Throws<CircuitException>(
             () => circuit.Wrap(
                 () =>
                 {
@@ -33,27 +33,19 @@ public static class Util
             );
         return Success;
     }
-
 }
 
 public class CircuitBreaker_Tests
 {
-
     [Fact]
     public void CreateNonNullCircuit()
     {
-
         var circuit =
             new CircuitBreaker(
                 new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._2millisec_backoff))
             );
 
-        circuit.Wrap(
-            () =>
-            {
-                //no need to implement
-            });
-
+        circuit.Wrap(() => { /*no need to implement*/ });
         Assert.NotNull(circuit);
     }
 
@@ -66,12 +58,7 @@ public class CircuitBreaker_Tests
             );
 
         Boolean Success = false;
-        circuit.Wrap(
-            () =>
-            {
-                Success = true;
-            });
-
+        circuit.Wrap( () => Success = true );
         Assert.True(Success, "Function dind't execute!");
     }
 
@@ -84,17 +71,15 @@ public class CircuitBreaker_Tests
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
+
         Boolean Success = false;
-        int i = 0;
-        for (; i < 5; ++i)
+        for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
         }
-
         Assert.True(circuit.IsClosed(), "Circuit should remain Closed.");
 
         Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
     }
@@ -109,10 +94,9 @@ public class CircuitBreaker_Tests
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
+
         Boolean Success = false;
-
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be Open.");
         Assert.True(Success, "Function dind't execute!");
     }
@@ -126,17 +110,15 @@ public class CircuitBreaker_Tests
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
+
         Boolean Success = false;
-        int i = 0;
-        for (; i < 5; ++i)
+        for (var i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
         }
-
         Assert.True(circuit.IsClosed(), "Circuit should remain Closed.");
 
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
     }
@@ -151,30 +133,22 @@ public class CircuitBreaker_Tests
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
         Boolean Success = false;
-        int i = 0;
-        for (; i < 5; ++i)
+        for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
         }
-
         Assert.True(circuit.IsClosed(), "Circuit should remain Closed.");
 
         Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Assert.Throws(
-                typeof(OpenCircuitException),
-                () => circuit.Wrap(() => Success = false)
-            );
-
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
         Thread.Sleep(Util._2millisec_backoff);
 
         Success = false;
         circuit.Wrap(() => Success = true);
-
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 
@@ -188,31 +162,22 @@ public class CircuitBreaker_Tests
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
         Boolean Success = false;
-        int i = 0;
-        for (; i < 5; ++i)
+        for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
         }
-
         Assert.True(circuit.IsClosed(), "Circuit should remain Closed.");
 
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Assert.Throws(
-                typeof(OpenCircuitException),
-                () => circuit.Wrap(() => Success = false)
-            );
-
-
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
-        Thread.Sleep(Util._2millisec_backoff);
 
+        Thread.Sleep(Util._2millisec_backoff);
         Success = false;
         circuit.Wrap(() => Success = true);
-
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 }
@@ -221,22 +186,15 @@ public class BlockingCircuitBreaker_Tests
 {
 
     static TimeSpan increment = new TimeSpan(0, 0, 0, 0, 0, 100);
-    static readonly long attemptsThreshold = 2;
     [Fact]
     public void CreateNonNullCircuit()
     {
-
         var circuit =
             new BlockingCircuitBreaker(
                 new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._2millisec_backoff))
             );
 
-        circuit.Wrap(
-            () =>
-            {
-                //no need to implement
-            });
-
+        circuit.Wrap(() =>{ /*no need to implement*/ });
         Assert.NotNull(circuit);
     }
 
@@ -249,12 +207,7 @@ public class BlockingCircuitBreaker_Tests
             );
 
         Boolean Success = false;
-        circuit.Wrap(
-            () =>
-            {
-                Success = true;
-            });
-
+        circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute!");
     }
 
@@ -268,16 +221,13 @@ public class BlockingCircuitBreaker_Tests
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
         Boolean Success = false;
-        int i = 0;
-        for (; i < 5; ++i)
+        for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
         }
-
         Assert.True(circuit.IsClosed(), "Circuit should remain Closed.");
 
         Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
     }
@@ -292,10 +242,9 @@ public class BlockingCircuitBreaker_Tests
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
+
         Boolean Success = false;
-
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be Open.");
         Assert.True(Success, "Function dind't execute!");
     }
@@ -310,16 +259,13 @@ public class BlockingCircuitBreaker_Tests
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
         Boolean Success = false;
-        int i = 0;
-        for (; i < 5; ++i)
+        for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
         }
-
         Assert.True(circuit.IsClosed(), "Circuit should remain Closed.");
 
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
     }
@@ -335,25 +281,20 @@ public class BlockingCircuitBreaker_Tests
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
         Boolean Success = false;
-        int i = 0;
-        for (; i < 5; ++i)
+        for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
         }
-
         Assert.True(circuit.IsClosed(), "Circuit should remain Closed.");
 
         Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
         Success = false;
         circuit.Wrap(() => Success = true);
-
         TimeSpan elapsedTime = DateTime.Now - startTime;
         Assert.True(elapsedTime > Util._2millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._2millisec_backoff}");
-
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 
@@ -368,27 +309,20 @@ public class BlockingCircuitBreaker_Tests
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
         Boolean Success = false;
-        int i = 0;
-        for (; i < 5; ++i)
+        for (var i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
         }
-
         Assert.True(circuit.IsClosed(), "Circuit should remain Closed.");
 
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
         Success = false;
-
         circuit.Wrap(() => Success = true);
-
         TimeSpan elapsedTime = DateTime.Now - startTime;
         Assert.True(elapsedTime > Util._2millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._2millisec_backoff}");
-
         Assert.True(Success, "Function dind't execute after timeout!");
     }
-
 }

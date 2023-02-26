@@ -94,7 +94,7 @@ public class CircuitBreaker : AbstractBreaker
                 {
                     Strategy.RegisterUncontrolledFailure();
                 }
-                throw e;
+                throw;
             }
         }
         throw new OpenCircuitException();
@@ -134,7 +134,7 @@ public class BlockingCircuitBreaker : AbstractBreaker
             {
                 Strategy.RegisterUncontrolledFailure();
             }
-            throw e;
+            throw;
         }
     }
 }

@@ -5,10 +5,10 @@
   },
   "projects": {
     "C:\\Users\\João\\Projetos\\FastCSharp\\CircuitBreaker\\CircuitBreaker.csproj": {
-      "version": "1.0.0",
+      "version": "0.0.0",
       "restore": {
         "projectUniqueName": "C:\\Users\\João\\Projetos\\FastCSharp\\CircuitBreaker\\CircuitBreaker.csproj",
-        "projectName": "CircuitBreaker",
+        "projectName": "FastCSharp.CircuitBreaker",
         "projectPath": "C:\\Users\\João\\Projetos\\FastCSharp\\CircuitBreaker\\CircuitBreaker.csproj",
         "packagesPath": "C:\\Users\\João\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\João\\Projetos\\FastCSharp\\CircuitBreaker\\obj\\",

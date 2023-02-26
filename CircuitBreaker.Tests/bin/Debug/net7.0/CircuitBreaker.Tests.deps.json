@@ -8,7 +8,7 @@
     ".NETCoreApp,Version=v7.0": {
       "CircuitBreaker.Tests/1.0.0": {
         "dependencies": {
-          "CircuitBreaker": "1.0.0",
+          "FastCSharp.CircuitBreaker": "0.0.0",
           "Microsoft.NET.Test.Sdk": "17.3.2",
           "coverlet.collector": "3.1.2",
           "xunit": "2.4.2",
@@ -1090,7 +1090,7 @@
         }
       },
       "xunit.runner.visualstudio/2.4.5": {},
-      "CircuitBreaker/1.0.0": {
+      "FastCSharp.CircuitBreaker/0.0.0": {
         "runtime": {
           "CircuitBreaker.dll": {}
         }
@@ -1747,7 +1747,7 @@
       "path": "xunit.runner.visualstudio/2.4.5",
       "hashPath": "xunit.runner.visualstudio.2.4.5.nupkg.sha512"
     },
-    "CircuitBreaker/1.0.0": {
+    "FastCSharp.CircuitBreaker/0.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "kL/G0fQsn+kehapIy/bJXQxj/Fd/S+I/LZMP3bTIzyKN7q9qBmdmxOghrYId9uIjB8lIpb3pax+TaL2Q7zRoWw==",
+  "dgSpecHash": "oLll2oL+4DUDyOs3yREtA401I4YeGLTq9PZx/6Ft8Mj/dEprgC3FMdByl5qKhdlxmVuBorxfvD6Dg3rXTHEvWQ==",
   "success": true,
   "projectFilePath": "C:\\Users\\João\\Projetos\\FastCSharp\\CircuitBreaker\\CircuitBreaker.csproj",
   "expectedPackageFiles": [],

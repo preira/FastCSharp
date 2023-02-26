@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>FastCSharp.CircuitBreaker</PackageId>
+    <version>0.0.0</version>
+    <Author>João Pereira</Author>
+    <Company>FastCSharp</Company>
+
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

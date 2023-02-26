@@ -74,7 +74,6 @@ public class RandomBackoff : IBackoffStrategy
 {
     TimeSpan backoff;
     TimeSpan increment;
-    int counter;
     Random sequence;
 
     /// <summary>
