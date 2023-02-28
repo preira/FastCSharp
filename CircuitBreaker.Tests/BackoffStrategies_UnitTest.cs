@@ -112,3 +112,62 @@ public class RandomBackoff_Tests
         Assert.True(total >= duration * i, $"Total: {total} >= {duration} * {i}");
     }
 }
+
+public class RandomIncrementalBackoff_Tests
+{
+    [Fact]
+    public void CreateStrategy()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 5);
+        RandomIncrementalBackoff backoff = new RandomIncrementalBackoff(duration, increment);
+        Assert.Equal<TimeSpan>(duration, backoff.Duration);
+    }
+
+    [Fact]
+    public void NextDurationsAreIncrements()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 5);
+        RandomIncrementalBackoff backoff = new RandomIncrementalBackoff(duration, increment);
+        Assert.Equal<TimeSpan>(duration, backoff.Duration);
+        for (var i = 1; i < 12; ++i)
+        {
+            var current = backoff.Duration; // for debug
+            Assert.True(duration + i * increment >= current, $"Increments should be inferior to increment value. Instead {duration + i * increment} => {current}, for i = {i}");
+        }
+    }
+
+    [Fact]
+    public void NextDurationsAreIncrementsMultiples()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 3);
+        RandomIncrementalBackoff backoff = new RandomIncrementalBackoff(duration, increment);
+        TimeSpan previous = backoff.Duration;
+        Assert.Equal<TimeSpan>(duration, previous);
+        var i = 1;
+        for (; i < 12; ++i)
+        {
+            var current = backoff.Duration;
+            Assert.True(previous <= current, "Backoff Duration should monotonously augment.");
+            previous = current;
+        }
+        TimeSpan totalIncrement = backoff.Duration - duration;
+        // Assert.Equal<int>(i, (int)(totalIncrement / increment));
+        Assert.True(i > (int)(totalIncrement / increment), $"Turns should be greater than the dividor. Instead {i} > {(int)(totalIncrement / increment)}");
+    }
+
+    [Fact]
+    public void ResetBackoff()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 5);
+        RandomIncrementalBackoff backoff = new RandomIncrementalBackoff(duration, increment);
+        Assert.Equal<TimeSpan>(duration, backoff.Duration);
+        Assert.NotEqual<TimeSpan>(duration, backoff.Duration);
+        backoff.Reset();
+        Assert.Equal<TimeSpan>(duration, backoff.Duration);
+    }
+}
+

@@ -44,7 +44,8 @@ public abstract class AbstractBreaker : Breaker
     {
         if (Status == CircuitStatus.OPEN && DateTime.Now > lastCloseTimestamp)
         {
-            Close();
+            // closing will allow for one attempt to be performed.
+            Closing();
             return false;
         }
         return Status == CircuitStatus.OPEN;
@@ -76,7 +77,11 @@ public class CircuitBreaker : AbstractBreaker
 
     public override TResult Wrap<TResult>(Func<TResult> callback)
     {
-        if (IsClosed())
+        if (IsOpen())
+        {
+            throw new OpenCircuitException();
+        }
+        else /* either closing or closed */
         {
             try
             {
@@ -97,7 +102,6 @@ public class CircuitBreaker : AbstractBreaker
                 throw;
             }
         }
-        throw new OpenCircuitException();
     }
 }
 
@@ -117,24 +121,28 @@ public class BlockingCircuitBreaker : AbstractBreaker
         if (IsOpen())
         {
             Thread.Sleep(lastCloseTimestamp - DateTime.Now);
+            throw new OpenCircuitException();
         }
-        try
+        else /* either closing or closed */
         {
-            var result = callback();
-            Strategy.RegisterSucess();
-            return result;
-        }
-        catch (Exception e)
-        {
-            if (e is CircuitException)
+            try
             {
-                Strategy.RegisterFailure();
+                var result = callback();
+                Strategy.RegisterSucess();
+                return result;
             }
-            else
+            catch (Exception e)
             {
-                Strategy.RegisterUncontrolledFailure();
+                if (e is CircuitException)
+                {
+                    Strategy.RegisterFailure();
+                }
+                else
+                {
+                    Strategy.RegisterUncontrolledFailure();
+                }
+                throw;
             }
-            throw;
         }
     }
 }

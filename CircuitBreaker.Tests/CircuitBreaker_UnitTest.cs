@@ -291,6 +291,7 @@ public class BlockingCircuitBreaker_Tests
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
+        Thread.Sleep(Util._2millisec_backoff);
         Success = false;
         circuit.Wrap(() => Success = true);
         TimeSpan elapsedTime = DateTime.Now - startTime;
@@ -319,6 +320,11 @@ public class BlockingCircuitBreaker_Tests
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
+        // Will block until backoff is cleared. It serves as backoff control and will fail.
+        Assert.Throws<OpenCircuitException>(
+            () => circuit.Wrap(
+                () => Success = true)
+            );
         Success = false;
         circuit.Wrap(() => Success = true);
         TimeSpan elapsedTime = DateTime.Now - startTime;
