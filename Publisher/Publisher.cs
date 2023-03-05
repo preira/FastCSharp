@@ -3,11 +3,15 @@
 using System.Text;
 using System.Text.Json;
 
-delegate T? Handler<T>(T? message);
+public delegate T? Handler<T>(T? message);
 
-interface IPublisher<T>: IDisposable
+/// <summary>
+/// The interface to use to publish objects.
+/// </summary>
+/// <typeparam name="T">The type of the objects to be published.</typeparam>
+public interface IPublisher<T>: IDisposable
 { 
-    Task<Boolean> Publish(string? message);
+    // Task<Boolean> Publish(string? message);
     Task<Boolean> Publish(T? message);
 
     /// <summary>
@@ -15,17 +19,23 @@ interface IPublisher<T>: IDisposable
     /// Returns self to chain the addition of message handlers
     /// </summary>
     /// <param name="handler"></param>
-    /// <returns></returns>
+    /// <returns>The same IPublisher object.</returns>
     public IPublisher<T> AddMsgHandler(Handler<T> handler);
 }
 
-interface IMessageQueueHandlerFactory<T>
+public interface IPublisherFactory
 {
-    public IPublisher<T> NewPublisher();
+    public IPublisher<T> NewPublisher<T>(string destination, string? direct = null);
 
 }
 
-abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
+/// <summary>
+/// This is the class to be extend in order to imlpement a Publisher for a concrete engine.
+/// Objects are serialized in JSon format and converted to byte array before calling the 
+/// implementation AsyncPublish.
+/// </summary>
+/// <typeparam name="T">The type of object to be published</typeparam>
+public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
 {
     List<Handler<T>> handlers;
     public AbstractPublisher()
@@ -33,22 +43,20 @@ abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
         handlers = new List<Handler<T>>();
     }
 
+    /// <summary>
+    /// Will publish the object passed as argument in JSon formst, according to
+    /// the underlaying implementation.
+    /// </summary>
+    /// <param name="obj">The object to publish.</param>
+    /// <returns>A Boolean future.</returns>
     public async Task<Boolean> Publish(T? obj)
     {
-        Console.WriteLine("[Encoded as an object]");
         foreach (var handler in handlers)
         {
             obj = handler(obj);
         } 
         byte[] jsonUtf8Bytes =JsonSerializer.SerializeToUtf8Bytes<T?>(obj);
         return await Publish(jsonUtf8Bytes);   
-    }
-
-    public async Task<Boolean> Publish(string? message)
-    {
-        Console.WriteLine("[Encoded as a string]");
-        var body = Encoding.UTF8.GetBytes(message ?? "FAILED");
-        return await Publish(body);   
     }
 
     private async Task<Boolean> Publish(byte[] message)
@@ -66,9 +74,15 @@ abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
         }
     }
 
+    /// <summary>
+    /// This is where it should be implemented the logic to send the object. 
+    /// </summary>
+    /// <param name="body"></param>
+    /// <returns></returns>
     protected abstract bool AsyncPublish(byte[] body);
 
     private Boolean IsHealthyOrTryRecovery()
+        // => IsHealthy() || ResetConnection();
     {
         if(IsHealthy())
         {
@@ -77,13 +91,32 @@ abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
         // try to recover
         return ResetConnection();
     }
+
+    /// <summary>
+    /// Should contain logic to make sure that the publication will succeed, like checking connection
+    /// or queues.
+    /// </summary>
+    /// <returns>a Boolean indicating if the service is healthy</returns>
     protected abstract Boolean IsHealthy();
 
+    /// <summary>
+    /// Should contain logic to recover a faulty connection status given by IsHealthy().
+    /// </summary>
+    /// <param name="dispose"></param>
+    /// <returns></returns>
     protected abstract Boolean ResetConnection(bool dispose = true);
 
-
+    /// <summary>
+    /// Should dispose of any managed resources.
+    /// </summary>
     public abstract void Dispose();
 
+    /// <summary>
+    /// Adds a Message Handler to a chain of observers. The order by which the Handlers are added 
+    /// will be respected when processing an objet to be sent.
+    /// </summary>
+    /// <param name="handler">The function to handle the \<T\> object.</param>
+    /// <returns>The publisher it self.</returns>
     public IPublisher<T> AddMsgHandler(Handler<T> handler)
     {
         handlers.Add(handler);
