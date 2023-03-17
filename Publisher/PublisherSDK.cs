@@ -11,6 +11,7 @@ using FastCSharp.Publisher;
 /// <typeparam name="T">The type of object to be published</typeparam>
 public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
 {
+    protected bool disposed = false;
     List<Handler<T>> handlers;
     public AbstractPublisher()
     {
@@ -29,7 +30,7 @@ public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
         {
             obj = handler(obj);
         } 
-        byte[] jsonUtf8Bytes =JsonSerializer.SerializeToUtf8Bytes<T?>(obj);
+        byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(obj);
         return await Publish(jsonUtf8Bytes);   
     }
 
@@ -81,9 +82,23 @@ public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
     protected abstract Boolean ResetConnection(bool dispose = true);
 
     /// <summary>
-    /// Should dispose of any managed resources.
+    /// Should dispose of any managed or unmanaged resources.
     /// </summary>
-    public abstract void Dispose();
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Should dispose of any managed and unmanaged resources.
+    /// </summary>
+    public abstract void Dispose(bool disposing);
+
+    ~AbstractPublisher()
+    {
+        Dispose(false);
+    }
 
     /// <summary>
     /// Adds a Message Handler to a chain of observers. The order by which the Handlers are added 

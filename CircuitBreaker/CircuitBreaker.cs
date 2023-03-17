@@ -1,5 +1,4 @@
-
-namespace FastCSharp.SDK.Circuit_Breaker;
+namespace FastCSharp.Circuit_Breaker;
 
 enum CircuitStatus
 {

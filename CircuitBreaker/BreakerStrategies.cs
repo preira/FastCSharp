@@ -1,8 +1,8 @@
 
-using System.Runtime.CompilerServices;
+// using System.Runtime.CompilerServices;
 
 // [assembly:InternalsVisibleTo("CircuitBreaker.Tests")]
-namespace FastCSharp.SDK.Circuit_Breaker;
+namespace FastCSharp.Circuit_Breaker;
 class IncorrectInitializationException : Exception
 {
     public IncorrectInitializationException(string message) : base(message)

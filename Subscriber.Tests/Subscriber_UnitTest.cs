@@ -1,5 +1,6 @@
 using Xunit;
 using FastCSharp.SDK.Subscriber;
+using FastCSharp.Subscriber;
 
 namespace Subscriber.Tests;
 
