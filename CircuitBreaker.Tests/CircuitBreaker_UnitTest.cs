@@ -325,10 +325,10 @@ public class BlockingCircuitBreaker_Tests
             () => circuit.Wrap(
                 () => Success = true)
             );
-        Success = false;
-        circuit.Wrap(() => Success = true);
         TimeSpan elapsedTime = DateTime.Now - startTime;
         Assert.True(elapsedTime > Util._2millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._2millisec_backoff}");
+        Success = false;
+        circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 }

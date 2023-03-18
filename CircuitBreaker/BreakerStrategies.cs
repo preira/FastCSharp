@@ -1,6 +1,3 @@
-
-// using System.Runtime.CompilerServices;
-
 namespace FastCSharp.Circuit_Breaker;
 class IncorrectInitializationException: Exception
 {
