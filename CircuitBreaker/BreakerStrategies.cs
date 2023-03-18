@@ -5,11 +5,11 @@ class IncorrectInitializationException : Exception
     {
         // intentionally empty
     }
-    public IncorrectInitializationException(string message) : base(message)
+    public IncorrectInitializationException(string? message) : base(message)
     {
         // intentionally empty
     }
-    public IncorrectInitializationException(string message, Exception inner) : base(message, inner)
+    public IncorrectInitializationException(string? message, Exception? inner) : base(message, inner)
     {
         // intentionally empty
     }

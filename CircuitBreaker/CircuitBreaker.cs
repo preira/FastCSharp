@@ -1,3 +1,5 @@
+using System.Runtime.Serialization;
+
 namespace FastCSharp.Circuit_Breaker;
 
 enum CircuitStatus
@@ -7,11 +9,30 @@ enum CircuitStatus
     HALF_CLOSED,
 }
 
-public class CircuitException: Exception
+public class CircuitException: InvalidOperationException
 {
+    public CircuitException() : base()
+    {
+        // intentionally empty
+    }
+    public CircuitException(string? message) : base(message)
+    {
+        // intentionally empty
+    }
+
+    protected CircuitException(SerializationInfo info, StreamingContext context) 
+    : base(info, context)
+    {
+        // intentionally empty
+    }
+
+    public CircuitException(string? message, Exception? inner) : base(message, inner)
+    {
+        // intentionally empty
+    }
 }
 
-public class OpenCircuitException: Exception
+public class OpenCircuitException: InvalidOperationException
 {
 }
 

@@ -148,7 +148,6 @@ public class DirectRMQPublisher<T> : AbstractRMQPublisher<T>
 
 public class FanoutRMQPublisher<T> : AbstractRMQPublisher<T>
 {
-    readonly private ILogger logger;
     public FanoutRMQPublisher(
         IConnectionFactory factory, 
         ILoggerFactory ILoggerFactory,
@@ -156,7 +155,6 @@ public class FanoutRMQPublisher<T> : AbstractRMQPublisher<T>
         TimeSpan timeout)
         : base(factory, ILoggerFactory, exchange, timeout)
     {
-        logger = ILoggerFactory.CreateLogger<FanoutRMQPublisher<T>>();
     }
 
     protected override void ResourceDeclarePassive(IModel channel) => channel.ExchangeDeclarePassive(exchangeName);
@@ -165,7 +163,6 @@ public class FanoutRMQPublisher<T> : AbstractRMQPublisher<T>
 
 public class TopicRMQPublisher<T> : AbstractRMQPublisher<T>
 {
-    readonly private ILogger logger;
     public TopicRMQPublisher(IConnectionFactory factory, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
@@ -173,7 +170,6 @@ public class TopicRMQPublisher<T> : AbstractRMQPublisher<T>
         string routingKey)
         : base(factory, ILoggerFactory, exchange, timeout, routingKey)
     {
-        logger = ILoggerFactory.CreateLogger<TopicRMQPublisher<T>>();
     }
 
     protected override void ResourceDeclarePassive(IModel channel) => channel.ExchangeDeclarePassive(exchangeName);
