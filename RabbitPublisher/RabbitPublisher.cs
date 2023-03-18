@@ -28,7 +28,7 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
     protected RabbitPublisherConfig config = new();
     protected readonly IConnectionFactory connectionFactory;
     protected ILoggerFactory ILoggerFactory;
-    public AbstractRabbitExchangeFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
+    protected AbstractRabbitExchangeFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     {
         this.ILoggerFactory = ILoggerFactory;
         configuration.GetSection(nameof(RabbitPublisherConfig)).Bind(config);
@@ -83,7 +83,7 @@ public class RabbitFanoutExchangeFactory : AbstractRabbitExchangeFactory
     : base(configuration, ILoggerFactory)
     {
     }
-    protected override IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey = "")
+    protected override IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey)
     {
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
         return new FanoutRMQPublisher<T>(factory: connectionFactory,

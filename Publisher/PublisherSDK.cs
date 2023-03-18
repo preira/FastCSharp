@@ -12,8 +12,8 @@ using FastCSharp.Publisher;
 public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
 {
     protected bool disposed = false;
-    List<Handler<T>> handlers;
-    public AbstractPublisher()
+    readonly List<Handler<T>> handlers;
+    protected AbstractPublisher()
     {
         handlers = new List<Handler<T>>();
     }
@@ -22,15 +22,15 @@ public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
     /// Will publish the object passed as argument in JSon formst, according to
     /// the underlaying implementation.
     /// </summary>
-    /// <param name="obj">The object to publish.</param>
+    /// <param name="message">The object to publish.</param>
     /// <returns>A Boolean future.</returns>
-    public async Task<Boolean> Publish(T? obj)
+    public async Task<Boolean> Publish(T? message)
     {
         foreach (var handler in handlers)
         {
-            obj = handler(obj);
+            message = handler(message);
         } 
-        byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(obj);
+        byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(message);
         return await Publish(jsonUtf8Bytes);   
     }
 
@@ -57,7 +57,6 @@ public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
     protected abstract bool AsyncPublish(byte[] body);
 
     private Boolean IsHealthyOrTryRecovery()
-        // => IsHealthy() || ResetConnection();
     {
         if(IsHealthy())
         {

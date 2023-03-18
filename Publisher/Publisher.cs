@@ -8,7 +8,6 @@ public delegate T? Handler<T>(T? message);
 /// <typeparam name="T">The type of the objects to be published.</typeparam>
 public interface IPublisher<T>: IDisposable
 { 
-    // Task<Boolean> Publish(string? message);
     Task<Boolean> Publish(T? message);
 
     /// <summary>
@@ -34,6 +33,6 @@ public interface IPublisherFactory
     /// <param name="direct">The name of the direct delivery for the destination. A Queue for example.</param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public IPublisher<T> NewPublisher<T>(string destination, string direct = "");
+    public IPublisher<T> NewPublisher<T>(string destination, string routingKey = "");
 
 }

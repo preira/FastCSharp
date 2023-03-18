@@ -4,9 +4,9 @@ namespace FastCSharp.SDK.Subscriber;
 
 public abstract class AbstractSubscriber<T>: ISubscriber<T>
 {
-    List<Handler<T>> handlers;
+    readonly List<Handler<T>> handlers;
 
-    public AbstractSubscriber()
+    protected AbstractSubscriber()
     {
         handlers = new List<Handler<T>>();
     }
@@ -41,7 +41,6 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
                     message = handler(message);
                 }
                 // TODO: Async call to trigger event
-                // MessageReceived(message);
                 return callback(message);
             });
         return this;

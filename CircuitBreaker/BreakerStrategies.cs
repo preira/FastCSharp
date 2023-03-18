@@ -1,9 +1,8 @@
 
 // using System.Runtime.CompilerServices;
 
-// [assembly:InternalsVisibleTo("CircuitBreaker.Tests")]
 namespace FastCSharp.Circuit_Breaker;
-class IncorrectInitializationException : Exception
+class IncorrectInitializationException: Exception
 {
     public IncorrectInitializationException(string message) : base(message)
     {
@@ -21,9 +20,8 @@ public abstract class Breaker
     abstract public void Close();
     abstract public void Closing();
 
-    public Breaker(BreakerStrategy strategy)
+    protected Breaker(BreakerStrategy strategy)
     {
-        Closing();
         Strategy = strategy;
         Strategy.Breaker = this;
     }
@@ -50,7 +48,7 @@ public class ConsecutiveFailuresBreakerStrategy : BreakerStrategy
 {
     private const string ExceptionMessage = "This Strategy has no associated Circuit.";
     readonly long threshold;
-    IBackoffStrategy backoff;
+    readonly IBackoffStrategy backoff;
     int counter;
     readonly bool isCloseImmediately;
 

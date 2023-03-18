@@ -1,6 +1,6 @@
 ﻿namespace FastCSharp.Subscriber;
 
-public delegate Boolean OnMessageCallback<T>(T? message);
+public delegate Boolean OnMessageCallback<in T>(T? message);
 public delegate T? Handler<T>(T? message);
 
 /// <summary>
@@ -27,7 +27,7 @@ public interface ISubscriber<T>
     public ISubscriber<T> AddMsgHandler(Handler<T> handler);
 }
 
-public interface IWorker<T>
+public interface IWorker<in T>
 {
     public Boolean OnMessageCallback(T? message);
 }

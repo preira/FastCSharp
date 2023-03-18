@@ -12,10 +12,10 @@ public abstract class AbstractRMQPublisher<T> : AbstractPublisher<T>
     protected readonly IConnectionFactory connectionFactory;
     protected IModel? channel;
     protected IConnection? connection;
-    private ILogger logger;
+    readonly private ILogger logger;
     private bool isInitialized = false;
 
-    public AbstractRMQPublisher(
+    protected AbstractRMQPublisher(
         IConnectionFactory factory,
         ILoggerFactory ILoggerFactory,
         string exchange,
@@ -108,7 +108,7 @@ public abstract class AbstractRMQPublisher<T> : AbstractPublisher<T>
 }
 public class DirectRMQPublisher<T> : AbstractRMQPublisher<T>
 {
-    private ILogger logger;
+    readonly private ILogger logger;
     public DirectRMQPublisher(
         IConnectionFactory factory,
         ILoggerFactory ILoggerFactory,
@@ -133,7 +133,7 @@ public class DirectRMQPublisher<T> : AbstractRMQPublisher<T>
             try
             {
                 // WaitForConfirmsOrDie already breaks when the exchange is unkown.
-                // channel.ExchangeDeclarePassive(exchangeName);
+                // So, no need to check the exchange.
                 channel.QueueDeclarePassive(routingKey);
                 return true;
             }
@@ -148,7 +148,7 @@ public class DirectRMQPublisher<T> : AbstractRMQPublisher<T>
 
 public class FanoutRMQPublisher<T> : AbstractRMQPublisher<T>
 {
-    private ILogger logger;
+    readonly private ILogger logger;
     public FanoutRMQPublisher(
         IConnectionFactory factory, 
         ILoggerFactory ILoggerFactory,
@@ -165,7 +165,7 @@ public class FanoutRMQPublisher<T> : AbstractRMQPublisher<T>
 
 public class TopicRMQPublisher<T> : AbstractRMQPublisher<T>
 {
-    private ILogger logger;
+    readonly private ILogger logger;
     public TopicRMQPublisher(IConnectionFactory factory, 
         ILoggerFactory ILoggerFactory,
         string exchange, 

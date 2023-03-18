@@ -34,7 +34,7 @@ public class FixedBackoff : IBackoffStrategy
     {
         Duration = duration;
     }
-    public void Reset() { }
+    public void Reset() { /* no action to perform for fixed backoff */ }
 }
 
 /// <summary>
@@ -44,9 +44,9 @@ public class FixedBackoff : IBackoffStrategy
 public class IncrementalBackoff : IBackoffStrategy
 {
     TimeSpan backoff;
-    TimeSpan increment;
+    readonly TimeSpan increment;
     int counter;
-    long maxIncrements;
+    readonly long maxIncrements;
 
     /// <summary>
     /// Incremental backoff strategy adds a time increment to subsequent Duration requests up to maxIncrements times.
@@ -83,7 +83,7 @@ public class IncrementalBackoff : IBackoffStrategy
 public class RandomBackoff : IBackoffStrategy
 {
     TimeSpan backoff;
-    TimeSpan increment;
+    readonly TimeSpan increment;
     Random sequence;
 
     /// <summary>
@@ -112,10 +112,10 @@ public class RandomBackoff : IBackoffStrategy
 public class RandomIncrementalBackoff : IBackoffStrategy
 {
     TimeSpan backoff;
-    TimeSpan initialBackoff;
-    TimeSpan increments;
+    readonly TimeSpan initialBackoff;
+    readonly TimeSpan increments;
     int counter;
-    long maxIncrements;
+    readonly long maxIncrements;
     Random sequence;
     /// <summary>
     /// Implements a backoff strategy that continuously adds increments randomly generated between 0 and increments. 

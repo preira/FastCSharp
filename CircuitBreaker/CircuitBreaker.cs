@@ -7,11 +7,11 @@ enum CircuitStatus
     HALF_CLOSED,
 }
 
-public class CircuitException : Exception
+public class CircuitException: Exception
 {
 }
 
-public class OpenCircuitException : Exception
+public class OpenCircuitException: Exception
 {
 }
 
@@ -21,7 +21,7 @@ public abstract class AbstractBreaker : Breaker
     protected DateTime lastOpenTimestamp;
     protected DateTime lastCloseTimestamp;
 
-    public AbstractBreaker(BreakerStrategy strategy) : base(strategy)
+    protected AbstractBreaker(BreakerStrategy strategy) : base(strategy)
     {
         Close();
     }
