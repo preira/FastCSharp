@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CircuitBreaker\CircuitBreaker.csproj" />
+    <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,5 @@
 
-namespace FastCSharp.Circuit_Breaker;
+namespace FastCSharp.CircuitBreaker;
 
 /// <summary>
 /// Interface for different Backoff Strategies.
