@@ -12,6 +12,8 @@ public class RabbitPublisher_UnitTest
     ILoggerFactory loggerFactory;
 
     IConfiguration configuration;
+    IConfiguration emptyConfiguration;
+    IConfiguration missingTopicRoutingKeyConfiguration;
 
     public RabbitPublisher_UnitTest()
     {
@@ -24,6 +26,16 @@ public class RabbitPublisher_UnitTest
                 .AddConsole();
         });
 
+        emptyConfiguration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                })
+            .Build();
+        missingTopicRoutingKeyConfiguration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                })
+            .Build();
         configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -68,6 +80,34 @@ public class RabbitPublisher_UnitTest
         var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
         var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE");
         Assert.NotNull(publisher);
+    }
+
+    [Fact]
+    public void FailToCreateNewDirectPublisher()
+    {
+        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
+    }
+
+    [Fact]
+    public void CreateNewDirectPublisherWithoutFailedConfiguration()
+    {
+        var exchange = new RabbitDirectExchangeFactory(emptyConfiguration, loggerFactory);
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
+    }
+
+    [Fact]
+    public void CreateTopicPublisherWithoutFailedConfiguration()
+    {
+        var exchange = new RabbitTopicExchangeFactory(emptyConfiguration, loggerFactory);
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
+    }
+
+    [Fact]
+    public void CreateTopicPublisherWithoutMissingRoutingKey()
+    {
+        var exchange = new RabbitTopicExchangeFactory(configuration, loggerFactory);
+        Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".snail."));
     }
 
     [Fact]
@@ -211,7 +251,6 @@ public class RabbitPublisher_UnitTest
         Assert.True(await publisher.Publish("Test Message"));
 
         mockedFactory.Verify(factory => factory.CreateConnection(), Times.AtLeastOnce());
-        // mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
 
         mockedModel.Verify(model => 
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
@@ -252,7 +291,6 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public async void DirectExchange_PublishFailsRecoverThenOk()
     {
-        //TODO: start ok, publish, fail, recover
         var mockedFactory = new Mock<IConnectionFactory>();
         var mockedConnection = new Mock<IConnection>();
         mockedFactory.Setup(factory => factory.CreateConnection()).Returns(mockedConnection.Object);
@@ -289,7 +327,6 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public async void TopicExchange_PublishFailsRecoverThenOk()
     {
-        //TODO: start ok, publish, fail, recover
         var mockedFactory = new Mock<IConnectionFactory>();
         var mockedConnection = new Mock<IConnection>();
         mockedFactory.Setup(factory => factory.CreateConnection()).Returns(mockedConnection.Object);
