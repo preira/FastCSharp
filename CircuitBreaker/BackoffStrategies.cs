@@ -70,7 +70,6 @@ public class IncrementalBackoff : IBackoffStrategy
             } 
             return backoff + counter * increment;
         }
-        private set => backoff = value;
     }
     public void Reset() => counter = 0;
 }
@@ -138,7 +137,7 @@ public class RandomIncrementalBackoff : IBackoffStrategy
             {
                 return backoff;
             }
-            else if (counter <  maxIncrements)
+            else if (counter <  maxIncrements + 1)
             {
                 backoff += (Rnd.GetRandomDouble(precision) * increments);
                 return backoff;
@@ -148,8 +147,6 @@ public class RandomIncrementalBackoff : IBackoffStrategy
                 return backoff + Rnd.GetRandomDouble(precision) * increments;
             }
         }
-
-        private set => backoff = value;
     }
     public void Reset()
     {

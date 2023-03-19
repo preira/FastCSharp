@@ -139,6 +139,102 @@ public class RandomIncrementalBackoff_Tests
     }
 
     [Fact]
+    public void RandomIncrementalBackoff_NextDurationsAreStopIncrements()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 5);
+        var maxIncrements = 3;
+        RandomIncrementalBackoff backoff = new RandomIncrementalBackoff(duration, increment, maxIncrements);
+        var previous = backoff.Duration;
+        Assert.Equal<TimeSpan>(duration, previous);
+        var current = previous; 
+        for (var i = 1; i < maxIncrements; ++i)
+        {
+            Assert.True(duration + i * increment >= current, $"Increments should be inferior to increment value. Instead {duration + i * increment} => {current}, for i = {i}");
+            Assert.True(current >= previous, $"Current Duration should be Greater than or Equal to the previous Duration: {current} >= {previous}; i={i}");
+            previous = current;
+            current = backoff.Duration; 
+        }
+        for (var i = maxIncrements; i < maxIncrements + 10; ++i)
+        {
+            Assert.True(duration + 10 * increment >= current, $"Increments should be inferior to increment value. Instead {duration + 2 * increment} => {current}, for last.");
+            current = backoff.Duration;
+        }
+    }
+
+    [Fact]
+    public void RandomIncrementalBackoff_ResetDurationsIncrements()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 5);
+        var maxIncrements = 10;
+        RandomIncrementalBackoff backoff = new RandomIncrementalBackoff(duration, increment, maxIncrements);
+        var previous = backoff.Duration;
+        Assert.Equal<TimeSpan>(duration, previous);
+        var current = previous; 
+        for (var i = 1; i < maxIncrements; ++i)
+        {
+            Assert.True(duration + i * increment >= current, $"Increments should be inferior to increment value. Instead {duration + i * increment} => {current}, for i = {i}");
+            Assert.True(current >= previous, $"Current Duration should be Greater than or Equal to the previous Duration: {current} >= {previous}; i={i}");
+            previous = current;
+            current = backoff.Duration; 
+        }
+        Assert.True(duration + increment <= current, $"Increments should be greater than initial increment value. Instead {duration + increment} <= {current}");
+        backoff.Reset();
+        current = backoff.Duration; 
+        Assert.True(duration + increment >= current, $"After reset, increments should be inferior to increment value. Instead {duration + increment} >= {current}");
+
+    }
+
+    [Fact]
+    public void IncrementalBackoff_NextDurationsAreStopIncrements()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 5);
+        var maxIncrements = 3;
+        IncrementalBackoff backoff = new IncrementalBackoff(duration, increment, maxIncrements);
+        var previous = backoff.Duration;
+        Assert.Equal<TimeSpan>(duration, previous);
+        var current = previous; 
+        for (var i = 1; i < maxIncrements; ++i)
+        {
+            Assert.True(duration + i * increment >= current, $"Increments should be inferior to increment value. Instead {duration + i * increment} => {current}, for i = {i}");
+            Assert.True(current >= previous, $"Current Duration should be Greater than or Equal to the previous Duration: {current} >= {previous}; i={i}");
+            previous = current;
+            current = backoff.Duration; 
+        }
+        for (var i = maxIncrements; i < maxIncrements + 10; ++i)
+        {
+            Assert.True(duration + 10 * increment >= current, $"Increments should be inferior to increment value. Instead {duration + 2 * increment} => {current}, for last.");
+            current = backoff.Duration;
+        }
+    }
+
+    [Fact]
+    public void IncrementalBackoff_ResetDurationsIncrements()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 5);
+        var maxIncrements = 10;
+        IncrementalBackoff backoff = new IncrementalBackoff(duration, increment, maxIncrements);
+        var previous = backoff.Duration;
+        Assert.Equal<TimeSpan>(duration, previous);
+        var current = previous; 
+        for (var i = 1; i < maxIncrements; ++i)
+        {
+            Assert.True(duration + i * increment >= current, $"Increments should be inferior to increment value. Instead {duration + i * increment} => {current}, for i = {i}");
+            Assert.True(current >= previous, $"Current Duration should be Greater than or Equal to the previous Duration: {current} >= {previous}; i={i}");
+            previous = current;
+            current = backoff.Duration; 
+        }
+        Assert.True(duration + increment <= current, $"Increments should be greater than initial increment value. Instead {duration + increment} <= {current}");
+        backoff.Reset();
+        current = backoff.Duration; 
+        Assert.True(duration + increment >= current, $"After reset, increments should be inferior to increment value. Instead {duration + increment} >= {current}");
+
+    }
+
+    [Fact]
     public void NextDurationsAreIncrementsMultiples()
     {
         TimeSpan duration = new TimeSpan(0, 0, 5);
