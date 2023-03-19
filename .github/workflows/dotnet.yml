@@ -20,12 +20,14 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
+    - name: required test tools
+      run: dotnet tool install dotnet-coverage
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet-coverage collect "dotnet test --no-build --verbosity normal" -f xml -o "coverage.xml"
     - name: SonarCloud Scan
       env: 
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -37,5 +39,6 @@ jobs:
         args: >
           -Dsonar.organization=preira
           -Dsonar.projectKey=preira_FastCSharp
+          -Dsonar.cs.vscoveragexml.reportsPaths=coverage.xml
         # Set the sonar.projectBaseDir analysis property
         projectBaseDir: # optional, default is .      
