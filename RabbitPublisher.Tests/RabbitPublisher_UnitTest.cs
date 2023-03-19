@@ -91,25 +91,25 @@ public class RabbitPublisher_UnitTest
     public void FailToCreateNewDirectPublisher()
     {
         var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
-        Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
+        Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
     public void CreateNewDirectPublisherWithoutFailedConfiguration()
     {
         var exchange = new RabbitDirectExchangeFactory(emptyConfiguration, loggerFactory);
-        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
     public void CreateTopicPublisherWithoutFailedConfiguration()
     {
         var exchange = new RabbitTopicExchangeFactory(emptyConfiguration, loggerFactory);
-        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
-    public void FailCreateTopicPublisherWithoutEchangeConfiguration()
+    public void FailCreateTopicPublisherWithoutExchangeConfiguration()
     {
         var configuration = new Mock<IConfiguration>();
         var section = new Section(); 
@@ -117,11 +117,11 @@ public class RabbitPublisher_UnitTest
         configuration.Setup(c => c.GetSection(nameof(RabbitPublisherConfig)))
             .Returns(section);
         var exchange = new RabbitTopicExchangeFactory(configuration.Object, loggerFactory);
-        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
-    public void CreateTopicPublisherWithoutMissingRoutingKey()
+    public void CreateTopicPublisherWithMissingRoutingKey()
     {
         var exchange = new RabbitTopicExchangeFactory(configuration, loggerFactory);
         Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".snail."));
