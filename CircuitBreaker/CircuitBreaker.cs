@@ -122,11 +122,13 @@ public class BlockingCircuitBreaker : AbstractBreaker
     {
         if (IsOpen())
         {
-            // Since Sleep trunkates the interval value at milliseconds, we need to round up
+            // Since Sleep truncates the interval value at milliseconds, we need to round up
             // to make sure the elapse time is greater than the remaing interval.
             // Otherwise it will interfere with tests.
             var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
             var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
+            // TODO: consider using Task.Delay with a cancelation token that can be used via interface.
+            // another difference is that the thread will be able to pickup another message... needs testing
             Thread.Sleep(millisecondsTimeout);
             throw new OpenCircuitException();
         }
