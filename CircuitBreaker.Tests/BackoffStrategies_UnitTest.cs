@@ -116,7 +116,7 @@ public class RandomBackoff_Tests
 public class RandomIncrementalBackoff_Tests
 {
     [Fact]
-    public void CreateStrategy()
+    public void RandomIncrementalBackoff_CreateStrategy()
     {
         TimeSpan duration = new TimeSpan(0, 0, 5);
         TimeSpan increment = new TimeSpan(0, 0, 5);
@@ -125,7 +125,7 @@ public class RandomIncrementalBackoff_Tests
     }
 
     [Fact]
-    public void NextDurationsAreIncrements()
+    public void RandomIncrementalBackoff_NextDurationsAreIncrements()
     {
         TimeSpan duration = new TimeSpan(0, 0, 5);
         TimeSpan increment = new TimeSpan(0, 0, 5);
@@ -235,7 +235,7 @@ public class RandomIncrementalBackoff_Tests
     }
 
     [Fact]
-    public void NextDurationsAreIncrementsMultiples()
+    public void RandomIncrementalBackoff_NextDurationsAreIncrementsMultiples()
     {
         TimeSpan duration = new TimeSpan(0, 0, 5);
         TimeSpan increment = new TimeSpan(0, 0, 3);
@@ -255,7 +255,7 @@ public class RandomIncrementalBackoff_Tests
     }
 
     [Fact]
-    public void ResetBackoff()
+    public void RandomIncrementalBackoff_ResetBackoff()
     {
         TimeSpan duration = new TimeSpan(0, 0, 5);
         TimeSpan increment = new TimeSpan(0, 0, 5);
@@ -264,6 +264,19 @@ public class RandomIncrementalBackoff_Tests
         Assert.NotEqual<TimeSpan>(duration, backoff.Duration);
         backoff.Reset();
         Assert.Equal<TimeSpan>(duration, backoff.Duration);
+    }
+
+    [Fact]
+    public void RandomBackoff_ResetBackoff()
+    {
+        TimeSpan duration = new TimeSpan(0, 0, 5);
+        TimeSpan increment = new TimeSpan(0, 0, 5);
+        RandomBackoff backoff = new RandomBackoff(duration, increment);
+        Assert.True(duration < backoff.Duration, $"Duration should add increment. duration < backoff.Duration : {duration} <= {backoff.Duration}");
+        Assert.True(duration + increment > backoff.Duration, $"Duration should add increment. duration > backoff.Duration : {duration} >= {backoff.Duration}");
+        backoff.Reset();
+        Assert.True(duration < backoff.Duration, $"Duration should add increment. duration < backoff.Duration : {duration} <= {backoff.Duration}");
+        Assert.True(duration + increment > backoff.Duration, $"Duration should add increment. duration > backoff.Duration : {duration} >= {backoff.Duration}");
     }
 }
 

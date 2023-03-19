@@ -58,7 +58,11 @@ public class CircuitBreaker_Tests
             );
 
         Assert.NotNull(circuit);
-        Assert.NotNull(circuit.IsHalfclosed());
+        Assert.False(circuit.IsHalfclosed());
+        circuit.Closing();
+        Assert.True(circuit.IsHalfclosed());
+        circuit.Open(Util._millisec_backoff);
+        Assert.False(circuit.IsHalfclosed());
     }
 
     [Fact]

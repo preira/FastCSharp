@@ -9,7 +9,7 @@ using FastCSharp.Publisher;
 /// implementation AsyncPublish.
 /// </summary>
 /// <typeparam name="T">The type of object to be published</typeparam>
-public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
+public abstract class AbstractPublisher<T> : IPublisher<T>
 {
     protected bool disposed = false;
     readonly List<Handler<T>> handlers;

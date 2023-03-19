@@ -98,7 +98,6 @@ public class RandomBackoff : IBackoffStrategy
     public TimeSpan Duration
     {
         get => backoff + Rnd.GetRandomDouble(precision) * increment;
-        private set => backoff = value;
     }
     public void Reset() { /* intentionally empty. Nothing to do here. */ }
 }
