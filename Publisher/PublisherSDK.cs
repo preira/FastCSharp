@@ -92,7 +92,7 @@ public abstract class AbstractPublisher<T> : IPublisher<T>, IDisposable
     /// <summary>
     /// Should dispose of any managed and unmanaged resources.
     /// </summary>
-    public abstract void Dispose(bool disposing);
+    protected abstract void Dispose(bool disposing);
 
     ~AbstractPublisher()
     {

@@ -1,4 +1,3 @@
-
 namespace FastCSharp.CircuitBreaker;
 
 /// <summary>
@@ -84,7 +83,7 @@ public class RandomBackoff : IBackoffStrategy
 {
     TimeSpan backoff;
     readonly TimeSpan increment;
-    Random sequence;
+    readonly int precision = 100000;
 
     /// <summary>
     /// Random backoff strategy provides a random duration value between the initial duration and 
@@ -96,14 +95,13 @@ public class RandomBackoff : IBackoffStrategy
     {
         backoff = duration;
         increment = maxIncrement;
-        sequence = new Random(DateTime.Now.Nanosecond);
     }
     public TimeSpan Duration
     {
-        get => backoff + sequence.NextDouble() * increment;
+        get => backoff + Rnd.GetRandomDouble(precision) * increment;
         private set => backoff = value;
     }
-    public void Reset() => sequence = new Random(DateTime.Now.Nanosecond);
+    public void Reset() { /* intentionally empty. Nothing to do here. */ }
 }
 
 /// <summary>
@@ -116,7 +114,7 @@ public class RandomIncrementalBackoff : IBackoffStrategy
     readonly TimeSpan increments;
     int counter;
     readonly long maxIncrements;
-    Random sequence;
+    readonly private int precision = 100000;
     /// <summary>
     /// Implements a backoff strategy that continuously adds increments randomly generated between 0 and increments. 
     /// </summary>
@@ -129,7 +127,6 @@ public class RandomIncrementalBackoff : IBackoffStrategy
         this.increments = increments;
         this.maxIncrements = maxIncrements;
         backoff = initialBackoff;
-        sequence = new Random(DateTime.Now.Nanosecond);
         counter = 0;
     }
     public TimeSpan Duration
@@ -143,12 +140,12 @@ public class RandomIncrementalBackoff : IBackoffStrategy
             }
             else if (counter <  maxIncrements)
             {
-                backoff += (sequence.NextDouble() * increments);
+                backoff += (Rnd.GetRandomDouble(precision) * increments);
                 return backoff;
             }
             else
             {
-                return backoff + sequence.NextDouble() * increments;
+                return backoff + Rnd.GetRandomDouble(precision) * increments;
             }
         }
 
@@ -156,7 +153,6 @@ public class RandomIncrementalBackoff : IBackoffStrategy
     }
     public void Reset()
     {
-        sequence = new Random(DateTime.Now.Nanosecond);
         backoff = initialBackoff;
         counter = 0;
     } 

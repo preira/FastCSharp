@@ -149,6 +149,9 @@ _TeamCity*
 coverage*.json
 coverage*.xml
 coverage*.info
+
+# Manual testing and reporting
+test-and-report.bat
 coverage-report
 
 # Visual Studio code coverage results

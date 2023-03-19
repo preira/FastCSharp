@@ -38,7 +38,7 @@ class TestPublisher : AbstractPublisher<string>
         rc = remote;
     }
 
-    public override void Dispose(bool disposing)
+    protected override void Dispose(bool disposing)
     {
         rc.HasBeenDisposed = true;
     }

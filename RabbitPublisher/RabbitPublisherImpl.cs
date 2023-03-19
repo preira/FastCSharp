@@ -83,7 +83,7 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
             {
                 logger.LogError("[INITIALIZATION ERROR] {messsage}", ex.Message);
             }
-            logger.LogDebug(ex.StackTrace);
+            logger.LogDebug("{stackTrace}", ex.StackTrace);
             isInitialized = false;
             return false;
         }
@@ -93,7 +93,7 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
 
     protected abstract void ResourceDeclarePassive(IModel channel);
 
-    public override void Dispose(bool disposing)
+    protected override void Dispose(bool disposing)
     {
         if(!disposed)
         {

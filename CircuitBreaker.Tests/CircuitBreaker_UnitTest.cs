@@ -6,9 +6,9 @@ namespace Circuit_Breaker.Tests;
 
 public static class Util
 {
-    public static TimeSpan increment = new TimeSpan(0, 0, 0, 0, 0, 100);
-    public static readonly long attemptsThreshold = 2;
-    public static TimeSpan _millisec_backoff = new TimeSpan(0, 0, 0, 0, 5);
+    static TimeSpan increment = new TimeSpan(0, 0, 0, 0, 0, 100);
+    static readonly long attemptsThreshold = 2;
+    public readonly static TimeSpan _millisec_backoff = new TimeSpan(0, 0, 0, 0, 5);
     public static bool ExecuteThrowNotImplementedException(AbstractBreaker circuit, bool Success)
     {
         Assert.Throws<NotImplementedException>(
