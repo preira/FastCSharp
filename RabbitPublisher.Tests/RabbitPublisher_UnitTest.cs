@@ -4,6 +4,7 @@ using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Moq;
+using Microsoft.Extensions.Primitives;
 
 namespace FastCSharp.RabbitPublisher.Tests;
 
@@ -78,9 +79,12 @@ public class RabbitPublisher_UnitTest
     public void CreateNewDirectPublisher()
     {
         var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
-        var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE");
-        Assert.NotNull(publisher);
-        publisher.Dispose();
+        {
+            var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE");
+            Assert.NotNull(publisher);
+        }
+        GC.Collect();
+        Assert.NotNull(exchange);
     }
 
     [Fact]
@@ -101,6 +105,18 @@ public class RabbitPublisher_UnitTest
     public void CreateTopicPublisherWithoutFailedConfiguration()
     {
         var exchange = new RabbitTopicExchangeFactory(emptyConfiguration, loggerFactory);
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
+    }
+
+    [Fact]
+    public void FailCreateTopicPublisherWithoutEchangeConfiguration()
+    {
+        var configuration = new Mock<IConfiguration>();
+        var section = new Section(); 
+        var config = new Mock<RabbitPublisherConfig>();
+        configuration.Setup(c => c.GetSection(nameof(RabbitPublisherConfig)))
+            .Returns(section);
+        var exchange = new RabbitTopicExchangeFactory(configuration.Object, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.ECHANGE", "TASK_QUEUE"));
     }
 
@@ -390,5 +406,42 @@ public class RabbitPublisher_UnitTest
         mockedModel.Verify(model => 
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<System.ReadOnlyMemory<Byte>>()), Times.AtLeastOnce());
+    }
+}
+
+class Section : IConfigurationSection
+{
+    public string? this[string key] 
+    { 
+        get => throw new NotImplementedException(); 
+        set => throw new NotImplementedException(); 
+    }
+
+    public string Key => throw new NotImplementedException();
+
+    public string Path => throw new NotImplementedException();
+
+    public string? Value 
+    {   
+        get 
+        {
+            return null;
+        } 
+        set { } 
+    }
+
+    public IEnumerable<IConfigurationSection> GetChildren()
+    {
+        return new List<IConfigurationSection>();
+    }
+
+    public IChangeToken GetReloadToken()
+    {
+        throw new NotImplementedException();
+    }
+
+    public IConfigurationSection GetSection(string key)
+    {
+        throw new NotImplementedException();
     }
 }

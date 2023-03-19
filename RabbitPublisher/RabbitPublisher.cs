@@ -31,7 +31,8 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
     protected AbstractRabbitExchangeFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     {
         this.ILoggerFactory = ILoggerFactory;
-        configuration.GetSection(nameof(RabbitPublisherConfig)).Bind(config);
+        var section = configuration.GetSection(nameof(RabbitPublisherConfig));
+        section.Bind(config);
 
         connectionFactory = new ConnectionFactory
         {
@@ -129,13 +130,13 @@ internal static class Util
 {
     internal static string SafelyExtractExchageName(ExchangeConfig exchange, string exchangeType)
     {
-        if (exchange.Type?.ToLower() != exchangeType)
-        {
-            throw new ArgumentException($"There is a problem in your configuration. You are trying to use a {exchangeType} with a {exchange.Type} configuration.");
-        }
         if (exchange.Name == null)
         {
             throw new ArgumentException($"There is a problem in your configuration. You are missing the exchange name.");
+        }
+        if (exchange.Type?.ToLower() != exchangeType)
+        {
+            throw new ArgumentException($"There is a problem in your configuration. You are trying to use a {exchangeType} with a {exchange.Type} configuration.");
         }
         return exchange.Name;
     }
