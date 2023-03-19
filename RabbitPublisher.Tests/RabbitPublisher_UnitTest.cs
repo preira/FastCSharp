@@ -80,6 +80,7 @@ public class RabbitPublisher_UnitTest
         var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
         var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE");
         Assert.NotNull(publisher);
+        publisher.Dispose();
     }
 
     [Fact]
@@ -123,6 +124,7 @@ public class RabbitPublisher_UnitTest
         var exchange = new RabbitFanoutExchangeFactory(configuration, loggerFactory);
         var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT");
         Assert.NotNull(publisher);
+        publisher.Dispose();
     }
 
     [Fact]
@@ -134,6 +136,7 @@ public class RabbitPublisher_UnitTest
         Assert.NotNull(exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".mail."));
         Assert.NotNull(exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".sms."));
         Assert.NotNull(exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".letter."));
+        publisher.Dispose();
     }
 
     [Fact]
@@ -177,7 +180,7 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
-        var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -208,7 +211,7 @@ public class RabbitPublisher_UnitTest
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<System.ReadOnlyMemory<Byte>>())).Throws<Exception>();
 
-        var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -239,7 +242,7 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
-        var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -270,7 +273,7 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
-        var publisher = new FanoutRabbitPublisher<string>(
+        using var publisher = new FanoutRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -289,7 +292,7 @@ public class RabbitPublisher_UnitTest
     }
 
     [Fact]
-    public async void DirectExchange_PublishFailsRecoverThenOk()
+    public async void DirectExchange_PublishRecoverThenOk()
     {
         var mockedFactory = new Mock<IConnectionFactory>();
         var mockedConnection = new Mock<IConnection>();
@@ -305,7 +308,7 @@ public class RabbitPublisher_UnitTest
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<System.ReadOnlyMemory<Byte>>()));
 
-        var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -313,6 +316,40 @@ public class RabbitPublisher_UnitTest
             "TestQueue"
             );
 
+        Assert.False(await publisher.Publish("Test Message"));
+        Assert.True(await publisher.Publish("Test Message"));
+
+        mockedFactory.Verify(factory => factory.CreateConnection(), Times.AtLeastOnce());
+        mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
+
+        mockedModel.Verify(model => 
+            model.BasicPublish("TestExchange", "TestQueue", false, null, 
+                It.IsAny<System.ReadOnlyMemory<Byte>>()), Times.AtLeastOnce());
+    }
+
+    [Fact]
+    public async void DirectExchange_PublishFailsRecoverThenOk()
+    {
+        var mockedFactory = new Mock<IConnectionFactory>();
+        var mockedConnection = new Mock<IConnection>();
+        mockedFactory.Setup(factory => factory.CreateConnection()).Returns(mockedConnection.Object);
+
+        var mockedModel = new Mock<IModel>();
+        mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
+        var sequence = new MockSequence();
+        mockedModel.InSequence(sequence).Setup(channel => channel.WaitForConfirmsOrDie(It.IsAny<TimeSpan>())).Throws<Exception>();
+        mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
+        mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
+
+        using var publisher = new DirectRabbitPublisher<string>(
+            mockedFactory.Object,
+            loggerFactory,
+            "TestExchange",
+            Timeout.InfiniteTimeSpan,
+            "TestQueue"
+            );
+
+        Assert.False(await publisher.Publish("Test Message"));
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
@@ -335,10 +372,8 @@ public class RabbitPublisher_UnitTest
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
         var sequence = new MockSequence();
         mockedModel.InSequence(sequence).Setup(channel => channel.WaitForConfirmsOrDie(It.IsAny<TimeSpan>())).Throws<Exception>();
-        mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
-        mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
 
-        var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new TopicRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -346,7 +381,6 @@ public class RabbitPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.Publish("Test Message"));
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
