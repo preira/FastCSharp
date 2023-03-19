@@ -137,7 +137,7 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
-        var publisher = new DirectRMQPublisher<string>(
+        var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -168,7 +168,7 @@ public class RabbitPublisher_UnitTest
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<System.ReadOnlyMemory<Byte>>())).Throws<Exception>();
 
-        var publisher = new DirectRMQPublisher<string>(
+        var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -199,7 +199,7 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
-        var publisher = new DirectRMQPublisher<string>(
+        var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -231,7 +231,7 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
-        var publisher = new FanoutRMQPublisher<string>(
+        var publisher = new FanoutRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -267,7 +267,7 @@ public class RabbitPublisher_UnitTest
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<System.ReadOnlyMemory<Byte>>()));
 
-        var publisher = new DirectRMQPublisher<string>(
+        var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -301,7 +301,7 @@ public class RabbitPublisher_UnitTest
         mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
         mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
 
-        var publisher = new DirectRMQPublisher<string>(
+        var publisher = new DirectRabbitPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",

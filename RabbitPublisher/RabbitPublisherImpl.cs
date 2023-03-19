@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FastCSharp.RabbitPublisher.Impl;
 
-public abstract class AbstractRMQPublisher<T> : AbstractPublisher<T>
+public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
 {
     protected readonly string exchangeName;
     protected readonly string routingKey;
@@ -15,7 +15,7 @@ public abstract class AbstractRMQPublisher<T> : AbstractPublisher<T>
     readonly private ILogger logger;
     private bool isInitialized = false;
 
-    protected AbstractRMQPublisher(
+    protected AbstractRabbitPublisher(
         IConnectionFactory factory,
         ILoggerFactory ILoggerFactory,
         string exchange,
@@ -23,7 +23,7 @@ public abstract class AbstractRMQPublisher<T> : AbstractPublisher<T>
         string key = "")
     : base()
     {
-        logger = ILoggerFactory.CreateLogger<AbstractRMQPublisher<T>>();
+        logger = ILoggerFactory.CreateLogger<AbstractRabbitPublisher<T>>();
         confirmTimeout = timeout;
         exchangeName = exchange;
         routingKey = key;
@@ -106,10 +106,10 @@ public abstract class AbstractRMQPublisher<T> : AbstractPublisher<T>
         }
     }
 }
-public class DirectRMQPublisher<T> : AbstractRMQPublisher<T>
+public class DirectRabbitPublisher<T> : AbstractRabbitPublisher<T>
 {
     readonly private ILogger logger;
-    public DirectRMQPublisher(
+    public DirectRabbitPublisher(
         IConnectionFactory factory,
         ILoggerFactory ILoggerFactory,
         string exchange,
@@ -117,7 +117,7 @@ public class DirectRMQPublisher<T> : AbstractRMQPublisher<T>
         string routingKey)
         : base(factory, ILoggerFactory, exchange, timeout, key: routingKey)
     {
-        logger = ILoggerFactory.CreateLogger<DirectRMQPublisher<T>>();
+        logger = ILoggerFactory.CreateLogger<DirectRabbitPublisher<T>>();
     }
 
     protected override void ResourceDeclarePassive(IModel channel)
@@ -146,9 +146,9 @@ public class DirectRMQPublisher<T> : AbstractRMQPublisher<T>
     }
 }
 
-public class FanoutRMQPublisher<T> : AbstractRMQPublisher<T>
+public class FanoutRabbitPublisher<T> : AbstractRabbitPublisher<T>
 {
-    public FanoutRMQPublisher(
+    public FanoutRabbitPublisher(
         IConnectionFactory factory, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
@@ -161,9 +161,9 @@ public class FanoutRMQPublisher<T> : AbstractRMQPublisher<T>
 
 }
 
-public class TopicRMQPublisher<T> : AbstractRMQPublisher<T>
+public class TopicRabbitPublisher<T> : AbstractRabbitPublisher<T>
 {
-    public TopicRMQPublisher(IConnectionFactory factory, 
+    public TopicRabbitPublisher(IConnectionFactory factory, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
         TimeSpan timeout, 

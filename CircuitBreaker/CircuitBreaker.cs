@@ -11,7 +11,7 @@ public abstract class AbstractBreaker : Breaker
 {
     CircuitStatus Status { get; set; }
     protected DateTime lastOpenTimestamp;
-    protected DateTime lastCloseTimestamp;
+    protected DateTime closeTimestamp;
 
     protected AbstractBreaker(BreakerStrategy strategy) : base(strategy)
     {
@@ -21,7 +21,7 @@ public abstract class AbstractBreaker : Breaker
     public override void Open(TimeSpan duration)
     {
         lastOpenTimestamp = DateTime.Now;
-        lastCloseTimestamp = lastOpenTimestamp + duration;
+        closeTimestamp = lastOpenTimestamp + duration;
         Status = CircuitStatus.OPEN;
     }
 
@@ -33,7 +33,7 @@ public abstract class AbstractBreaker : Breaker
 
     bool IsStillOpen()
     {
-        if (Status == CircuitStatus.OPEN && DateTime.Now > lastCloseTimestamp)
+        if (Status == CircuitStatus.OPEN && DateTime.Now > closeTimestamp)
         {
             // closing will allow for one attempt to be performed.
             Closing();
@@ -42,8 +42,19 @@ public abstract class AbstractBreaker : Breaker
         return Status == CircuitStatus.OPEN;
     }
 
+    /// <summary>
+    /// Wraps the callback with this circuit breaker.
+    /// </summary>
+    /// <param name="callback">The function to be called when circuit is closed.</param>
+    /// <typeparam name="TResult">The return type for the given callback function</typeparam>
+    /// <returns>The callback return, or throws either any Exception that comes out 
+    /// of the callback call or a OpenCircuitException if the circuit is open.</returns>
     public abstract TResult Wrap<TResult>(Func<TResult> callback);
 
+    /// <summary>
+    /// Simplified version of Wrap<TResult> for methods returning void.
+    /// </summary>
+    /// <param name="callback">The function to be called when circuit is closed.</param>
     public virtual void Wrap(Action callback)
     {
         Wrap<Boolean>(() =>
@@ -111,7 +122,12 @@ public class BlockingCircuitBreaker : AbstractBreaker
     {
         if (IsOpen())
         {
-            Thread.Sleep(lastCloseTimestamp - DateTime.Now);
+            // Since Sleep trunkates the interval value at milliseconds, we need to round up
+            // to make sure the elapse time is greater than the remaing interval.
+            // Otherwise it will interfere with tests.
+            var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
+            var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
+            Thread.Sleep(millisecondsTimeout);
             throw new OpenCircuitException();
         }
         else /* either closing or closed */

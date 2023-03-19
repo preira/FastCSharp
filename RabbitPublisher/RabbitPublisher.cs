@@ -67,7 +67,7 @@ public class RabbitDirectExchangeFactory : AbstractRabbitExchangeFactory
         }
 
         string exchangeName = Util.SafelyExtractExchageName(exchange, "direct");
-        return new DirectRMQPublisher<T>(
+        return new DirectRabbitPublisher<T>(
                             factory: connectionFactory,
                             ILoggerFactory: ILoggerFactory,
                             exchange: exchangeName,
@@ -86,7 +86,7 @@ public class RabbitFanoutExchangeFactory : AbstractRabbitExchangeFactory
     protected override IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey)
     {
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
-        return new FanoutRMQPublisher<T>(factory: connectionFactory,
+        return new FanoutRabbitPublisher<T>(factory: connectionFactory,
                             ILoggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout);
@@ -118,7 +118,7 @@ public class RabbitTopicExchangeFactory : AbstractRabbitExchangeFactory
                 throw new KeyNotFoundException($"Could not find the routing key for '{routingKey}' in RoutingKeys of the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
             }
         }
-        return new TopicRMQPublisher<T>(factory: connectionFactory,
+        return new TopicRabbitPublisher<T>(factory: connectionFactory,
                             ILoggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout,

@@ -8,7 +8,7 @@ public static class Util
 {
     public static TimeSpan increment = new TimeSpan(0, 0, 0, 0, 0, 100);
     public static readonly long attemptsThreshold = 2;
-    public static TimeSpan _5millisec_backoff = new TimeSpan(0, 0, 0, 0, 5);
+    public static TimeSpan _millisec_backoff = new TimeSpan(0, 0, 0, 0, 1);
     public static bool ExecuteThrowNotImplementedException(AbstractBreaker circuit, bool Success)
     {
         Assert.Throws<NotImplementedException>(
@@ -43,7 +43,7 @@ public class CircuitBreaker_Tests
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         circuit.Wrap(() => { /*no need to implement*/ });
@@ -55,7 +55,7 @@ public class CircuitBreaker_Tests
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Boolean Success = false;
@@ -68,7 +68,7 @@ public class CircuitBreaker_Tests
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
@@ -107,7 +107,7 @@ public class CircuitBreaker_Tests
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
@@ -129,7 +129,7 @@ public class CircuitBreaker_Tests
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
@@ -146,7 +146,7 @@ public class CircuitBreaker_Tests
 
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
-        Thread.Sleep(Util._5millisec_backoff);
+        Thread.Sleep(Util._millisec_backoff);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -158,7 +158,7 @@ public class CircuitBreaker_Tests
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
@@ -176,7 +176,7 @@ public class CircuitBreaker_Tests
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
 
-        Thread.Sleep(Util._5millisec_backoff);
+        Thread.Sleep(Util._millisec_backoff);
         Success = false;
         circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute after timeout!");
@@ -192,7 +192,7 @@ public class BlockingCircuitBreaker_Tests
     {
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         circuit.Wrap(() =>{ /*no need to implement*/ });
@@ -204,7 +204,7 @@ public class BlockingCircuitBreaker_Tests
     {
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Boolean Success = false;
@@ -217,7 +217,7 @@ public class BlockingCircuitBreaker_Tests
     {
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
@@ -255,7 +255,7 @@ public class BlockingCircuitBreaker_Tests
     {
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
@@ -277,7 +277,7 @@ public class BlockingCircuitBreaker_Tests
         DateTime startTime = DateTime.Now;
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
@@ -292,11 +292,11 @@ public class BlockingCircuitBreaker_Tests
         Assert.True(circuit.IsOpen(), "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Thread.Sleep(Util._5millisec_backoff);
+        Thread.Sleep(Util._millisec_backoff);
         Success = false;
         circuit.Wrap(() => Success = true);
         TimeSpan elapsedTime = DateTime.Now - startTime;
-        Assert.True(elapsedTime > Util._5millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._5millisec_backoff}");
+        Assert.True(elapsedTime > Util._millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._millisec_backoff}");
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 
@@ -306,7 +306,7 @@ public class BlockingCircuitBreaker_Tests
         DateTime startTime = DateTime.Now;
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._5millisec_backoff))
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed(), "Circuit should start Closed.");
@@ -327,7 +327,7 @@ public class BlockingCircuitBreaker_Tests
                 () => Success = true)
             );
         TimeSpan elapsedTime = DateTime.Now - startTime;
-        Assert.True(elapsedTime > Util._5millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._5millisec_backoff}");
+        Assert.True(elapsedTime > Util._millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._millisec_backoff}");
         Success = false;
         circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute after timeout!");
