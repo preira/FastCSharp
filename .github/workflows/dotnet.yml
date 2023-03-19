@@ -21,7 +21,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: required test tools
-      run: dotnet tool install dotnet-coverage
+      run: dotnet tool install --global dotnet-coverage
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
