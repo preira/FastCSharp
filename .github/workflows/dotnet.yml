@@ -34,6 +34,6 @@ jobs:
       uses: SonarSource/sonarcloud-github-action@v1.9
       with:
         # Additional arguments to the sonarcloud scanner
-        args: /k:"preira_FastCSharp" /o:"preira"
+        args: "sonar.projectKey": "preira_FastCSharp" "sonar.organization": "preira"
         # Set the sonar.projectBaseDir analysis property
         projectBaseDir: # optional, default is .      
