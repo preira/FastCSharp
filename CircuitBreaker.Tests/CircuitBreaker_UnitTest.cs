@@ -50,6 +50,18 @@ public class CircuitBreaker_Tests
     }
 
     [Fact]
+    public void IsHalfClosed_Coverage()
+    {
+        var circuit =
+            new CircuitBreaker(
+                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+            );
+
+        Assert.NotNull(circuit);
+        Assert.NotNull(circuit.IsHalfclosed());
+    }
+
+    [Fact]
     public void SuccessfulExecutionCircuit()
     {
         var circuit =

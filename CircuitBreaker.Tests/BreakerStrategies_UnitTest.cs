@@ -1,5 +1,6 @@
 using Xunit;
 using FastCSharp.CircuitBreaker;
+using FastCSharp;
 
 namespace Circuit_Breaker.Tests;
 
@@ -112,6 +113,16 @@ public class ConsecutiveFailuresBreaker_Tests
         strategy.RegisterSucess();
         // should be closed
         Assert.Equal<Callee>(Callee.CLOSED, breaker.Callee);
+    }
+
+    [Fact]
+    public void DontRegisterBreaker()
+    {
+        BreakerStrategy strategy = ConsecutiveFailuresBreaker_Tests.CreateOpenImmediatelyStrategy();
+
+        Assert.Throws<IncorrectInitializationException>(() => strategy.RegisterUncontrolledFailure());
+        Assert.Throws<IncorrectInitializationException>(() => strategy.RegisterSucess());
+        Assert.Throws<IncorrectInitializationException>(() => strategy.RegisterFailure());
     }
 
     [Fact]
