@@ -27,6 +27,8 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: SonarCloud Scan
+      env: 
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       # You may pin to the exact commit or the version.
       # uses: SonarSource/sonarcloud-github-action@db501078e936e4b4c8773d1bb949ba9ddb7b6b6a
       uses: SonarSource/sonarcloud-github-action@v1.9
