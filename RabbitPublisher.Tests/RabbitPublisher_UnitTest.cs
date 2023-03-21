@@ -83,7 +83,8 @@ public class RabbitPublisher_UnitTest
             var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE");
             Assert.NotNull(publisher);
         }
-        GC.Collect();
+        GC.Collect(0, GCCollectionMode.Forced);
+        GC.WaitForPendingFinalizers();
         Assert.NotNull(exchange);
     }
 
