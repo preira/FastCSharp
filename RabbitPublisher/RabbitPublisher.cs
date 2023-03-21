@@ -103,37 +103,22 @@ public class RabbitTopicExchangeFactory : AbstractRabbitExchangeFactory
     protected override IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey)
     {
         string exchangeName = Util.SafelyExtractExchageName(exchange, "topic");
-        if (routingKey != "")
+        if (routingKey == "" || exchange?.RoutingKeys?.Contains(routingKey))
         {
-            bool isKO = true;
-            if (exchange.RoutingKeys == null)
-            {
-                isKO = true;
-            }
-            else
-            {
-                isKO = !exchange.RoutingKeys.Contains(routingKey);
-            }
-            if (isKO)
-            {
-                throw new KeyNotFoundException($"Could not find the routing key for '{routingKey}' in RoutingKeys of the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
-            }
+            return new TopicRabbitPublisher<T>(factory: connectionFactory,
+                                ILoggerFactory,
+                                exchange: exchangeName,
+                                timeout: config.Timeout,
+                                routingKey: routingKey);
         }
-        return new TopicRabbitPublisher<T>(factory: connectionFactory,
-                            ILoggerFactory,
-                            exchange: exchangeName,
-                            timeout: config.Timeout,
-                            routingKey: routingKey);
+        throw new KeyNotFoundException($"Could not find the routing key for '{routingKey}' in RoutingKeys of the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
     }
 }
+
 internal static class Util
 {
     internal static string SafelyExtractExchageName(ExchangeConfig exchange, string exchangeType)
     {
-        if (exchange.Name == null)
-        {
-            throw new ArgumentException($"There is a problem in your configuration. You are missing the exchange name.");
-        }
         if (exchange.Type?.ToLower() != exchangeType)
         {
             throw new ArgumentException($"There is a problem in your configuration. You are trying to use a {exchangeType} with a {exchange.Type} configuration.");
