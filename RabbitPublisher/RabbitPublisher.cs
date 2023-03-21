@@ -124,6 +124,6 @@ internal static class Util
         {
             throw new ArgumentException($"There is a problem in your configuration. You are trying to use a {exchangeType} with a {exchange.Type} configuration.");
         }
-        return exchange.Name;
+        return exchange.Name ?? "";
     }
 }
