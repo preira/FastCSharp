@@ -103,9 +103,8 @@ public class RabbitTopicExchangeFactory : AbstractRabbitExchangeFactory
     protected override IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey)
     {
         string exchangeName = Util.SafelyExtractExchageName(exchange, "topic");
-        var isOk = exchange?.RoutingKeys?.Contains(routingKey);
-        isOk ?= false;
-        if (routingKey == "" || exchange?.RoutingKeys?.Contains(routingKey))
+        var isOk = exchange?.RoutingKeys?.Contains(routingKey) ?? false;
+        if (routingKey == "" || isOk)
         {
             return new TopicRabbitPublisher<T>(factory: connectionFactory,
                                 ILoggerFactory,
