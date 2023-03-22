@@ -2,6 +2,7 @@
 
 namespace FastCSharp;
 
+[Serializable]
 public class CircuitException : Exception
 {
     public CircuitException() : base()
@@ -24,6 +25,7 @@ public class CircuitException : Exception
 }
 
 
+[Serializable]
 public class OpenCircuitException: Exception
 {
     public OpenCircuitException() : base()
@@ -45,6 +47,7 @@ public class OpenCircuitException: Exception
     }
 }
 
+[Serializable]
 public class IncorrectInitializationException : Exception
 {
     public IncorrectInitializationException() : base()

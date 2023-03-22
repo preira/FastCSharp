@@ -94,11 +94,6 @@ public abstract class AbstractPublisher<T> : IPublisher<T>
     /// </summary>
     protected abstract void Dispose(bool disposing);
 
-    ~AbstractPublisher()
-    {
-        Dispose(false);
-    }
-
     /// <summary>
     /// Adds a Message Handler to a chain of observers. The order by which the Handlers are added 
     /// will be respected when processing an objet to be sent.
