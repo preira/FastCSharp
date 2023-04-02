@@ -400,6 +400,29 @@ public class RabbitSubscriber_UnitTest
     }
 
     [Fact]
+    public void Test_ResetOK()
+    {
+        var connectionFactory = new Mock<IConnectionFactory>();
+        var queue = new RabbitQueueConfig()
+        {
+            Name = "queue.name",
+            PrefetchCount = 1,
+            PrefetchSize = 0,
+        };
+        var connection = new Mock<IConnection>();
+        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
+        var model = new Mock<IModel>();
+        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        {
+            subscriber.Register(async (msg) => await new Task<bool>(() => true));
+            subscriber.Reset();
+        }
+        model.Verify(channel => channel.QueueDeclarePassive(queue.Name), Times.Exactly(2));
+    }
+
+    [Fact]
     public void Test_UnSubscribe()
     {
         var connectionFactory = new Mock<IConnectionFactory>();

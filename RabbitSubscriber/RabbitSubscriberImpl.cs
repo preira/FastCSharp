@@ -35,17 +35,17 @@ public class RabbitQueueConfig
     public uint? PrefetchSize { get; set; }
 }
 
-public class RabbitSubscriber<T> : AbstractSubscriber<T>, IDisposable
+public class RabbitSubscriber<T> : AbstractSubscriber<T>
 {
-    private IConnectionFactory connectionFactory;
-    private RabbitQueueConfig q;
+    readonly private IConnectionFactory connectionFactory;
+    readonly private RabbitQueueConfig q;
     private IConnection connection;
     private IModel channel;
 
-    private ILogger<RabbitSubscriber<T>> logger;
+    readonly private ILogger<RabbitSubscriber<T>> logger;
     private OnMessageCallback<T>? _callback;
 
-    private string _consumerTag;
+    readonly private string _consumerTag;
     public string ConsumerTag
     {
         get => _consumerTag;
@@ -167,13 +167,13 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>, IDisposable
             {
                 // Deserialization exception is a final exception and removes the message from the queue.
                 logger.LogError("Discarding unparseable message with id: {messageId}", ea?.BasicProperties.MessageId);
-                logger.LogError(e.Message);
+                logger.LogError("Error: {message}", e.Message);
                 channel.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: false);
             }
             catch (Exception e)
             {
                 logger.LogError("Discarding unparseable message with id: {messageId}", ea?.BasicProperties?.MessageId);
-                logger.LogError(e.Message);
+                logger.LogError("Error: {message}", e.Message);
                 channel.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: true);
                 throw;
             }

@@ -47,10 +47,10 @@ public class RabbitSubscriberConfig
 /// </summary>
 public class RabbitSubscriberFactory : ISubscriberFactory
 {
-    private ConnectionFactory connectionFactory;
-    private RabbitSubscriberConfig config = new();
-    private IDictionary<string, RabbitQueueConfig?> queues;
-    private ILoggerFactory _loggerFactory;
+    readonly private ConnectionFactory connectionFactory;
+    readonly private RabbitSubscriberConfig config = new();
+    readonly private IDictionary<string, RabbitQueueConfig?> queues;
+    readonly private ILoggerFactory _loggerFactory;
 
     /// <summary>
     /// Creates a new RabbitMQ Subscriber Factory given a configuration and a logger factory.
@@ -83,22 +83,22 @@ public class RabbitSubscriberFactory : ISubscriberFactory
         }
     }
 
-    public ISubscriber<T> NewSubscriber<T>(string queueName)
+    public ISubscriber<T> NewSubscriber<T>(string messageOrigin)
     {
         try
         {
-            RabbitQueueConfig? queue = queues[queueName];
+            RabbitQueueConfig? queue = queues[messageOrigin];
 
             if (queue == null || queue.Name == null || queue.Name == string.Empty)
             {
-                throw new ArgumentException($"Could not find the queue for '{queueName}' in the section {nameof(RabbitSubscriberConfig)}. Please check your configuration.");
+                throw new ArgumentException($"Could not find the queue for '{messageOrigin}' in the section {nameof(RabbitSubscriberConfig)}. Please check your configuration.");
             }
 
             return new RabbitSubscriber<T>(connectionFactory, queue, _loggerFactory);
         }
         catch (KeyNotFoundException)
         {
-            throw new ArgumentException($"Could not find the queue for '{queueName}' in the section {nameof(RabbitSubscriberConfig)}. Please check your configuration.");
+            throw new ArgumentException($"Could not find the queue for '{messageOrigin}' in the section {nameof(RabbitSubscriberConfig)}. Please check your configuration.");
         }
     }
 }

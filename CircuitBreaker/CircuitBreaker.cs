@@ -227,7 +227,7 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
         return false;
     }
 
-    private async void TryToRecoverWithDelay()
+    private async Task TryToRecoverWithDelay()
     {
         var now = DateTime.Now;
         if (closeTimestamp.CompareTo(now) < 0)
