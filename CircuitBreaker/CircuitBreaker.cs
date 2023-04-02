@@ -190,13 +190,16 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
     {
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Sonar Code Smell", "CS4014:Because this call is not awaited, execution of the current method continues before the call is completed.", Justification = "Recover has a different cycle than the caller.")]
     public override bool Open(TimeSpan duration)
     {
         _duration = duration;
         if (base.Open(duration))
         {
             OnOpenListenners?.Invoke(this);
+            #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             TryToRecoverWithDelay();
+            #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             return true;
         }
         return false;
