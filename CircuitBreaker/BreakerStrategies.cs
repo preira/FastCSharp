@@ -6,9 +6,9 @@ namespace FastCSharp.CircuitBreaker;
 public abstract class Breaker
 {
     protected BreakerStrategy Strategy { get; private set; }
-    abstract public void Open(TimeSpan duration);
-    abstract public void Close();
-    abstract public void Closing();
+    abstract public bool Open(TimeSpan duration);
+    abstract public bool Close();
+    abstract public bool Closing();
 
     protected Breaker(BreakerStrategy strategy)
     {

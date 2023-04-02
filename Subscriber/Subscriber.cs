@@ -1,14 +1,43 @@
 ﻿namespace FastCSharp.Subscriber;
 
-public delegate Boolean OnMessageCallback<in T>(T? message);
+public delegate Task<Boolean> OnMessageCallback<in T>(T? message);
 public delegate T? Handler<T>(T? message);
 
 /// <summary>
-/// Independent interface to register callbacks for processing messages from a previously given
-/// origin. Handlers can also be registered to form a chain of handlers. 
+/// Serves as independent interface for publishing messages. Usually, implementation uses a
+/// Message Queue. In that case, subscriber will connect to the message queue broker and each
+/// Subscriber will connect to a specific queue.
+/// See the Subscriber implementation for further configuration options.
 /// </summary>
 /// <typeparam name="T">The type of the message object transmited.</typeparam>
-public interface ISubscriber<T>
+/// <remarks>
+/// The Subscriber is a generic class that can be used to subscribe to a message queue or any other
+/// message origin. The message origin is defined by the implementation of the ISubscriberFactory
+/// interface. The Subscriber is a generic class that can be used to subscribe to a message queue or any other
+/// message origin. The message origin is defined by the implementation of the ISubscriberFactory
+/// interface.
+/// </remarks>
+/// <example>
+/// 
+/// <code>
+/// // Create a new SubscriberFactory
+/// ISubscriberFactory factory = new SubscriberFactory();
+/// 
+/// // Create a new Subscriber for the message origin "MyQueue"
+/// ISubscriber<MyMessage> subscriber = factory.NewSubscriber<MyMessage>("MyQueue");
+/// 
+/// // Register a callback function to process the message
+/// subscriber.Register((MyMessage? message) => {
+///    // Do something with the message
+///   return true;
+/// });
+/// 
+/// // Start the subscriber
+/// subscriber.Start();
+/// </code>
+/// 
+/// </example>
+public interface ISubscriber<T> : IDisposable
 {
     /// <summary>
     /// Registers the callback function as a message listenner.
@@ -25,6 +54,13 @@ public interface ISubscriber<T>
     /// <param name="handler"></param>
     /// <returns></returns>
     public ISubscriber<T> AddMsgHandler(Handler<T> handler);
+}
+
+public interface IEventSubscriber<T> : ISubscriber<T>
+{
+    public void Unregister();
+
+    public void AttemptRecovery();
 }
 
 public interface IWorker<in T>
@@ -47,7 +83,7 @@ public interface ISubscriberFactory
     /// with any Handlers you wish to add.
     /// </summary>
     /// <param name="messageOrigin">The message origin from which messges will be retrieved. For a 
-    /// Message Queue system this is tipically the queue name.</param>
+    /// Message Queue system this is tipically the queue indentifier that correlates to the queue config in the Subscriber configuration.</param>
     /// <typeparam name="T">The message object type.</typeparam>
     /// <returns>Returns a ISubscriber independent interface.</returns>
     abstract public ISubscriber<T> NewSubscriber<T>(string messageOrigin);

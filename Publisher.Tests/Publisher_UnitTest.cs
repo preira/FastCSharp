@@ -19,16 +19,6 @@ class RemoteControl<T>
         PublishResult = JsonSerializer.Deserialize<T>(arr);
         return true;
     }
-
-    public void Reset()
-    {
-        HasBeenDisposed = false;
-        IsHealthy = false;
-        HasCalledAsyncPublish = false;
-        IsResetConnection = false;
-        HasResetConnection = false;
-        HasCalledAsyncPublish = false;
-    }
 }
 class TestPublisher : AbstractPublisher<string>
 {
@@ -62,7 +52,7 @@ class TestPublisher : AbstractPublisher<string>
     }
 }
 
-public class UnitTest1
+public class Publisher_UnitTest
 {
     [Fact]
     public void PublisherShouldInvokeDispose()

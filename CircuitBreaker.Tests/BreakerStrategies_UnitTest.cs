@@ -20,18 +20,30 @@ class TestBreaker : Breaker
         Close();
     }
 
-    public override void Close() => Callee = Callee.CLOSED;
-    public override void Closing() => Callee = Callee.HALF_CLOSED;
-    public override void Open(TimeSpan duration) 
+    public override bool Close()
     {
+        var previousStatus = Callee;
+        Callee = Callee.CLOSED;
+        return previousStatus != Callee;
+    }
+
+    public override bool Closing()
+    {
+        Callee = Callee.HALF_CLOSED;
+        return true;
+    }
+    public override bool Open(TimeSpan duration)
+    {
+        var previousStatus = Callee;
         Callee = Callee.OPEN;
         Duration = duration;
+        return previousStatus != Callee;
     }
 
 }
 
 
-public class ConsecutiveFailuresBreaker_Tests
+public class ConsecutiveFailuresBreaker_UnitTests
 {
 
     static TimeSpan timeout = new TimeSpan(0, 0, 0, 0, 0, 100);
@@ -40,7 +52,7 @@ public class ConsecutiveFailuresBreaker_Tests
     [Fact]
     public void CreateNotNullStrategy()
     {
-        BreakerStrategy strategy = ConsecutiveFailuresBreaker_Tests.CreateOpenImmediatelyStrategy();
+        BreakerStrategy strategy = ConsecutiveFailuresBreaker_UnitTests.CreateOpenImmediatelyStrategy();
 
         Assert.NotNull(strategy);
     }
@@ -48,7 +60,7 @@ public class ConsecutiveFailuresBreaker_Tests
     [Fact]
     public void StrategyShouldOpenCircuitBreaker()
     {
-        BreakerStrategy strategy = ConsecutiveFailuresBreaker_Tests.CreateOpenImmediatelyStrategy();
+        BreakerStrategy strategy = ConsecutiveFailuresBreaker_UnitTests.CreateOpenImmediatelyStrategy();
 
         TestBreaker breaker = new TestBreaker(strategy);
         strategy.RegisterUncontrolledFailure();
@@ -60,7 +72,7 @@ public class ConsecutiveFailuresBreaker_Tests
     [Fact]
     public void StrategyShouldOpenCircuitAfterThresholdFailures()
     {
-        BreakerStrategy strategy = ConsecutiveFailuresBreaker_Tests.CreateOpenImmediatelyStrategy();
+        BreakerStrategy strategy = ConsecutiveFailuresBreaker_UnitTests.CreateOpenImmediatelyStrategy();
 
         TestBreaker breaker = new TestBreaker(strategy);
         for (int i = 0; i < attemptsThreshold; ++i)
@@ -79,7 +91,7 @@ public class ConsecutiveFailuresBreaker_Tests
     [Fact]
     public void StrategyShouldContinueOpenAfterMoreThanThresholdFailures()
     {
-        BreakerStrategy strategy = ConsecutiveFailuresBreaker_Tests.CreateOpenImmediatelyStrategy();
+        BreakerStrategy strategy = ConsecutiveFailuresBreaker_UnitTests.CreateOpenImmediatelyStrategy();
 
         TestBreaker breaker = new TestBreaker(strategy);
         int i = 0;
@@ -102,7 +114,7 @@ public class ConsecutiveFailuresBreaker_Tests
     [Fact]
     public void StrategyShouldCloseCircuit()
     {
-        BreakerStrategy strategy = ConsecutiveFailuresBreaker_Tests.CreateOpenImmediatelyStrategy();
+        BreakerStrategy strategy = ConsecutiveFailuresBreaker_UnitTests.CreateOpenImmediatelyStrategy();
 
         TestBreaker breaker = new TestBreaker(strategy);
         strategy.RegisterUncontrolledFailure();
@@ -118,7 +130,7 @@ public class ConsecutiveFailuresBreaker_Tests
     [Fact]
     public void DontRegisterBreaker()
     {
-        BreakerStrategy strategy = ConsecutiveFailuresBreaker_Tests.CreateOpenImmediatelyStrategy();
+        BreakerStrategy strategy = ConsecutiveFailuresBreaker_UnitTests.CreateOpenImmediatelyStrategy();
 
         Assert.Throws<IncorrectInitializationException>(() => strategy.RegisterUncontrolledFailure());
         Assert.Throws<IncorrectInitializationException>(() => strategy.RegisterSucess());

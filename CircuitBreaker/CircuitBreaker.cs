@@ -1,6 +1,6 @@
 namespace FastCSharp.CircuitBreaker;
 
-enum CircuitStatus
+public enum CircuitStatus
 {
     OPEN,
     CLOSED,
@@ -9,29 +9,41 @@ enum CircuitStatus
 
 public abstract class AbstractBreaker : Breaker
 {
-    CircuitStatus Status { get; set; }
+    protected CircuitStatus Status { get; set; }
     protected DateTime lastOpenTimestamp;
     protected DateTime closeTimestamp;
-
     protected AbstractBreaker(BreakerStrategy strategy) : base(strategy)
     {
         Close();
     }
 
-    public override void Open(TimeSpan duration)
+    public override bool Open(TimeSpan duration)
     {
+        var previousStatus = Status;
         lastOpenTimestamp = DateTime.Now;
         closeTimestamp = lastOpenTimestamp + duration;
         Status = CircuitStatus.OPEN;
+        return previousStatus != Status;
     }
+    public override bool Close() 
+    {
+        var previousStatus = Status;
+        Status = CircuitStatus.CLOSED;
+        return previousStatus != Status;
+    } 
 
-    public override void Close() => Status = CircuitStatus.CLOSED;
-    public override void Closing() => Status = CircuitStatus.HALF_CLOSED;
-    public bool IsOpen() => IsStillOpen() && Status == CircuitStatus.OPEN;
-    public bool IsClosed() => !IsStillOpen() && Status == CircuitStatus.CLOSED;
-    public bool IsHalfclosed() => Status == CircuitStatus.HALF_CLOSED;
+    public override bool Closing()
+    {
+        var previousStatus = Status;
+        Status = CircuitStatus.HALF_CLOSED;
+        return previousStatus != Status;
+    } 
 
-    bool IsStillOpen()
+    public bool IsOpen => IsItStillOpen() && Status == CircuitStatus.OPEN;
+    public bool IsClosed => !IsItStillOpen() && Status == CircuitStatus.CLOSED;
+    public bool IsHalfclosed => Status == CircuitStatus.HALF_CLOSED;
+
+    bool IsItStillOpen()
     {
         if (Status == CircuitStatus.OPEN && DateTime.Now > closeTimestamp)
         {
@@ -79,7 +91,7 @@ public class CircuitBreaker : AbstractBreaker
 
     public override TResult Wrap<TResult>(Func<TResult> callback)
     {
-        if (IsOpen())
+        if (IsOpen)
         {
             throw new OpenCircuitException();
         }
@@ -120,15 +132,13 @@ public class BlockingCircuitBreaker : AbstractBreaker
 
     public override TResult Wrap<TResult>(Func<TResult> callback)
     {
-        if (IsOpen())
+        if (IsOpen)
         {
             // Since Sleep truncates the interval value at milliseconds, we need to round up
             // to make sure the elapse time is greater than the remaing interval.
             // Otherwise it will interfere with tests.
             var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
             var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
-            // TODO: consider using Task.Delay with a cancelation token that can be used via interface.
-            // another difference is that the thread will be able to pickup another message... needs testing
             Thread.Sleep(millisecondsTimeout);
             throw new OpenCircuitException();
         }
@@ -154,4 +164,92 @@ public class BlockingCircuitBreaker : AbstractBreaker
             }
         }
     }
+}
+
+// create a circuit breaker that is Event driven, based on the AbstractBreaker class. It should be able to be used as a decorator for any method that returns a value or void.
+public class EventDrivenCircuitBreaker : CircuitBreaker
+{
+    private TimeSpan _duration;
+    private CancellationTokenSource? cancellationTokenSource;
+
+    private event Action<object>? OnResetListenners;
+    public event Action<object> OnReset
+    {
+        add { OnResetListenners += value; }
+        remove { OnResetListenners -= value; }
+    }
+
+    private event Action<object>? OnOpenListenners;
+    public event Action<object> OnOpen
+    {
+        add { OnOpenListenners += value; }
+        remove { OnOpenListenners -= value; }
+    }
+
+    public EventDrivenCircuitBreaker(BreakerStrategy strategy) : base(strategy)
+    {
+    }
+
+    public override bool Open(TimeSpan duration)
+    {
+        _duration = duration;
+        if (base.Open(duration))
+        {
+            OnOpenListenners?.Invoke(this);
+            TryToRecoverWithDelay();
+            return true;
+        }
+        return false;
+    }
+
+    public override bool Closing()
+    {
+        var didItChange = base.Closing();
+        if (didItChange)
+        {
+            OnResetListenners?.Invoke(this);
+        }
+        return didItChange;
+    }
+
+    /// <summary>
+    /// Cancel the backoff and starts the closing of the circuit.
+    /// </summary>
+    /// <returns></returns>
+    public bool CancelBackoff()
+    {
+        if (Status != CircuitStatus.CLOSED)
+        {
+            closeTimestamp = DateTime.Now;
+            cancellationTokenSource?.Cancel();
+            return true;
+        }
+        return false;
+    }
+
+    private async void TryToRecoverWithDelay()
+    {
+        var now = DateTime.Now;
+        if (closeTimestamp.CompareTo(now) < 0)
+        {
+            // reset backoff interval
+            closeTimestamp = lastOpenTimestamp + _duration;
+        }
+        var interval = (closeTimestamp - now).TotalMilliseconds;
+        interval = Math.Max(0, interval);
+        var millisecondsDelay = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
+
+        cancellationTokenSource = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(millisecondsDelay, cancellationTokenSource.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            // backoff was cancelled
+        }
+
+        Closing();
+    }
+
 }

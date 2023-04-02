@@ -6,23 +6,44 @@ namespace Subscriber.Tests;
 
 class TestSubscriber : AbstractSubscriber<string>
 {
-    protected override void _Register(OnMessageCallback<string> callback) => callback("ok");
+    protected override void Dispose(bool disposing)
+    {
+    }
+
+    private OnMessageCallback<string>? _callback;
+    public async Task Call()
+    {
+        if(_callback != null)
+        {
+            await _callback("ok");
+        }
+    }
+
+    protected override void _Register(OnMessageCallback<string> callback) => _callback = callback;
 }
 
-public class UnitTest1
+public class Subscriber_UnitTest
 {
     [Fact]
-    public void ShouldCallCallback()
+    public async void ShouldCallCallback()
     {
         bool success = false;
-        var testImplementation = new TestSubscriber();
+        using var testImplementation = new TestSubscriber();
 
-        testImplementation.Register(s => success = true);
+        testImplementation.Register(
+            async (msg) =>
+            {
+                var task = new Task<bool>(() => success = true);
+                task.Start();
+                return await task;
+            }
+        );
+        await testImplementation.Call();
         Assert.True(success, "Should have executed callback.");
     }
 
     [Fact]
-    public void ShouldAddHandler()
+    public async void ShouldAddHandler()
     {
         bool success = false;
         bool isHandlerOk = false;
@@ -30,13 +51,21 @@ public class UnitTest1
         testImplementation.AddMsgHandler(s => { isHandlerOk = true; return s; });
         Assert.False(isHandlerOk, "Shouldn't have executed handler yet.");
 
-        testImplementation.Register(s => success = true);
+        testImplementation.Register(
+            async (msg) =>
+            {
+                var task = new Task<bool>(() => success = true);
+                task.Start();
+                return await task;
+            }
+        );
+        await testImplementation.Call();
         Assert.True(success, "Should have executed callback.");
         Assert.True(isHandlerOk, "Should have executed handler.");
     }
 
     [Fact]
-    public void ShouldAddHandlers()
+    public async void ShouldAddHandlers()
     {
         bool success = false;
         bool isHandler1Ok = false;
@@ -44,10 +73,18 @@ public class UnitTest1
         var testImplementation = new TestSubscriber();
         testImplementation.AddMsgHandler(s => { isHandler1Ok = true; return s; });
         testImplementation.AddMsgHandler(s => { isHandler2Ok = true; return s; });
+
+        testImplementation.Register(
+            async (msg) =>
+            {
+                var task = new Task<bool>(() => success = true);
+                task.Start();
+                return await task;
+            }
+        );
         Assert.False(isHandler1Ok, "Shouldn't have executed handler 1 yet.");
         Assert.False(isHandler2Ok, "Shouldn't have executed handler 2 yet.");
-
-        testImplementation.Register(s => success = true);
+        await testImplementation.Call();
         Assert.True(success, "Should have executed callback.");
         Assert.True(isHandler1Ok, "Should have executed handler 1.");
         Assert.True(isHandler2Ok, "Should have executed handler 2.");

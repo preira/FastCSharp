@@ -3,7 +3,7 @@ using FastCSharp.CircuitBreaker;
 
 namespace Circuit_Breaker.Tests;
 
-public class FixedBackoff_Tests
+public class FixedBackoff_UnitTest
 {
     [Fact]
     public void CreateStrategy()
@@ -32,7 +32,7 @@ public class FixedBackoff_Tests
     }
 }
 
-public class IncrementalBackoff_Tests
+public class IncrementalBackoff_UnitTest
 {
     [Fact]
     public void CreateStrategy()
@@ -85,7 +85,7 @@ public class IncrementalBackoff_Tests
     }
 }
 
-public class RandomBackoff_Tests
+public class RandomBackoff_UnitTest
 {
     [Fact]
     public void BetweenMinAndMax()
@@ -113,7 +113,7 @@ public class RandomBackoff_Tests
     }
 }
 
-public class RandomIncrementalBackoff_Tests
+public class RandomIncrementalBackoff_UnitTest
 {
     [Fact]
     public void RandomIncrementalBackoff_CreateStrategy()

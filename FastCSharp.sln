@@ -21,6 +21,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitPublisher.Tests", "Ra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common.Tests", "Common.Tests\Common.Tests.csproj", "{D5609D2D-4A12-47F5-BC1C-9C8EF8F5DE77}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitSubscriber", "RabbitSubscriber\RabbitSubscriber.csproj", "{25FB2FD2-D906-49BD-8C50-D8CA29CB1453}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitSubscriber.Test", "RabbitSubscriber.Test\RabbitSubscriber.Test.csproj", "{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -66,5 +70,13 @@ Global
 		{D5609D2D-4A12-47F5-BC1C-9C8EF8F5DE77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D5609D2D-4A12-47F5-BC1C-9C8EF8F5DE77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D5609D2D-4A12-47F5-BC1C-9C8EF8F5DE77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25FB2FD2-D906-49BD-8C50-D8CA29CB1453}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25FB2FD2-D906-49BD-8C50-D8CA29CB1453}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25FB2FD2-D906-49BD-8C50-D8CA29CB1453}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25FB2FD2-D906-49BD-8C50-D8CA29CB1453}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

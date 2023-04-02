@@ -3,7 +3,7 @@ using FastCSharp;
 
 namespace Common.Tests;
 
-public class RndTest
+public class Rnd_UnitTest
 {
     [Fact]
     public void GetRandomDouble()

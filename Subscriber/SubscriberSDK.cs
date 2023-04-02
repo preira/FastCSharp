@@ -40,7 +40,6 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
                 {
                     message = handler(message);
                 }
-                // TODO: Async call to trigger event
                 return callback(message);
             });
         return this;
@@ -53,4 +52,17 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
     /// </summary>
     /// <param name="callback">The callback to process the message.</param>    
     protected abstract void _Register(OnMessageCallback<T> callback);
+
+
+    /// <summary>
+    /// Should dispose of any managed and unmanaged resources.
+    /// </summary>
+    protected abstract void Dispose(bool disposing);
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }    
