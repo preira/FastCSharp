@@ -54,6 +54,30 @@ public interface ISubscriber<T> : IDisposable
     /// <param name="handler"></param>
     /// <returns></returns>
     public ISubscriber<T> AddMsgHandler(Handler<T> handler);
+
+    /// <summary>
+    /// Resets the subscriber to its initial state. This will register a new consumer and, 
+    /// if needed, a new connection and channel.
+    /// 
+    /// You may use this method to reset the subscriber after unsubscribing. For example, if you
+    /// want to stop the subscriber for a while and then start it again, you should call this
+    /// method to reset the subscriber.
+    /// 
+    /// This method is useful when the connection to the message broker is lost and the
+    /// subscriber is not able to recover the connection.
+    /// </summary>
+    public void Reset();
+
+    /// <summary>
+    /// Unsubscribes the consumer from the message queue. This will stop the subscriber from
+    /// receiving messages.
+    /// 
+    /// You may use this method to stop the subscriber for a while and then start it again using 
+    /// the Reset method. This is useful to implement a pause/resume functionality such as a
+    /// backoff mechanism.
+    /// </summary>
+    public void UnSubscribe();
+
 }
 
 public interface IEventSubscriber<T> : ISubscriber<T>

@@ -20,6 +20,16 @@ class TestSubscriber : AbstractSubscriber<string>
     }
 
     protected override void _Register(OnMessageCallback<string> callback) => _callback = callback;
+
+    public override void Reset()
+    {
+        return;
+    }
+
+    public override void UnSubscribe()
+    {
+        return;
+    }
 }
 
 public class Subscriber_UnitTest
@@ -73,6 +83,9 @@ public class Subscriber_UnitTest
         var testImplementation = new TestSubscriber();
         testImplementation.AddMsgHandler(s => { isHandler1Ok = true; return s; });
         testImplementation.AddMsgHandler(s => { isHandler2Ok = true; return s; });
+        // Reset and unsubscribe to do nothing here. Just to test that the handlers are called for coverage.
+        testImplementation.Reset();
+        testImplementation.UnSubscribe();
 
         testImplementation.Register(
             async (msg) =>

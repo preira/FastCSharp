@@ -1,6 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <version>0.0.0</version>
+    <Authors>João Pereira</Authors>
+    <Product>FastCSharp.Commons</Product>
+    <Company>FastCSharp</Company>
+
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

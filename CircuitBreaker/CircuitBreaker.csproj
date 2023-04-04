@@ -3,13 +3,20 @@
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Common" Version="0.0.0" ExcludeAssets="Build;Analyzers" /> 
+  </ItemGroup>
 
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>FastCSharp.CircuitBreaker</PackageId>
     <version>0.0.0</version>
-    <Author>João Pereira</Author>
+    <Authors>João Pereira</Authors>
+    <Product>FastCSharp.CircuitBreaker</Product>
     <Company>FastCSharp</Company>
+
+    <Description>Flexible Circuit Breaker implementation that can be configured with a Breaker Strategy and a Backoff Strategy.</Description>
+    <PackageTags>FastCSharp CircuitBreaker BreakerStrategy BackoffStrategy</PackageTags>
 
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

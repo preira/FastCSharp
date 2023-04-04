@@ -3,7 +3,6 @@ using FastCSharp.SDK.Subscriber;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text.Json;
-using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace FastCSharp.RabbitSubscriber.Impl;
@@ -87,7 +86,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     /// <summary>
     /// Use reset to re-register the consumer.
     /// </summary>
-    public void Reset()
+    public override void Reset()
     {
         ResetConnection();
         RegisterConsumer();
@@ -127,7 +126,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     /// <summary>
     /// Use unsubscribe to stop receiving messages.
     /// </summary>
-    public void UnSubscribe()
+    public override void UnSubscribe()
     {
         channel.BasicCancel(ConsumerTag);
     }

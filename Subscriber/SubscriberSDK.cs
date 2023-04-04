@@ -65,4 +65,16 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+
+    /// <summary>
+    /// The subscriber should implement this method to reset the subscriber to its initial state.
+    /// This will register a new consumer and, if needed, a new connection and channel.
+    /// </summary>
+    public abstract void Reset();
+
+    /// <summary>
+    /// The subscriber should implement this method to unsubscribe the consumer from the message queue.
+    /// This will stop the subscriber from receiving messages.
+    /// </summary>
+    public abstract void UnSubscribe();
 }    
