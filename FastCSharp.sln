@@ -27,6 +27,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RabbitSubscriber.Test", "Ra
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csproj", "{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FastCSharp", "FastCSharp\FastCSharp.csproj", "{18E05DBB-4BC3-45FE-AF3E-8A34A39CCC5B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,8 +83,15 @@ Global
 		{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18E05DBB-4BC3-45FE-AF3E-8A34A39CCC5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18E05DBB-4BC3-45FE-AF3E-8A34A39CCC5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18E05DBB-4BC3-45FE-AF3E-8A34A39CCC5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18E05DBB-4BC3-45FE-AF3E-8A34A39CCC5B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A2CBA503-9C9B-49A3-A8AE-FB56087AD422}
 	EndGlobalSection
 EndGlobal
