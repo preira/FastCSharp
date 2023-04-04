@@ -3,35 +3,34 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CircuitBreaker", "CircuitBreaker\CircuitBreaker.csproj", "{7F971962-8B86-4484-814B-226412FA2E64}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CircuitBreaker", "CircuitBreaker\CircuitBreaker.csproj", "{7F971962-8B86-4484-814B-226412FA2E64}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CircuitBreaker.Tests", "CircuitBreaker.Tests\CircuitBreaker.Tests.csproj", "{A9872D1F-FA86-4E05-911D-7E05539EED9A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CircuitBreaker.Tests", "CircuitBreaker.Tests\CircuitBreaker.Tests.csproj", "{A9872D1F-FA86-4E05-911D-7E05539EED9A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Publisher", "Publisher\Publisher.csproj", "{95913B60-2AE1-4F7C-AEEE-9FB15090559B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Publisher", "Publisher\Publisher.csproj", "{95913B60-2AE1-4F7C-AEEE-9FB15090559B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Subscriber", "Subscriber\Subscriber.csproj", "{E4EC541B-F9A2-4BFF-9F6D-196F0E20BD31}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Subscriber", "Subscriber\Subscriber.csproj", "{E4EC541B-F9A2-4BFF-9F6D-196F0E20BD31}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Publisher.Tests", "Publisher.Tests\Publisher.Tests.csproj", "{5F5F5393-DAC0-44FA-BCDD-CD5A9E93DEC6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Publisher.Tests", "Publisher.Tests\Publisher.Tests.csproj", "{5F5F5393-DAC0-44FA-BCDD-CD5A9E93DEC6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Subscriber.Tests", "Subscriber.Tests\Subscriber.Tests.csproj", "{7B59A427-CE39-43DD-88A1-5A3085AFC2CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Subscriber.Tests", "Subscriber.Tests\Subscriber.Tests.csproj", "{7B59A427-CE39-43DD-88A1-5A3085AFC2CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitPublisher", "RabbitPublisher\RabbitPublisher.csproj", "{3B78325F-4B46-4C88-9248-BAD33BB0A1A3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RabbitPublisher", "RabbitPublisher\RabbitPublisher.csproj", "{3B78325F-4B46-4C88-9248-BAD33BB0A1A3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitPublisher.Tests", "RabbitPublisher.Tests\RabbitPublisher.Tests.csproj", "{35087ED4-ADE4-40AB-BF07-AFA759E6B610}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RabbitPublisher.Tests", "RabbitPublisher.Tests\RabbitPublisher.Tests.csproj", "{35087ED4-ADE4-40AB-BF07-AFA759E6B610}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common.Tests", "Common.Tests\Common.Tests.csproj", "{D5609D2D-4A12-47F5-BC1C-9C8EF8F5DE77}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common.Tests", "Common.Tests\Common.Tests.csproj", "{D5609D2D-4A12-47F5-BC1C-9C8EF8F5DE77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitSubscriber", "RabbitSubscriber\RabbitSubscriber.csproj", "{25FB2FD2-D906-49BD-8C50-D8CA29CB1453}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RabbitSubscriber", "RabbitSubscriber\RabbitSubscriber.csproj", "{25FB2FD2-D906-49BD-8C50-D8CA29CB1453}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitSubscriber.Test", "RabbitSubscriber.Test\RabbitSubscriber.Test.csproj", "{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RabbitSubscriber.Test", "RabbitSubscriber.Test\RabbitSubscriber.Test.csproj", "{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csproj", "{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7F971962-8B86-4484-814B-226412FA2E64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -78,5 +77,12 @@ Global
 		{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E2EE1602-7143-43A3-AE2E-3DE5D2167BD2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48398BC8-D8FE-4D5D-99B1-F06BDFE4C61C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
