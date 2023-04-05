@@ -5,7 +5,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>FastCSharp.CircuitBreaker</PackageId>
     <version>0.0.0</version>
     <Author>João Pereira</Author>
