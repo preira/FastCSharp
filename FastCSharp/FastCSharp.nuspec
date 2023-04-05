@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>João Pereira; Pedro Martins</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <!-- <icon>icon.png</icon> -->
+    <projectUrl>https://github.com/preira/FastCSharp/</projectUrl>
+    <description>
+		# FastCSharp
+		Build Fast Code using a set of patterns that simplify building REST and MQ services.
+		FastCSharp contains several libs that speed up the development.
+	</description>
+    <releaseNotes>First version.</releaseNotes>
+    <copyright>$copyright$</copyright>
+    <tags>RabbitMQ Publisher Subscriber CircuitBreaker Resilience</tags>
+  </metadata>
+	<files>
+		<file src="bin\$Configuration$\*.dll" target="lib" />
+	</files>
+</package>

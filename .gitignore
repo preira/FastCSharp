@@ -479,3 +479,4 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+/FastCSharp/nuget.exe

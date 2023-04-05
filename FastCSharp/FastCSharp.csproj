@@ -1,11 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<TargetFramework>net7.0</TargetFramework>    
+	<TargetFramework>net7.0</TargetFramework>
+	<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+	<Description></Description>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	  <Authors>João Pereira; Pedro Martins</Authors>
+	  <Title>FastCSharp</Title>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CircuitBreaker\CircuitBreaker.csproj" />
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\CircuitBreaker\CircuitBreaker.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Publisher\Publisher.csproj" />
     <ProjectReference Include="..\RabbitPublisher\RabbitPublisher.csproj" />
