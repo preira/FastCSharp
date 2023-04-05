@@ -6,7 +6,7 @@
     <title>$title$</title>
     <authors>João Pereira; Pedro Martins</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <license type="expression">MIT</license>
+    <license type="expression">CC0-1.0</license>
     <!-- <icon>icon.png</icon> -->
     <projectUrl>https://github.com/preira/FastCSharp/</projectUrl>
     <description>
