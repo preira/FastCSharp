@@ -19,6 +19,6 @@
     <tags>RabbitMQ Publisher Subscriber CircuitBreaker Resilience</tags>
   </metadata>
 	<files>
-		<file src="bin\$Configuration$\*.dll" target="lib" />
+		<file src="bin\$Configuration$\*.dll" target="lib\net7.0" />
 	</files>
 </package>
