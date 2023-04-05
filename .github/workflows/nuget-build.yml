@@ -27,6 +27,6 @@ jobs:
     - uses: nuget/setup-nuget@v1
       with:        
         nuget-version: 'latest'
-    - run: nuget pack FastCSharp.csproj -IncludeReferencedProjects
+    - run: nuget pack FastCSharp/FastCSharp.csproj -IncludeReferencedProjects
     #- name: Test
     #  run: dotnet test --no-build --verbosity normal
