@@ -1,4 +1,52 @@
+using System.Runtime.Serialization;
+
 namespace FastCSharp.CircuitBreaker;
+
+[Serializable]
+public class CircuitException : System.Exception
+{
+    public CircuitException() : base()
+    {
+        // intentionally empty
+    }
+    public CircuitException(string? message) : base(message)
+    {
+        // intentionally empty
+    }
+    protected CircuitException(SerializationInfo info, StreamingContext context) 
+    : base(info, context)
+    {
+        // intentionally empty
+    }
+    public CircuitException(string? message, System.Exception? inner) : base(message, inner)
+    {
+        // intentionally empty
+    }
+}
+
+
+[Serializable]
+public class OpenCircuitException: System.Exception
+{
+    public OpenCircuitException() : base()
+    {
+        // intentionally empty
+    }
+    public OpenCircuitException(string? message) : base(message)
+    {
+        // intentionally empty
+    }
+    protected OpenCircuitException(SerializationInfo info, StreamingContext context) 
+    : base(info, context)
+    {
+        // intentionally empty
+    }
+    public OpenCircuitException(string? message, System.Exception? inner) : base(message, inner)
+    {
+        // intentionally empty
+    }
+}
+
 
 public enum CircuitStatus
 {
@@ -103,7 +151,7 @@ public class CircuitBreaker : AbstractBreaker
                 Strategy.RegisterSucess();
                 return result;
             }
-            catch (Exception e)
+            catch (System.Exception e)
             {
                 if (e is CircuitException)
                 {
@@ -150,7 +198,7 @@ public class BlockingCircuitBreaker : AbstractBreaker
                 Strategy.RegisterSucess();
                 return result;
             }
-            catch (Exception e)
+            catch (System.Exception e)
             {
                 if (e is CircuitException)
                 {

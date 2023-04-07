@@ -1,3 +1,5 @@
+using FastCSharp.Exception;
+
 namespace FastCSharp.CircuitBreaker;
 
 /// <summary>

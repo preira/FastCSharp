@@ -1,19 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\Common\Common.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Common" Version="0.0.0" ExcludeAssets="Build;Analyzers" /> 
-  </ItemGroup>
-
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Company>FastCSharp</Company>
+    <Product>FastCSharp</Product>
     <PackageId>FastCSharp.CircuitBreaker</PackageId>
     <version>0.0.0</version>
+
     <Authors>João Pereira</Authors>
-    <Product>FastCSharp.CircuitBreaker</Product>
-    <Company>FastCSharp</Company>
 
     <Description>Flexible Circuit Breaker implementation that can be configured with a Breaker Strategy and a Backoff Strategy.</Description>
     <PackageTags>FastCSharp CircuitBreaker BreakerStrategy BackoffStrategy</PackageTags>
@@ -22,5 +16,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
 
 </Project>

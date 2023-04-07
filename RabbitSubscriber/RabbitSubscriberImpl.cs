@@ -1,4 +1,5 @@
 ﻿using FastCSharp.Subscriber;
+using FastCSharp.Exception;
 using FastCSharp.SDK.Subscriber;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -169,7 +170,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 logger.LogError("Error: {message}", e.Message);
                 channel.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: false);
             }
-            catch (Exception e)
+            catch (System.Exception e)
             {
                 logger.LogError("Discarding unparseable message with id: {messageId}", ea?.BasicProperties?.MessageId);
                 logger.LogError("Error: {message}", e.Message);

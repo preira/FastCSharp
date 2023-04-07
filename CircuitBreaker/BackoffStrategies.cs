@@ -1,3 +1,5 @@
+using FastCSharp.Criptography;
+
 namespace FastCSharp.CircuitBreaker;
 
 /// <summary>
@@ -82,7 +84,7 @@ public class RandomBackoff : IBackoffStrategy
 {
     TimeSpan backoff;
     readonly TimeSpan increment;
-    readonly int precision = 100000;
+    readonly int precision = 5;
 
     /// <summary>
     /// Random backoff strategy provides a random duration value between the initial duration and 
@@ -112,7 +114,7 @@ public class RandomIncrementalBackoff : IBackoffStrategy
     readonly TimeSpan increments;
     int counter;
     readonly long maxIncrements;
-    readonly private int precision = 100000;
+    readonly private int precision = 5;
     /// <summary>
     /// Implements a backoff strategy that continuously adds increments randomly generated between 0 and increments. 
     /// </summary>

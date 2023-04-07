@@ -4,9 +4,10 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
-using FastCSharp.RabbitSubscriber.Impl;
 using System.Text.Json;
+using FastCSharp.Exception;
 using FastCSharp.Subscriber;
+using FastCSharp.RabbitSubscriber.Impl;
 using RabbitMQ.Client.Exceptions;
 
 namespace FastCSharp.RabbitSubscriber.Test;
@@ -254,7 +255,7 @@ public class RabbitSubscriber_UnitTest
             await AsyncInvoke_GetListenerAndAwaitTaskCompletion(model, subscriber, deliverEventArgs, new Task<bool>(() => throw new JsonException()));
             model.Verify(channel => channel.BasicNack(deliverEventArgs.DeliveryTag, false, false), Times.Once);
 
-            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(model, subscriber, deliverEventArgs, new Task<bool>(() => throw new Exception()));
+            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(model, subscriber, deliverEventArgs, new Task<bool>(() => throw new System.Exception()));
             model.Verify(channel => channel.BasicNack(deliverEventArgs.DeliveryTag, false, true), Times.Exactly(2));
         }
     }

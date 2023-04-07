@@ -1,10 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <version>0.0.0</version>
-    <Authors>João Pereira</Authors>
-    <Product>FastCSharp.Commons</Product>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
+    <Product>FastCSharp</Product>
+    <PackageId>FastCSharp.Common</PackageId>
+    <version>0.0.0</version>
+
+    <Authors>João Pereira</Authors>
+
+    <Description>Package containing functions common to FastCSharp libraries.</Description>
+    <PackageTags>FastCSharp Common Functions</PackageTags>
 
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

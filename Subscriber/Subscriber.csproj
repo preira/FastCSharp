@@ -2,10 +2,15 @@
 
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Company>FastCSharp</Company>
+    <Product>FastCSharp</Product>
     <PackageId>FastCSharp.Subscriber</PackageId>
     <version>0.0.0</version>
+
     <Author>João Pereira</Author>
-    <Company>FastCSharp</Company>
+
+    <Description>Package containing Message Queue Subscriber SDK.</Description>
+    <PackageTags>FastCSharp SDK Subscriber MessageQueue</PackageTags>
 
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

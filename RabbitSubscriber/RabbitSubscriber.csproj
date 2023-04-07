@@ -1,6 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Company>FastCSharp</Company>
+    <Product>FastCSharp</Product>
+    <PackageId>FastCSharp.RabbitSubscriber</PackageId>
+    <version>0.0.0</version>
+
+    <Author>João Pereira</Author>
+
+    <Description>Package containing RabbitMQ simplified Subscriber.</Description>
+    <PackageTags>FastCSharp RabbitMQ Subscriber</PackageTags>
+
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
