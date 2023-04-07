@@ -745,7 +745,7 @@ public class CircuitException_Tests
         var innerException = new Exception("Inner");
         var exception = new CircuitException("Test", innerException);
         Assert.Equal("Test", exception.Message);
-        Assert.Equal("Inner", exception.InnerException.Message);
+        Assert.Equal("Inner", exception.InnerException?.Message);
     }
 
     [Fact]
@@ -771,7 +771,7 @@ public class OpenCircuitException_Tests
         var innerException = new Exception("Inner");
         var exception = new OpenCircuitException("Test", innerException);
         Assert.Equal("Test", exception.Message);
-        Assert.Equal("Inner", exception.InnerException.Message);
+        Assert.Equal("Inner", exception.InnerException?.Message);
     }
 
     [Fact]

@@ -81,6 +81,6 @@ public class Exception_Test
         var innerException = new Exception("Inner");
         var exception = new IncorrectInitializationException("Test", innerException);
         Assert.Equal("Test", exception.Message);
-        Assert.Equal("Inner", exception.InnerException.Message);
+        Assert.Equal("Inner", exception.InnerException?.Message);
     }
 }
