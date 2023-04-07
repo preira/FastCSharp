@@ -1,5 +1,6 @@
 using Xunit;
 using FastCSharp.Criptography;
+using FastCSharp.Exception;
 
 namespace Common.Tests;
 
@@ -55,5 +56,31 @@ public class Rnd_UnitTest
         }
         Assert.InRange<int>(zeroCount, 400000, 600000);
         Assert.InRange<int>(oneCount, 400000, 600000);
+    }
+}
+
+public class Exception_Test
+{
+    [Fact]
+    public void Test_IncorrectInitializationException()
+    {
+        var ex = new IncorrectInitializationException();
+        Assert.NotNull(ex);
+    }
+
+    [Fact]
+    public void Test_IncorrectInitializationException2()
+    {
+        var ex = new IncorrectInitializationException("message");
+        Assert.NotNull(ex);
+    }
+
+    [Fact]
+    public void Test_IncorrectInitializationException_withInnerException()
+    {
+        var innerException = new Exception("Inner");
+        var exception = new IncorrectInitializationException("Test", innerException);
+        Assert.Equal("Test", exception.Message);
+        Assert.Equal("Inner", exception.InnerException.Message);
     }
 }

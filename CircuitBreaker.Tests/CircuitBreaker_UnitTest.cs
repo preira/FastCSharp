@@ -729,3 +729,55 @@ public class EventDrivenCircuitBreaker_UnitTest
 
     }
 }
+
+public class CircuitException_Tests
+{
+    [Fact]
+    public void Test_CircuitException()
+    {
+        var exception = new CircuitException();
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public void Test_CircuitException_WithInnerException()
+    {
+        var innerException = new Exception("Inner");
+        var exception = new CircuitException("Test", innerException);
+        Assert.Equal("Test", exception.Message);
+        Assert.Equal("Inner", exception.InnerException.Message);
+    }
+
+    [Fact]
+    public void Test_CircuitExceptionWithMessage()
+    {
+        var exception = new CircuitException("Test");
+        Assert.Equal("Test", exception.Message);
+    }
+}
+
+public class OpenCircuitException_Tests
+{
+    [Fact]
+    public void Test_OpenCircuitException()
+    {
+        var exception = new OpenCircuitException();
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public void Test_OpenCircuitException_WithInnerException()
+    {
+        var innerException = new Exception("Inner");
+        var exception = new OpenCircuitException("Test", innerException);
+        Assert.Equal("Test", exception.Message);
+        Assert.Equal("Inner", exception.InnerException.Message);
+    }
+
+    [Fact]
+    public void Test_OpenCircuitExceptionWithMessage()
+    {
+        var exception = new OpenCircuitException("Test");
+        Assert.Equal("Test", exception.Message);
+    }
+}

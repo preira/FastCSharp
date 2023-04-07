@@ -14,41 +14,33 @@ subscriber.Subscribe(async (message, cancellationToken) =>
 ```
 
 
-## appsettings.json config file
+## appsettings.json config file sample
 
 ```json
 {
-    "RabbitPublisherConfig" : 
+    "RabbitSubscriberConfig" : 
     {
         "HostName"  : "localhost",
         "Port"      : 5672,
         "UserName"  : "guest",
         "Password"  : "guest",
-        "Timeout"   : "00:00:05",
-        "Exchanges" : 
+        "HeartbeatTimeout"  : "00:00:20",
+        "Queues"    :
         {
-            "PUBLISH.SDK.DIRECT" : 
+            "QUEUE_TOKEN"   : 
             {
-                "Name" : "test.direct.exchange",
-                "Type" : "Direct",
-                "NamedRoutingKeys": 
-                {
-                    "TASK_QUEUE" : "test.direct.q" 
-                }
+                "Name":"queue.name",
+                "PrefecthCount":1,
+                "PrefecthSize":0
             },
-            "PUBLISH.SDK.FANOUT" : 
+            "TASK_QUEUE"    : 
             {
-                "Name" : "test.fanout.exchange",
-                "Type" : "Fanout"
-            },
-            "PUBLISH.SDK.TOPIC" : 
-            {
-                "Name" : "test.topic.exchange",
-                "Type" : "Topic",
-                "RoutingKeys" : [".mail.", ".sms.", ".letter"]
-            }
+                "Name":"test.direct.q",
+                "PrefecthCount":1,
+                "PrefecthSize":0
+            }            
         }
-     }
+    }
 }
 ```
 
