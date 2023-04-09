@@ -2,7 +2,6 @@
 
 namespace FastCSharp.Exception;
 
-[Serializable]
 public class IncorrectInitializationException : System.Exception
 {
     public IncorrectInitializationException() : base()
