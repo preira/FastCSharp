@@ -18,7 +18,7 @@
 
     <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/RabbitPublisher</ProjectUrl>
 
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <TargetFramework>net7.0</TargetFramework>
@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="LICENSE" Pack="true" PackagePath=""/>
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
