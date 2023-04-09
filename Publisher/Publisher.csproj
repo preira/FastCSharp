@@ -5,16 +5,28 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.Publisher</PackageId>
-    <version>0.0.0</version>
+    <version>0.0.0-alpha</version>
 
     <Author>João Pereira</Author>
 
     <Description>Package containing Message Queue Publisher SDK.</Description>
     <PackageTags>FastCSharp Publisher SDK</PackageTags>
 
+   <Copyright>
+      <![CDATA[Copyright © FastCSharp 2023]]>
+    </Copyright>
+
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Publisher</ProjectUrl>
+
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 </Project>

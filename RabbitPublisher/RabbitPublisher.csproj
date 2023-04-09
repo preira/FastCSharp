@@ -5,12 +5,21 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.RabbitPublisher</PackageId>
-    <version>0.0.0</version>
+    <version>0.0.0-alpha</version>
 
     <Author>João Pereira</Author>
 
     <Description>Package containing RabbitMQ simplified Publisher.</Description>
     <PackageTags>FastCSharp RabbitMQ Publisher</PackageTags>
+
+   <Copyright>
+      <![CDATA[Copyright © FastCSharp 2023]]>
+    </Copyright>
+
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/RabbitPublisher</ProjectUrl>
+
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -19,6 +28,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Publisher\Publisher.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,6 +2,7 @@
 
 namespace FastCSharp.Exception;
 
+[Serializable]
 public class IncorrectInitializationException : System.Exception
 {
     public IncorrectInitializationException() : base()
@@ -16,5 +17,11 @@ public class IncorrectInitializationException : System.Exception
     {
         // intentionally empty
     }
+    protected IncorrectInitializationException(SerializationInfo info, StreamingContext context) 
+    : base(info, context)
+    {
+        // intentionally empty
+    }
+
 }
 

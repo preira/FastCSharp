@@ -5,16 +5,28 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.Common</PackageId>
-    <version>0.0.0</version>
+    <version>0.0.0-alpha</version>
 
     <Authors>João Pereira</Authors>
 
     <Description>Package containing functions common to FastCSharp libraries.</Description>
     <PackageTags>FastCSharp Common Functions</PackageTags>
 
+   <Copyright>
+      <![CDATA[Copyright © FastCSharp 2023]]>
+    </Copyright>
+
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Common</ProjectUrl>
+
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 </Project>

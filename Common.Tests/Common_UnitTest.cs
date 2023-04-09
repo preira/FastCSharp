@@ -1,6 +1,7 @@
 using Xunit;
 using FastCSharp.Criptography;
 using FastCSharp.Exception;
+using System.Text.Json;
 
 namespace Common.Tests;
 
@@ -83,4 +84,5 @@ public class Exception_Test
         Assert.Equal("Test", exception.Message);
         Assert.Equal("Inner", exception.InnerException?.Message);
     }
+
 }

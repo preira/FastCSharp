@@ -5,16 +5,29 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.Subscriber</PackageId>
-    <version>0.0.0</version>
+    <version>0.0.0-alpha</version>
 
     <Author>João Pereira</Author>
 
     <Description>Package containing Message Queue Subscriber SDK.</Description>
     <PackageTags>FastCSharp SDK Subscriber MessageQueue</PackageTags>
 
+   <Copyright>
+      <![CDATA[Copyright © FastCSharp 2023]]>
+    </Copyright>
+
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Subscriber</ProjectUrl>
+
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 
 </Project>

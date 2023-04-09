@@ -5,12 +5,21 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.CircuitBreaker</PackageId>
-    <version>0.0.0</version>
+    <version>0.0.0-alpha</version>
 
     <Authors>João Pereira</Authors>
 
     <Description>Flexible Circuit Breaker implementation that can be configured with a Breaker Strategy and a Backoff Strategy.</Description>
     <PackageTags>FastCSharp CircuitBreaker BreakerStrategy BackoffStrategy</PackageTags>
+
+   <Copyright>
+      <![CDATA[Copyright © FastCSharp 2023]]>
+    </Copyright>
+
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/CircuitBreaker</ProjectUrl>
+
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -21,4 +30,7 @@
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 </Project>
