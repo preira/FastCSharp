@@ -17,10 +17,5 @@ public class IncorrectInitializationException : System.Exception
     {
         // intentionally empty
     }
-    protected IncorrectInitializationException(SerializationInfo info, StreamingContext context) 
-    : base(info, context)
-    {
-        // intentionally empty
-    }
 }
 
