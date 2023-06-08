@@ -2,19 +2,45 @@
 RabbitSubscriber provides a simple approach for subscribing to a RabbitMQ queue.  
 It is a wrapper around the [RabbitMQ.Client](https://www.nuget.org/packages/RabbitMQ.Client/) library.
 
-## Usage
+## Usage  
+All you need to do is create a new subscriber to an existing queue and register a callback.  
+
+### Program.cs
 ```csharp
-var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
-using var subscriber = exchange.NewSubscriber<string>("SUBSCRIBE.SDK.DIRECT", "TASK_QUEUE");
-subscriber.Subscribe(async (message, cancellationToken) =>
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using FastCSharp.RabbitSubscriber;
+
+IConfiguration configuration = new ConfigurationBuilder()
+    .AddJsonFile("rabbitsettings.json", true, true)
+    .Build();
+ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+
+
+var exchange = new RabbitSubscriberFactory(configuration, loggerFactory);
+using var subscriber = exchange.NewSubscriber<Message>("TASK_QUEUE");
+subscriber.Register(async (message) =>
 {
-    await Task.Delay(1000, cancellationToken);
-    Console.WriteLine(message);
+    Console.WriteLine($"Received {message?.Text}");
+    return await Task.Run<bool>(()=>true);
 });
+
+Console.WriteLine(" Press [enter] to exit.");
+Console.ReadLine();
+
+
+public class Message
+{
+    public Message()
+    {
+    }
+
+    public string? Text { get; set; }
+}
 ```
 
 
-## appsettings.json config file sample
+### rabbitsettings.json config file sample
 
 ```json
 {
@@ -27,12 +53,6 @@ subscriber.Subscribe(async (message, cancellationToken) =>
         "HeartbeatTimeout"  : "00:00:20",
         "Queues"    :
         {
-            "QUEUE_TOKEN"   : 
-            {
-                "Name":"queue.name",
-                "PrefecthCount":1,
-                "PrefecthSize":0
-            },
             "TASK_QUEUE"    : 
             {
                 "Name":"test.direct.q",
@@ -50,7 +70,7 @@ The subscriber can be stopped by calling:
 ```csharp 
 subscriber.UnSubscribe();
 ```
-This is a useful callback when a circuit breaker is triggered and the ```OnOpen``` or ```OnBreak``` event is fired.  
+This is a useful callback when a circuit breaker is triggered and the ```OnOpen``` or ```OnBreak``` events are fired.  
 
 The subscriber can be reset by calling:
 ```csharp 

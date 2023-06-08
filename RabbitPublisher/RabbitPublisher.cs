@@ -42,16 +42,17 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
             UserName = config.UserName,
         };
     }
-    public IPublisher<T> NewPublisher<T>(string destination, string routingKey = "")
+    protected ExchangeConfig _NewPublisher<T>(string destination)
     {
         var exchange = config?.Exchanges?[destination];
         if (exchange == null || exchange.Name == null)
         {
             throw new ArgumentException($"Could not find the exchange for '{destination}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
         }
-        return _NewPublisher<T>(exchange, routingKey);
+        return exchange;
     }
-    protected abstract IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey);
+
+    public abstract IPublisher<T> NewPublisher<T>(string destination, string routingKey);
 }
 
 public class RabbitDirectExchangeFactory : AbstractRabbitExchangeFactory
@@ -59,8 +60,9 @@ public class RabbitDirectExchangeFactory : AbstractRabbitExchangeFactory
     public RabbitDirectExchangeFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     : base(configuration, ILoggerFactory)
     { }
-    protected override IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey)
+    public override IPublisher<T> NewPublisher<T>(string destination, string routingKey)
     {
+        ExchangeConfig exchange = base._NewPublisher<T>(destination);
         var key = exchange.NamedRoutingKeys?[routingKey];
         if (key == null)
         {
@@ -84,8 +86,9 @@ public class RabbitFanoutExchangeFactory : AbstractRabbitExchangeFactory
     : base(configuration, ILoggerFactory)
     {
     }
-    protected override IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey)
+    public override IPublisher<T> NewPublisher<T>(string destination, string routingKey="")
     {
+        ExchangeConfig exchange = base._NewPublisher<T>(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
         return new FanoutRabbitPublisher<T>(factory: connectionFactory,
                             ILoggerFactory,
@@ -100,8 +103,9 @@ public class RabbitTopicExchangeFactory : AbstractRabbitExchangeFactory
     : base(configuration, ILoggerFactory)
     {
     }
-    protected override IPublisher<T> _NewPublisher<T>(ExchangeConfig exchange, string routingKey)
+    public override IPublisher<T> NewPublisher<T>(string destination, string routingKey)
     {
+        ExchangeConfig exchange = base._NewPublisher<T>(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "topic");
         var isOk = exchange?.RoutingKeys?.Contains(routingKey) ?? false;
         if (routingKey == "" || isOk)

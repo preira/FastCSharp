@@ -148,9 +148,8 @@ public class RabbitPublisher_UnitTest
     public void CreateNewTopicPublisher()
     {
         var exchange = new RabbitTopicExchangeFactory(configuration, loggerFactory);
-        var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC");
+        var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".mail.");
         Assert.NotNull(publisher);
-        Assert.NotNull(exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".mail."));
         Assert.NotNull(exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".sms."));
         Assert.NotNull(exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".letter."));
         publisher.Dispose();
@@ -175,15 +174,15 @@ public class RabbitPublisher_UnitTest
     public void CreateWrongPublisherConfigurationTypeForDirect()
     {
         var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
-        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC"));
-        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT"));
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".mail."));
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT", "TASK_QUEUE"));
     }
 
     [Fact]
     public void CreateWrongPublisherConfigurationTypeForTopic()
     {
         var exchange = new RabbitTopicExchangeFactory(configuration, loggerFactory);
-        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT"));
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT", "TASK_QUEUE"));
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE"));
     }
 

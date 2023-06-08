@@ -8,6 +8,13 @@ public delegate T? Handler<T>(T? message);
 /// <typeparam name="T">The type of the objects to be published.</typeparam>
 public interface IPublisher<T>: IDisposable
 { 
+    /// <summary>
+    /// Publishes the object passed as argument.
+    /// It is very important to verify the return value of this method. If it returns false, it means that the
+    /// message was not published and it should be handled accordingly.
+    /// </summary>
+    /// <param name="message">The object to publish.</param>
+    /// <returns>A Boolean future indicating if the message was published or not.</returns>
     Task<Boolean> Publish(T? message);
 
     /// <summary>
