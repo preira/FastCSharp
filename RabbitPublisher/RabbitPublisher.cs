@@ -42,7 +42,7 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
             UserName = config.UserName,
         };
     }
-    protected ExchangeConfig _NewPublisher<T>(string destination)
+    protected ExchangeConfig _NewPublisher(string destination)
     {
         var exchange = config?.Exchanges?[destination];
         if (exchange == null || exchange.Name == null)
@@ -52,7 +52,7 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
         return exchange;
     }
 
-    public abstract IPublisher<T> NewPublisher<T>(string destination, string routingKey);
+    public abstract IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null);
 }
 
 public class RabbitDirectExchangeFactory : AbstractRabbitExchangeFactory
@@ -60,9 +60,13 @@ public class RabbitDirectExchangeFactory : AbstractRabbitExchangeFactory
     public RabbitDirectExchangeFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     : base(configuration, ILoggerFactory)
     { }
-    public override IPublisher<T> NewPublisher<T>(string destination, string routingKey)
+    public override IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
     {
-        ExchangeConfig exchange = base._NewPublisher<T>(destination);
+        if (routingKey == null)
+        {
+            throw new ArgumentException($"Cannot create a new Publisher without a Routing Key. Routing key is mandatory and should match the NamedRoutingKeys of section {nameof(RabbitPublisherConfig)}. Please check your implementation and configuration.");
+        }
+        ExchangeConfig exchange = base._NewPublisher(destination);
         var key = exchange.NamedRoutingKeys?[routingKey];
         if (key == null)
         {
@@ -86,9 +90,9 @@ public class RabbitFanoutExchangeFactory : AbstractRabbitExchangeFactory
     : base(configuration, ILoggerFactory)
     {
     }
-    public override IPublisher<T> NewPublisher<T>(string destination, string routingKey="")
+    public override IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
     {
-        ExchangeConfig exchange = base._NewPublisher<T>(destination);
+        ExchangeConfig exchange = base._NewPublisher(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
         return new FanoutRabbitPublisher<T>(factory: connectionFactory,
                             ILoggerFactory,
@@ -103,9 +107,10 @@ public class RabbitTopicExchangeFactory : AbstractRabbitExchangeFactory
     : base(configuration, ILoggerFactory)
     {
     }
-    public override IPublisher<T> NewPublisher<T>(string destination, string routingKey)
+    public override IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
     {
-        ExchangeConfig exchange = base._NewPublisher<T>(destination);
+        routingKey ??= "";
+        ExchangeConfig exchange = base._NewPublisher(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "topic");
         var isOk = exchange?.RoutingKeys?.Contains(routingKey) ?? false;
         if (routingKey == "" || isOk)
