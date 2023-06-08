@@ -96,6 +96,20 @@ public class RabbitPublisher_UnitTest
     }
 
     [Fact]
+    public void FailToCreateNewDirectPublisherWithNullRoutingKey()
+    {
+        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", null));
+    }
+
+    [Fact]
+    public void FailToCreateNewDirectPublisherWithDefaultRoutingKey()
+    {
+        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT"));
+    }
+
+    [Fact]
     public void CreateNewDirectPublisherWithoutFailedConfiguration()
     {
         var exchange = new RabbitDirectExchangeFactory(emptyConfiguration, loggerFactory);
