@@ -16,6 +16,7 @@ public class ExchangeConfig
 public class RabbitPublisherConfig
 {
     public string? HostName { get; set; }
+    public string? VirtualHost { get; set; }
     public int Port { get; set; }
     public string? UserName { get; set; }
     public string? Password { get; set; }
@@ -37,6 +38,7 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
         connectionFactory = new ConnectionFactory
         {
             HostName = config.HostName,
+            VirtualHost = config.VirtualHost,
             Port = config.Port,
             Password = config.Password,
             UserName = config.UserName,

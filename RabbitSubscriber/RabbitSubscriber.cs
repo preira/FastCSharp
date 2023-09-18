@@ -19,6 +19,12 @@ public class RabbitSubscriberConfig
     /// <seealso href="https://www.rabbitmq.com/uri-query-parameters.html"/>
     public string? HostName { get; set; }
     /// <summary>
+    /// Virtual host of the RabbitMQ server.
+    /// </summary>
+    /// <seealso href="https://www.rabbitmq.com/uri-spec.html"/>
+    /// <seealso href="https://www.rabbitmq.com/vhosts.html"/>
+    public string? VirtualHost { get; set; }
+    /// <summary>
     /// Port of the RabbitMQ server.
     /// </summary>
     /// <seealso href="https://www.rabbitmq.com/ports.html"/>
@@ -71,6 +77,7 @@ public class RabbitSubscriberFactory : ISubscriberFactory
         connectionFactory = new ConnectionFactory
         {
             HostName = config.HostName,
+            VirtualHost = config.VirtualHost,
             Port = config.Port,
             Password = config.Password,
             UserName = config.UserName,
