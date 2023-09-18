@@ -40,6 +40,6 @@ public interface IPublisherFactory
     /// <param name="direct">The name of the direct delivery for the destination. A Queue for example.</param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public IPublisher<T> NewPublisher<T>(string destination, string routingKey = "");
+    public IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null);
 
 }
