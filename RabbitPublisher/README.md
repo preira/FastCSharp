@@ -78,6 +78,7 @@ public class Message
 {
     "RabbitPublisherConfig" : {
         "HostName" : "localhost",
+        "VirtualHost" : "MyVirtualHost",
         "Port" : 5672,
         "UserName"  : "guest",
         "Password"  : "guest",

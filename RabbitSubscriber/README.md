@@ -47,6 +47,7 @@ public class Message
     "RabbitSubscriberConfig" : 
     {
         "HostName"  : "localhost",
+        "VirtualHost" : "MyVirtualHost",
         "Port"      : 5672,
         "UserName"  : "guest",
         "Password"  : "guest",
