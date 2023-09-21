@@ -31,7 +31,9 @@ public class RabbitSubscriber_UnitTest
     };
     Dictionary<string, string?> configRabbit = new Dictionary<string, string?>
     {
+        ["RabbitPublisherConfig:ClientName"] = "FCS Test",
         ["RabbitSubscriberConfig:HostName"] = "localhost",
+        ["RabbitPublisherConfig:VirtualHost"] = "MyVirtualHost",
         ["RabbitSubscriberConfig:Port"] = "5672",
         ["RabbitSubscriberConfig:Password"] = "Password",
         ["RabbitSubscriberConfig:UserName"] = "UserName",

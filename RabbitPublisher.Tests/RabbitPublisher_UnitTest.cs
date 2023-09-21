@@ -45,7 +45,9 @@ public class RabbitPublisher_UnitTest
                     ["TransientFaultHandlingOptions:AutoRetryDelay"] = "00:00:07",
                     ["Logging:LogLevel:Default"] = "Warning",
 
+                    ["RabbitPublisherConfig:ClientName"] = "FCS Test",
                     ["RabbitPublisherConfig:HostName"] = "localhost",
+                    ["RabbitPublisherConfig:VirtualHost"] = "MyVirtualHost",
                     ["RabbitPublisherConfig:Port"] = "5672",
                     ["RabbitPublisherConfig:Password"] = "Password",
                     ["RabbitPublisherConfig:UserName"] = "UserName",

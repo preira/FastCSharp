@@ -4,6 +4,7 @@ using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using FastCSharp.RabbitSubscriber.Impl;
+using System.Text.Json;
 
 namespace FastCSharp.RabbitSubscriber;
 
@@ -33,6 +34,7 @@ public class RabbitSubscriberConfig
     public int Port { get; set; }
     public string? UserName { get; set; }
     public string? Password { get; set; }
+    public string? ClientName { get; set; }
     /// <summary>
     /// Connection timeout in seconds. Default is 20 seconds.
     /// </summary>
@@ -47,6 +49,7 @@ public class RabbitSubscriberConfig
     /// <seealso href="https://www.rabbitmq.com/channels.html"/>
     /// <seealso href="https://www.rabbitmq.com/consumer-prefetch.html"/>
     public int? ChannelMax { get; internal set; }
+
 }
 
 /// <summary>
@@ -70,14 +73,17 @@ public class RabbitSubscriberFactory : ISubscriberFactory
         _loggerFactory = loggerFactory;
         configuration.GetSection(nameof(RabbitSubscriberConfig)).Bind(config);
 
+Console.WriteLine($"RabbitConfig: {JsonSerializer.Serialize(configuration)}");
         if (config.HostName == null || config.Port == 0)
         {
             throw new IncorrectInitializationException($"Message Queue was configuration configured with Hostname:'{config.HostName}', Port:'{config.Port}'.");
         }
+Console.WriteLine($"RabbitConfig: {JsonSerializer.Serialize(config)}");
         connectionFactory = new ConnectionFactory
         {
+            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitMQSubscriber",
             HostName = config.HostName,
-            VirtualHost = config.VirtualHost,
+            VirtualHost = config.VirtualHost ?? "/",
             Port = config.Port,
             Password = config.Password,
             UserName = config.UserName,

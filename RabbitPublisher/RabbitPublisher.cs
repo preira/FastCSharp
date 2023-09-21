@@ -3,6 +3,7 @@ using RabbitMQ.Client;
 using FastCSharp.RabbitPublisher.Impl;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace FastCSharp.RabbitPublisher;
 
@@ -15,6 +16,7 @@ public class ExchangeConfig
 }
 public class RabbitPublisherConfig
 {
+    public string? ClientName { get; set; }
     public string? HostName { get; set; }
     public string? VirtualHost { get; set; }
     public int Port { get; set; }
@@ -35,10 +37,13 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
         var section = configuration.GetSection(nameof(RabbitPublisherConfig));
         section.Bind(config);
 
+Console.WriteLine($"RabbitPublisherConfig: {JsonSerializer.Serialize(config)}");
+
         connectionFactory = new ConnectionFactory
         {
+            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitPublisher",
             HostName = config.HostName,
-            VirtualHost = config.VirtualHost,
+            VirtualHost = config.VirtualHost ?? "/",
             Port = config.Port,
             Password = config.Password,
             UserName = config.UserName,
