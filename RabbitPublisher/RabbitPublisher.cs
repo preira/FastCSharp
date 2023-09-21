@@ -3,7 +3,6 @@ using RabbitMQ.Client;
 using FastCSharp.RabbitPublisher.Impl;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace FastCSharp.RabbitPublisher;
 
@@ -17,19 +16,113 @@ public class ExchangeConfig
 public class RabbitPublisherConfig
 {
     public string? ClientName { get; set; }
-    public string? HostName { get; set; }
-    public string? VirtualHost { get; set; }
-    public int Port { get; set; }
+
+    public string? hostName;
+    public string? HostName { get => hostName ?? "localhost"; set => hostName = value; }
+
+    private string? virtualHost;
+    public string VirtualHost { get => virtualHost ?? "/"; set => virtualHost = value; }
+
+    public int? port;
+    public int Port { get => port ?? 5672; set => port = value; }
     public string? UserName { get; set; }
     public string? Password { get; set; }
     public TimeSpan Timeout { get; set; }
     public Dictionary<string, ExchangeConfig?>? Exchanges { get; set; }
+
+    private TimeSpan? heartBeat;
+    public TimeSpan HeartBeat { get => heartBeat ?? TimeSpan.FromSeconds(60); set => heartBeat = value; }
 }
 
+// TODO: move to Publisher.cs ??
+public interface IFCSConnection
+{
+    bool IsOpen { get; }
+    IModel CreateModel();
+    bool ResetConnection(bool dispose = true);
+    void Close();
+    void Dispose();
+}
+
+public class RabbitConnection : IFCSConnection
+{
+    private readonly IConnectionFactory factory;
+    private IConnection? connection;
+    private IList<IModel> channels;
+    readonly private ILogger logger;
+    public RabbitConnection(IConnectionFactory connectionFactory, ILoggerFactory ILoggerFactory)
+    {
+        logger = ILoggerFactory.CreateLogger<RabbitConnection>();
+        factory = connectionFactory;
+
+        channels = new List<IModel>();
+    }
+    public bool IsOpen => connection?.IsOpen ?? false;
+    public IModel CreateModel()
+    {
+        if (connection == null || !connection.IsOpen)
+        {
+            ResetConnection();
+        }
+        var channel = connection?.CreateModel();
+        if(channel == null)
+        {
+            throw new Exception("FastCSharp could not create a new channel.");
+        }
+        channels.Add(channel);
+        return channel;
+    }
+    public void Close() 
+    {
+        foreach (var channel in channels)
+        {
+            channels.Remove(channel);
+            channel.Close();
+            channel.Dispose();
+        }
+        connection?.Close();
+
+    } 
+    public bool ResetConnection(bool dispose = true)
+    {
+        try
+        {
+            connection?.Dispose();
+
+            connection = factory.CreateConnection();
+        }
+        catch (Exception ex)
+        {
+            if (dispose)
+            {
+                logger.LogError("[CONFIG ERROR] {message}", ex.Message);
+            }
+            else
+            {
+                logger.LogError("[INITIALIZATION ERROR] {messsage}", ex.Message);
+            }
+            logger.LogDebug("{stackTrace}", ex.GetType());
+            logger.LogDebug("{stackTrace}", ex.StackTrace);
+
+            return false;
+        }
+        return true;
+    }    
+    public void Dispose() 
+    {
+        foreach (var channel in channels)
+        {
+            channels.Remove(channel);
+            channel.Dispose();
+        }
+        connection?.Dispose();
+    } 
+}
 public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
 {
     protected RabbitPublisherConfig config = new();
-    protected readonly IConnectionFactory connectionFactory;
+    
+    protected readonly IFCSConnection connectionFactory;
     protected ILoggerFactory ILoggerFactory;
     protected AbstractRabbitExchangeFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     {
@@ -37,17 +130,17 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
         var section = configuration.GetSection(nameof(RabbitPublisherConfig));
         section.Bind(config);
 
-Console.WriteLine($"RabbitPublisherConfig: {JsonSerializer.Serialize(config)}");
-
-        connectionFactory = new ConnectionFactory
+        var factory = new ConnectionFactory
         {
             ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitPublisher",
             HostName = config.HostName,
-            VirtualHost = config.VirtualHost ?? "/",
+            VirtualHost = config.VirtualHost,
             Port = config.Port,
             Password = config.Password,
             UserName = config.UserName,
+            RequestedHeartbeat = config.HeartBeat,
         };
+        connectionFactory = new RabbitConnection(factory, ILoggerFactory);
     }
     protected ExchangeConfig _NewPublisher(string destination)
     {

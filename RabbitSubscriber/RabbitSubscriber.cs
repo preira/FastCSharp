@@ -73,12 +73,11 @@ public class RabbitSubscriberFactory : ISubscriberFactory
         _loggerFactory = loggerFactory;
         configuration.GetSection(nameof(RabbitSubscriberConfig)).Bind(config);
 
-Console.WriteLine($"RabbitConfig: {JsonSerializer.Serialize(configuration)}");
         if (config.HostName == null || config.Port == 0)
         {
             throw new IncorrectInitializationException($"Message Queue was configuration configured with Hostname:'{config.HostName}', Port:'{config.Port}'.");
         }
-Console.WriteLine($"RabbitConfig: {JsonSerializer.Serialize(config)}");
+
         connectionFactory = new ConnectionFactory
         {
             ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitMQSubscriber",
@@ -90,6 +89,7 @@ Console.WriteLine($"RabbitConfig: {JsonSerializer.Serialize(config)}");
             RequestedHeartbeat = config.HeartbeatTimeout ?? TimeSpan.FromSeconds(20),
             RequestedChannelMax = (ushort)(config.ChannelMax ?? 1),
         };
+        
         queues = configuration.GetSection("RabbitSubscriberConfig:Queues").GetChildren().ToDictionary(x => x.Key, x => x.Get<RabbitQueueConfig?>());
         if (queues.Count == 0)
         {

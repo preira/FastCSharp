@@ -9,14 +9,14 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
     protected readonly string exchangeName;
     protected readonly string routingKey;
     protected readonly TimeSpan confirmTimeout;
-    protected readonly IConnectionFactory connectionFactory;
+    protected readonly IFCSConnection connection;
     protected IModel? channel;
-    protected IConnection? connection;
+    // protected IConnection? connection;
     readonly private ILogger logger;
     private bool isInitialized = false;
 
     protected AbstractRabbitPublisher(
-        IConnectionFactory factory,
+        IFCSConnection factory,
         ILoggerFactory ILoggerFactory,
         string exchange,
         TimeSpan timeout,
@@ -27,7 +27,7 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
         confirmTimeout = timeout;
         exchangeName = exchange;
         routingKey = key;
-        connectionFactory = factory;
+        connection = factory;
         Init();
     }
 
@@ -65,9 +65,8 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
         try
         {
             channel?.Dispose();
-            connection?.Dispose();
+            // connection?.Dispose();
 
-            connection = connectionFactory.CreateConnection();
             channel = connection.CreateModel();
             channel.ConfirmSelect();
 
@@ -100,7 +99,7 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
             if(disposing)
             {
                 channel?.Dispose();
-                connection?.Dispose();
+                // connection?.Dispose();
             }
             disposed = true;
         }
@@ -110,7 +109,7 @@ public class DirectRabbitPublisher<T> : AbstractRabbitPublisher<T>
 {
     readonly private ILogger logger;
     public DirectRabbitPublisher(
-        IConnectionFactory factory,
+        IFCSConnection factory,
         ILoggerFactory ILoggerFactory,
         string exchange,
         TimeSpan timeout,
@@ -149,7 +148,7 @@ public class DirectRabbitPublisher<T> : AbstractRabbitPublisher<T>
 public class FanoutRabbitPublisher<T> : AbstractRabbitPublisher<T>
 {
     public FanoutRabbitPublisher(
-        IConnectionFactory factory, 
+        IFCSConnection factory, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
         TimeSpan timeout)
@@ -163,7 +162,8 @@ public class FanoutRabbitPublisher<T> : AbstractRabbitPublisher<T>
 
 public class TopicRabbitPublisher<T> : AbstractRabbitPublisher<T>
 {
-    public TopicRabbitPublisher(IConnectionFactory factory, 
+    public TopicRabbitPublisher(
+        IFCSConnection factory, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
         TimeSpan timeout, 
