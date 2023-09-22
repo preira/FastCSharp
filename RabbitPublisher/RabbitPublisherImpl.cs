@@ -1,6 +1,7 @@
 using RabbitMQ.Client;
 using FastCSharp.SDK.Publisher;
 using Microsoft.Extensions.Logging;
+using FastCSharp.RabbitCommon;
 
 namespace FastCSharp.RabbitPublisher.Impl;
 
@@ -11,7 +12,6 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
     protected readonly TimeSpan confirmTimeout;
     protected readonly IFCSConnection connection;
     protected IModel? channel;
-    // protected IConnection? connection;
     readonly private ILogger logger;
     private bool isInitialized = false;
 
@@ -46,7 +46,7 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
                             exchangeName, routingKey, sequenceNumber);
             return true;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             logger.LogError("[ERROR SENDING] {Message}", ex.Message);
         }
@@ -60,19 +60,18 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
         ResetConnection(dispose: false);
     }
 
-    protected override Boolean ResetConnection(bool dispose = true)
+    protected override bool ResetConnection(bool dispose = true)
     {
         try
         {
             channel?.Dispose();
-            // connection?.Dispose();
 
             channel = connection.CreateModel();
             channel.ConfirmSelect();
 
             ResourceDeclarePassive(channel);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             if (dispose)
             {
@@ -99,7 +98,6 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisher<T>
             if(disposing)
             {
                 channel?.Dispose();
-                // connection?.Dispose();
             }
             disposed = true;
         }
@@ -125,7 +123,7 @@ public class DirectRabbitPublisher<T> : AbstractRabbitPublisher<T>
         channel.QueueDeclarePassive(routingKey);
     }
 
-    override protected Boolean IsHealthy()
+    override protected bool IsHealthy()
     {
         if (channel != null)
         {
@@ -136,7 +134,7 @@ public class DirectRabbitPublisher<T> : AbstractRabbitPublisher<T>
                 channel.QueueDeclarePassive(routingKey);
                 return true;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError("[WARNING] ${message}", ex.Message);
             }

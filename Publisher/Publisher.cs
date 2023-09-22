@@ -15,7 +15,7 @@ public interface IPublisher<T>: IDisposable
     /// </summary>
     /// <param name="message">The object to publish.</param>
     /// <returns>A Boolean future indicating if the message was published or not.</returns>
-    Task<Boolean> Publish(T? message);
+    Task<bool> Publish(T? message);
 
     /// <summary>
     /// Registers handler function to handle message before deelivering to the callback

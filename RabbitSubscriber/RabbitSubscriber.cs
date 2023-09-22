@@ -1,47 +1,18 @@
 ﻿using FastCSharp.Subscriber;
 using FastCSharp.Exception;
+using FastCSharp.RabbitCommon;
 using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using FastCSharp.RabbitSubscriber.Impl;
-using System.Text.Json;
 
 namespace FastCSharp.RabbitSubscriber;
 
 /// <summary>
 /// RabbitMQ Subscriber Configuration
 /// </summary>
-public class RabbitSubscriberConfig
+public class RabbitSubscriberConfig : RabbitConfig
 {
-    /// <summary>
-    /// Hostname of the RabbitMQ server.
-    /// </summary>
-    /// <seealso href="https://www.rabbitmq.com/uri-spec.html"/>
-    /// <seealso href="https://www.rabbitmq.com/uri-query-parameters.html"/>
-    public string? HostName { get; set; }
-    /// <summary>
-    /// Virtual host of the RabbitMQ server.
-    /// </summary>
-    /// <seealso href="https://www.rabbitmq.com/uri-spec.html"/>
-    /// <seealso href="https://www.rabbitmq.com/vhosts.html"/>
-    public string? VirtualHost { get; set; }
-    /// <summary>
-    /// Port of the RabbitMQ server.
-    /// </summary>
-    /// <seealso href="https://www.rabbitmq.com/ports.html"/>
-    /// <seealso href="https://www.rabbitmq.com/networking.html#tcp-ports"/>
-    /// <seealso href="https://www.rabbitmq.com/ssl.html#tcp-ports"/>
-    public int Port { get; set; }
-    public string? UserName { get; set; }
-    public string? Password { get; set; }
-    public string? ClientName { get; set; }
-    /// <summary>
-    /// Connection timeout in seconds. Default is 20 seconds.
-    /// </summary>
-    /// <seealso href="https://www.rabbitmq.com/connections.html#connection-timeout"/>
-    /// <seealso href="https://www.rabbitmq.com/heartbeats.html"/>
-    /// <seealso href="https://www.rabbitmq.com/networking.html#tcp-keepalive"/>
-    public TimeSpan? HeartbeatTimeout { get; set; }
     /// <summary>
     /// Maximum number of channels allowed on the connection. Default is 1.
     /// </summary>
@@ -78,18 +49,20 @@ public class RabbitSubscriberFactory : ISubscriberFactory
             throw new IncorrectInitializationException($"Message Queue was configuration configured with Hostname:'{config.HostName}', Port:'{config.Port}'.");
         }
 
+
         connectionFactory = new ConnectionFactory
         {
-            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitMQSubscriber",
-            HostName = config.HostName,
-            VirtualHost = config.VirtualHost ?? "/",
-            Port = config.Port,
-            Password = config.Password,
-            UserName = config.UserName,
-            RequestedHeartbeat = config.HeartbeatTimeout ?? TimeSpan.FromSeconds(20),
-            RequestedChannelMax = (ushort)(config.ChannelMax ?? 1),
+            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitMQSubscriber"
         };
-        
+
+        if (config.HostName != null) connectionFactory.HostName = config.HostName;
+        if(config.Port != null) connectionFactory.Port = (int) config.Port;
+        if(config.VirtualHost != null) connectionFactory.VirtualHost = config.VirtualHost;
+        if(config.Password != null) connectionFactory.Password = config.Password;
+        if(config.UserName != null) connectionFactory.UserName = config.UserName;
+        if(config.Heartbeat != null) connectionFactory.RequestedHeartbeat = (TimeSpan) config.Heartbeat;
+        if(config.ChannelMax != null) connectionFactory.RequestedChannelMax = (ushort) config.ChannelMax;
+
         queues = configuration.GetSection("RabbitSubscriberConfig:Queues").GetChildren().ToDictionary(x => x.Key, x => x.Get<RabbitQueueConfig?>());
         if (queues.Count == 0)
         {

@@ -1,8 +1,7 @@
-﻿namespace FastCSharp.SDK.Publisher;
-
-using System.Text.Json;
+﻿using System.Text.Json;
 using FastCSharp.Publisher;
 
+namespace FastCSharp.SDK.Publisher;
 /// <summary>
 /// This is the class to be extend in order to imlpement a Publisher for a concrete engine.
 /// Objects are serialized in JSon format and converted to byte array before calling the 
@@ -24,7 +23,7 @@ public abstract class AbstractPublisher<T> : IPublisher<T>
     /// </summary>
     /// <param name="message">The object to publish.</param>
     /// <returns>A Boolean future.</returns>
-    public async Task<Boolean> Publish(T? message)
+    public async Task<bool> Publish(T? message)
     {
         foreach (var handler in handlers)
         {
@@ -34,11 +33,11 @@ public abstract class AbstractPublisher<T> : IPublisher<T>
         return await Publish(jsonUtf8Bytes);   
     }
 
-    private async Task<Boolean> Publish(byte[] message)
+    private async Task<bool> Publish(byte[] message)
     {
         if (IsHealthyOrTryRecovery())
         {
-            Task<Boolean> task = new Task<bool>( () => AsyncPublish(message) );
+            Task<bool> task = new ( () => AsyncPublish(message) );
             task.Start();
 
             return await task;
@@ -56,7 +55,7 @@ public abstract class AbstractPublisher<T> : IPublisher<T>
     /// <returns></returns>
     protected abstract bool AsyncPublish(byte[] body);
 
-    private Boolean IsHealthyOrTryRecovery()
+    private bool IsHealthyOrTryRecovery()
     {
         if(IsHealthy())
         {
@@ -71,14 +70,14 @@ public abstract class AbstractPublisher<T> : IPublisher<T>
     /// or queues.
     /// </summary>
     /// <returns>a Boolean indicating if the service is healthy</returns>
-    protected abstract Boolean IsHealthy();
+    protected abstract bool IsHealthy();
 
     /// <summary>
     /// Should contain logic to recover a faulty connection status given by IsHealthy().
     /// </summary>
     /// <param name="dispose"></param>
     /// <returns></returns>
-    protected abstract Boolean ResetConnection(bool dispose = true);
+    protected abstract bool ResetConnection(bool dispose = true);
 
     /// <summary>
     /// Should dispose of any managed or unmanaged resources.

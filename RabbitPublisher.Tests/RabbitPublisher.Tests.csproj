@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RabbitPublisher\RabbitPublisher.csproj" />
+    <ProjectReference Include="..\RabbitCommon\RabbitCommon.csproj" />
   </ItemGroup>
 
 </Project>

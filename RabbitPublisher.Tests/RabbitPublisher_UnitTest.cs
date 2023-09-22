@@ -1,5 +1,6 @@
 using Xunit;
 using FastCSharp.RabbitPublisher.Impl;
+using FastCSharp.RabbitCommon;
 using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,11 @@ public class RabbitPublisher_UnitTest
     readonly IConfiguration configuration;
     readonly IConfiguration emptyConfiguration;
     readonly IConfiguration missingTopicRoutingKeyConfiguration;
+
+    readonly List<AmqpTcpEndpoint> hosts = new()
+    {
+        new AmqpTcpEndpoint("localhost", 5672)
+    };
 
     public RabbitPublisher_UnitTest()
     {
@@ -46,12 +52,12 @@ public class RabbitPublisher_UnitTest
                     ["Logging:LogLevel:Default"] = "Warning",
 
                     ["RabbitPublisherConfig:ClientName"] = "FCS Test",
-                    ["RabbitPublisherConfig:HostName"] = "localhost",
                     ["RabbitPublisherConfig:VirtualHost"] = "MyVirtualHost",
-                    ["RabbitPublisherConfig:Port"] = "5672",
                     ["RabbitPublisherConfig:Password"] = "Password",
                     ["RabbitPublisherConfig:UserName"] = "UserName",
                     ["RabbitPublisherConfig:Timeout"] = "00:00:05",
+                    ["RabbitPublisherConfig:Hosts:0:HostName"] = "localhost",
+                    ["RabbitPublisherConfig:Hosts:0:Port"] = "5672",
 
                     ["RabbitPublisherConfig:Exchanges:PUBLISH.SDK.DIRECT:Name"] = "test.direct.exchange",
                     ["RabbitPublisherConfig:Exchanges:PUBLISH.SDK.DIRECT:Type"] = "Direct",
@@ -94,7 +100,7 @@ public class RabbitPublisher_UnitTest
     public void FailToCreateNewDirectPublisher()
     {
         var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
-        Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
+        Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
@@ -263,11 +269,11 @@ public class RabbitPublisher_UnitTest
 
         var sequence = new MockSequence();
 
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection()).Throws<Exception>();
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection()).Throws<Exception>();
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection()).Returns(mockedConnection.Object);
+        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Throws<Exception>();
+        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Throws<Exception>();
+        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Returns(mockedConnection.Object);
 
-        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory);
+        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory, hosts);
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
@@ -295,11 +301,11 @@ public class RabbitPublisher_UnitTest
 
         var sequence = new MockSequence();
 
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection()).Throws<Exception>();
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection()).Throws<Exception>();
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection()).Returns(mockedConnection.Object);
+        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Throws<Exception>();
+        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Throws<Exception>();
+        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Returns(mockedConnection.Object);
 
-        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory);
+        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory, hosts);
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
@@ -313,7 +319,7 @@ public class RabbitPublisher_UnitTest
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
-        mockedConnectionFactory.Verify(factory => factory.CreateConnection(), Times.AtLeastOnce());
+        mockedConnectionFactory.Verify(factory => factory.CreateConnection(hosts), Times.AtLeastOnce());
         mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
 
         mockedModel.Verify(model => 
@@ -361,11 +367,11 @@ public class RabbitPublisher_UnitTest
         var mockedConnectionFactory = new Mock<IConnectionFactory>();
 
         var mockedConnection = new Mock<IConnection>();
-        mockedConnectionFactory.Setup(conn => conn.CreateConnection()).Returns(mockedConnection.Object);
+        mockedConnectionFactory.Setup(conn => conn.CreateConnection(hosts)).Returns(mockedConnection.Object);
 
         var sequence = new MockSequence();
 
-        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory);
+        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory, hosts);
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
@@ -385,7 +391,7 @@ public class RabbitPublisher_UnitTest
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
-        mockedConnectionFactory.Verify(factory => factory.CreateConnection(), Times.AtLeastOnce());
+        mockedConnectionFactory.Verify(factory => factory.CreateConnection(hosts), Times.AtLeastOnce());
         mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
 
         mockedModel.Verify(model => 

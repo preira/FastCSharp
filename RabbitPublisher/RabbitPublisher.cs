@@ -1,4 +1,5 @@
 ﻿using FastCSharp.Publisher;
+using FastCSharp.RabbitCommon;
 using RabbitMQ.Client;
 using FastCSharp.RabbitPublisher.Impl;
 using Microsoft.Extensions.Configuration;
@@ -13,45 +14,22 @@ public class ExchangeConfig
     public IDictionary<string, string?>? NamedRoutingKeys { get; set; }
     public IList<string>? RoutingKeys { get; set; }
 }
-public class RabbitPublisherConfig
+
+public class RabbitPublisherConfig : RabbitConfig
 {
-    public string? ClientName { get; set; }
-
-    public string? hostName;
-    public string? HostName { get => hostName ?? "localhost"; set => hostName = value; }
-
-    private string? virtualHost;
-    public string VirtualHost { get => virtualHost ?? "/"; set => virtualHost = value; }
-
-    public int? port;
-    public int Port { get => port ?? 5672; set => port = value; }
-    public string? UserName { get; set; }
-    public string? Password { get; set; }
     public TimeSpan Timeout { get; set; }
     public Dictionary<string, ExchangeConfig?>? Exchanges { get; set; }
-
-    private TimeSpan? heartBeat;
-    public TimeSpan HeartBeat { get => heartBeat ?? TimeSpan.FromSeconds(60); set => heartBeat = value; }
 }
-
-// TODO: move to Publisher.cs ??
-public interface IFCSConnection
-{
-    bool IsOpen { get; }
-    IModel CreateModel();
-    bool ResetConnection(bool dispose = true);
-    void Close();
-    void Dispose();
-}
-
 public class RabbitConnection : IFCSConnection
 {
     private readonly IConnectionFactory factory;
+    private readonly IList<AmqpTcpEndpoint>? endpoints;
     private IConnection? connection;
-    private IList<IModel> channels;
+    private readonly IList<IModel> channels;
     readonly private ILogger logger;
-    public RabbitConnection(IConnectionFactory connectionFactory, ILoggerFactory ILoggerFactory)
+    public RabbitConnection(IConnectionFactory connectionFactory, ILoggerFactory ILoggerFactory, IList<AmqpTcpEndpoint>? hosts)
     {
+        endpoints = hosts;
         logger = ILoggerFactory.CreateLogger<RabbitConnection>();
         factory = connectionFactory;
 
@@ -89,7 +67,14 @@ public class RabbitConnection : IFCSConnection
         {
             connection?.Dispose();
 
-            connection = factory.CreateConnection();
+            if(endpoints == null)
+            {
+                connection = factory.CreateConnection();
+            }
+            else
+            {
+                connection = factory.CreateConnection(endpoints);
+            }
         }
         catch (Exception ex)
         {
@@ -118,6 +103,7 @@ public class RabbitConnection : IFCSConnection
         connection?.Dispose();
     } 
 }
+
 public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
 {
     protected RabbitPublisherConfig config = new();
@@ -132,24 +118,38 @@ public abstract class AbstractRabbitExchangeFactory : IPublisherFactory
 
         var factory = new ConnectionFactory
         {
-            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitPublisher",
-            HostName = config.HostName,
-            VirtualHost = config.VirtualHost,
-            Port = config.Port,
-            Password = config.Password,
-            UserName = config.UserName,
-            RequestedHeartbeat = config.HeartBeat,
+            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitPublisher"
         };
-        connectionFactory = new RabbitConnection(factory, ILoggerFactory);
+
+        if (config.HostName != null) factory.HostName = config.HostName;
+        if(config.Port != null) factory.Port = (int) config.Port;
+        if(config.VirtualHost != null) factory.VirtualHost = config.VirtualHost;
+        if(config.Password != null) factory.Password = config.Password;
+        if(config.UserName != null) factory.UserName = config.UserName;
+        if(config.Heartbeat != null) factory.RequestedHeartbeat = (TimeSpan) config.Heartbeat;
+        
+        connectionFactory = new RabbitConnection(factory, ILoggerFactory, config.Hosts);
     }
+
     protected ExchangeConfig _NewPublisher(string destination)
     {
-        var exchange = config?.Exchanges?[destination];
-        if (exchange == null || exchange.Name == null)
+        try
         {
-            throw new ArgumentException($"Could not find the exchange for '{destination}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
+            var exchange = config?.Exchanges?[destination];
+            if (exchange == null || exchange.Name == null)
+            {
+                throw new ArgumentException($"Could not find the exchange for '{destination}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
+            }
+            return exchange;
         }
-        return exchange;
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ArgumentException($"Could not find the exchange for '{destination}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.", ex);
+        }
     }
 
     public abstract IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null);
