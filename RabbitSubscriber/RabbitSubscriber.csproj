@@ -5,7 +5,7 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.RabbitSubscriber</PackageId>
-    <version>0.2.0-alpha</version>
+    <version>0.2.1-alpha</version>
 
     <Author>João Pereira</Author>
 
