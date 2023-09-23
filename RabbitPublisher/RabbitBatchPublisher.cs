@@ -1,10 +1,10 @@
 ﻿using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Common;
-using FastCSharp.BRabbitPublisher.Impl;
+using FastCSharp.RabbitPublisher.Impl;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace FastCSharp.BRabbitPublisher;
+namespace FastCSharp.RabbitPublisher;
 
 public abstract class AbstractRabbitBatchPublisherFactory : AbstractRabbitExchangeFactory, IBatchPublisherFactory
 {

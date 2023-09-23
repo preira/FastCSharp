@@ -5,7 +5,7 @@ using System.Text.Json;
 using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Common;
 
-namespace FastCSharp.BRabbitPublisher.Impl;
+namespace FastCSharp.RabbitPublisher.Impl;
 
 public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<T>, IBatchPublisher<T> 
 {
