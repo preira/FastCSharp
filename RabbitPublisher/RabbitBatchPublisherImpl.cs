@@ -1,17 +1,16 @@
 using FastCSharp.RabbitCommon;
 using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
-using FastCSharp.Publisher;
 using System.Text.Json;
+using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Common;
 
-namespace FastCSharp.RabbitPublisher.Impl;
+namespace FastCSharp.BRabbitPublisher.Impl;
 
-public abstract class AbstractRabbitSinglePublisher<T> : AbstractRabbitPublisher<T>, IPublisher<T>
+public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<T>, IBatchPublisher<T> 
 {
     readonly private ILogger logger;
-
-    protected AbstractRabbitSinglePublisher(
+    protected AbstractRabbitBatchPublisher(
         IFCSConnection factory,
         ILoggerFactory ILoggerFactory,
         string exchange,
@@ -19,40 +18,56 @@ public abstract class AbstractRabbitSinglePublisher<T> : AbstractRabbitPublisher
         string key = "")
     : base(factory, ILoggerFactory, exchange, timeout, key)
     {
-        logger = ILoggerFactory.CreateLogger<AbstractRabbitSinglePublisher<T>>();
+        logger = ILoggerFactory.CreateLogger<AbstractRabbitBatchPublisher<T>>();
     }
 
-    /// <summary>
-    /// Will publish the object passed as argument in JSon format, according to
-    /// the underlaying implementation.
-    /// </summary>
-    /// <param name="message">The object to publish.</param>
-    /// <returns>A Boolean future.</returns>
-    public virtual async Task<bool> Publish(T? message)
-    {
-        foreach (var handler in handlers)
-        {
-            message = handler(message);
-        } 
-        byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(message);
-        return await Publish(jsonUtf8Bytes);   
-    }
-
-    private async Task<bool> Publish(byte[] message)
+    // TODO: move up to AbstractBatchPublisher ??
+    public async Task<bool> BatchPublish(IEnumerable<T> messages)
     {
         if (IsHealthyOrTryRecovery())
         {
-            Task<bool> task = new ( () => AsyncPublish(message) );
-            task.Start();
+            foreach (var message in messages)
+            {
+                var msg = message;
+                foreach (var handler in handlers)
+                {
+                    msg = handler(msg);
+                }
+                byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(msg);
+                Task task = new ( () => AsyncPublish(jsonUtf8Bytes) );
+                task.Start();
 
-            return await task;
+                await task;
+            }
+            Task<bool> confirm = new ( () => Confirm() );
+            confirm.Start();
+            return await confirm;
         }
         else
         {
             return false;
         }
     }
-    protected bool AsyncPublish(byte[] body)
+
+
+    // TODO: Continue separating BatchPublisher from Publisher
+    // TODO: async confirm can be implemented using yeld return and a concurrent dictionary 
+    // * using also a TaskCompletionSource ??
+    protected bool Confirm()
+    {
+        try
+        {
+            channel?.WaitForConfirmsOrDie(confirmTimeout);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("[ERROR SENDING] {Message}", ex.Message);
+        }
+        return false;
+    }
+
+    protected void AsyncPublish(byte[] body)
     {
         try
         {
@@ -62,22 +77,21 @@ public abstract class AbstractRabbitSinglePublisher<T> : AbstractRabbitPublisher
                 basicProperties: null,
                 body: body);
 
-            channel?.WaitForConfirmsOrDie(confirmTimeout);
-            logger.LogDebug("{\"Exchange\"=\"{exchange}\", \"RoutingKey\"=\"{key}\", \"SequenceNumber\"=\"{seqNr}\"}", 
+            logger.LogDebug("{\"Exchange\"=\"{exchange}\", \"RoutingKey\"=\"{key}\", \"SequenceNumber\"=\"{seqNr}\"}",
                             exchangeName, routingKey, sequenceNumber);
-            return true;
         }
         catch (Exception ex)
         {
             logger.LogError("[ERROR SENDING] {Message}", ex.Message);
         }
-        return false;
     }
+
 }
-public class DirectRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>
+
+public class DirectRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>
 {
     readonly private ILogger logger;
-    public DirectRabbitPublisher(
+    public DirectRabbitBatchPublisher(
         IFCSConnection factory,
         ILoggerFactory ILoggerFactory,
         string exchange,
@@ -85,7 +99,7 @@ public class DirectRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>
         string routingKey)
         : base(factory, ILoggerFactory, exchange, timeout, key: routingKey)
     {
-        logger = ILoggerFactory.CreateLogger<DirectRabbitPublisher<T>>();
+        logger = ILoggerFactory.CreateLogger<DirectRabbitBatchPublisher<T>>();
     }
 
     protected override void ResourceDeclarePassive(IModel channel)
@@ -114,9 +128,9 @@ public class DirectRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>
     }
 }
 
-public class FanoutRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>
+public class FanoutRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>
 {
-    public FanoutRabbitPublisher(
+    public FanoutRabbitBatchPublisher(
         IFCSConnection factory, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
@@ -129,9 +143,9 @@ public class FanoutRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>
 
 }
 
-public class TopicRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>
+public class TopicRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>
 {
-    public TopicRabbitPublisher(
+    public TopicRabbitBatchPublisher(
         IFCSConnection factory, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
@@ -144,4 +158,8 @@ public class TopicRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>
     protected override void ResourceDeclarePassive(IModel channel) => channel.ExchangeDeclarePassive(exchangeName);
 
 }
+
+
+
+
 

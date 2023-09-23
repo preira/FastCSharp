@@ -73,7 +73,7 @@ public class CircuitBreaker_UnitTest
                 new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
-        Boolean Success = false;
+        var Success = false;
         circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute!");
     }
@@ -88,7 +88,7 @@ public class CircuitBreaker_UnitTest
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
@@ -111,7 +111,7 @@ public class CircuitBreaker_UnitTest
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-        Boolean Success = false;
+        var Success = false;
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
         Assert.True(circuit.IsOpen, "Circuit should be Open.");
         Assert.True(Success, "Function dind't execute!");
@@ -127,7 +127,7 @@ public class CircuitBreaker_UnitTest
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-        Boolean Success = false;
+        var Success = false;
         for (var i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
@@ -148,7 +148,7 @@ public class CircuitBreaker_UnitTest
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
@@ -177,7 +177,7 @@ public class CircuitBreaker_UnitTest
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
@@ -222,7 +222,7 @@ public class BlockingCircuitBreaker_Tests
                 new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
-        Boolean Success = false;
+        var Success = false;
         circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute!");
     }
@@ -236,7 +236,7 @@ public class BlockingCircuitBreaker_Tests
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
@@ -259,7 +259,7 @@ public class BlockingCircuitBreaker_Tests
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-        Boolean Success = false;
+        var Success = false;
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
         Assert.True(circuit.IsOpen, "Circuit should be Open.");
         Assert.True(Success, "Function dind't execute!");
@@ -274,7 +274,7 @@ public class BlockingCircuitBreaker_Tests
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
@@ -296,7 +296,7 @@ public class BlockingCircuitBreaker_Tests
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
@@ -325,7 +325,7 @@ public class BlockingCircuitBreaker_Tests
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-        Boolean Success = false;
+        var Success = false;
         for (var i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
@@ -538,7 +538,7 @@ public class EventDrivenCircuitBreaker_UnitTest
                 new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
-        Boolean Success = false;
+        var Success = false;
         circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute!");
     }
@@ -553,7 +553,7 @@ public class EventDrivenCircuitBreaker_UnitTest
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
@@ -576,7 +576,7 @@ public class EventDrivenCircuitBreaker_UnitTest
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-        Boolean Success = false;
+        var Success = false;
         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
         Assert.True(circuit.IsOpen, "Circuit should be Open.");
         Assert.True(Success, "Function dind't execute!");
@@ -636,7 +636,7 @@ public class EventDrivenCircuitBreaker_UnitTest
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-        Boolean Success = false;
+        var Success = false;
         for (var i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
@@ -658,7 +658,7 @@ public class EventDrivenCircuitBreaker_UnitTest
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowingCircuitException(circuit, Success);
@@ -687,7 +687,7 @@ public class EventDrivenCircuitBreaker_UnitTest
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-        Boolean Success = false;
+        var Success = false;
         for (int i = 0; i < 5; ++i)
         {
             Success = Util.ExecuteThrowNotImplementedException(circuit, Success);

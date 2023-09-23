@@ -1,25 +1,25 @@
 ﻿using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Common;
-using FastCSharp.RabbitPublisher.Impl;
+using FastCSharp.BRabbitPublisher.Impl;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace FastCSharp.RabbitPublisher;
+namespace FastCSharp.BRabbitPublisher;
 
-public abstract class AbstractRabbitPublisherFactory : AbstractRabbitExchangeFactory, IPublisherFactory
+public abstract class AbstractRabbitBatchPublisherFactory : AbstractRabbitExchangeFactory, IBatchPublisherFactory
 {
-    protected AbstractRabbitPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory) 
+    protected AbstractRabbitBatchPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory) 
         : base(configuration, ILoggerFactory)
     {
     }
-    public abstract IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null);
+    public abstract IBatchPublisher<T> NewPublisher<T>(string destination, string? routingKey = null);
 }
-public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory
+public class RabbitDirectBatchPublisherFactory : AbstractRabbitBatchPublisherFactory
 {
-    public RabbitDirectPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
+    public RabbitDirectBatchPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     : base(configuration, ILoggerFactory)
     { }
-    public override IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
+    public override IBatchPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
     {
         if (routingKey == null)
         {
@@ -33,7 +33,7 @@ public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory
         }
 
         string exchangeName = Util.SafelyExtractExchageName(exchange, "direct");
-        return new DirectRabbitPublisher<T>(
+        return new DirectRabbitBatchPublisher<T>(
                             factory: connectionFactory,
                             ILoggerFactory: ILoggerFactory,
                             exchange: exchangeName,
@@ -43,30 +43,30 @@ public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory
     }
 }
 
-public class RabbitFanoutPublisherFactory : AbstractRabbitPublisherFactory
+public class RabbitFanoutBatchPublisherFactory : AbstractRabbitBatchPublisherFactory
 {
-    public RabbitFanoutPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
+    public RabbitFanoutBatchPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     : base(configuration, ILoggerFactory)
     {
     }
-    public override IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
+    public override IBatchPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
     {
         ExchangeConfig exchange = base._NewPublisher(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
-        return new FanoutRabbitPublisher<T>(factory: connectionFactory,
+        return new FanoutRabbitBatchPublisher<T>(factory: connectionFactory,
                             ILoggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout);
     }
 }
 
-public class RabbitTopicPublisherFactory : AbstractRabbitPublisherFactory
+public class RabbitTopicBatchPublisherFactory : AbstractRabbitBatchPublisherFactory
 {
-    public RabbitTopicPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
+    public RabbitTopicBatchPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     : base(configuration, ILoggerFactory)
     {
     }
-    public override IPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
+    public override IBatchPublisher<T> NewPublisher<T>(string destination, string? routingKey = null)
     {
         routingKey ??= "";
         ExchangeConfig exchange = base._NewPublisher(destination);
@@ -74,7 +74,7 @@ public class RabbitTopicPublisherFactory : AbstractRabbitPublisherFactory
         var isOk = exchange?.RoutingKeys?.Contains(routingKey) ?? false;
         if (routingKey == "" || isOk)
         {
-            return new TopicRabbitPublisher<T>(factory: connectionFactory,
+            return new TopicRabbitBatchPublisher<T>(factory: connectionFactory,
                                 ILoggerFactory,
                                 exchange: exchangeName,
                                 timeout: config.Timeout,

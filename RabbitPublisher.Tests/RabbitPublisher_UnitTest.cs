@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Microsoft.Extensions.Primitives;
+using FastCSharp.RabbitPublisher.Common;
 
 namespace FastCSharp.RabbitPublisher.Tests;
 
@@ -79,14 +80,14 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void CreateNewPublisherFactory()
     {
-        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
         Assert.NotNull(exchange);
     }
 
     [Fact]
     public void CreateNewDirectPublisher()
     {
-        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
         {
             var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE");
             Assert.NotNull(publisher);
@@ -99,35 +100,35 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void FailToCreateNewDirectPublisher()
     {
-        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
     public void FailToCreateNewDirectPublisherWithNullRoutingKey()
     {
-        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", null));
     }
 
     [Fact]
     public void FailToCreateNewDirectPublisherWithDefaultRoutingKey()
     {
-        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT"));
     }
 
     [Fact]
     public void CreateNewDirectPublisherWithoutFailedConfiguration()
     {
-        var exchange = new RabbitDirectExchangeFactory(emptyConfiguration, loggerFactory);
+        var exchange = new RabbitDirectPublisherFactory(emptyConfiguration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
     public void CreateTopicPublisherWithoutFailedConfiguration()
     {
-        var exchange = new RabbitTopicExchangeFactory(emptyConfiguration, loggerFactory);
+        var exchange = new RabbitTopicPublisherFactory(emptyConfiguration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
@@ -139,28 +140,28 @@ public class RabbitPublisher_UnitTest
         var config = new Mock<RabbitPublisherConfig>();
         configuration.Setup(c => c.GetSection(nameof(RabbitPublisherConfig)))
             .Returns(section);
-        var exchange = new RabbitTopicExchangeFactory(configuration.Object, loggerFactory);
+        var exchange = new RabbitTopicPublisherFactory(configuration.Object, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
     public void CreateTopicPublisherWithMissingRoutingKey()
     {
-        var exchange = new RabbitTopicExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitTopicPublisherFactory(configuration, loggerFactory);
         Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".snail."));
     }
 
     [Fact]
     public void DirectPublisherWrongQueue()
     {
-        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
         Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "WRONG_QUEUE"));
     }
 
     [Fact]
     public void CreateNewFanoutPublisher()
     {
-        var exchange = new RabbitFanoutExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitFanoutPublisherFactory(configuration, loggerFactory);
         var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT");
         Assert.NotNull(publisher);
         publisher.Dispose();
@@ -169,7 +170,7 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void CreateNewTopicPublisher()
     {
-        var exchange = new RabbitTopicExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitTopicPublisherFactory(configuration, loggerFactory);
         var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".mail.");
         Assert.NotNull(publisher);
         Assert.NotNull(exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".sms."));
@@ -180,14 +181,14 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void TopicPublisherWrongKey()
     {
-        var exchange = new RabbitTopicExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitTopicPublisherFactory(configuration, loggerFactory);
         Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", "wrong.key"));
     }
 
     [Fact]
     public void CreateWrongPublisherConfigurationTypeForFanout()
     {
-        var exchange = new RabbitFanoutExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitFanoutPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC"));
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE"));
     }
@@ -195,7 +196,7 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void CreateWrongPublisherConfigurationTypeForDirect()
     {
-        var exchange = new RabbitDirectExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".mail."));
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT", "TASK_QUEUE"));
     }
@@ -203,7 +204,7 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void CreateWrongPublisherConfigurationTypeForTopic()
     {
-        var exchange = new RabbitTopicExchangeFactory(configuration, loggerFactory);
+        var exchange = new RabbitTopicPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT", "TASK_QUEUE"));
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE"));
     }

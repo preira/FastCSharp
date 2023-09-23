@@ -6,21 +6,21 @@ namespace Publisher.Tests;
 
 class RemoteControl<T>
 {
-    public Boolean HasBeenDisposed { get; set; }
-    public Boolean IsHealthy { get; set; }
-    public Boolean HasCalledHealthy { get; set; }
-    public Boolean IsResetConnection { get; set; }
-    public Boolean HasResetConnection { get; set; }
-    public Boolean HasCalledAsyncPublish { get; set; }
+    public bool HasBeenDisposed { get; set; }
+    public bool IsHealthy { get; set; }
+    public bool HasCalledHealthy { get; set; }
+    public bool IsResetConnection { get; set; }
+    public bool HasResetConnection { get; set; }
+    public bool HasCalledPublish { get; set; }
     public T? PublishResult { get; set; }
-    public bool PublishFunction(byte[] arr)
+    public bool PublishFunction(T value)
     {
         // PublishResult = Encoding.UTF8.GetString(arr);
-        PublishResult = JsonSerializer.Deserialize<T>(arr);
+        PublishResult = value;
         return true;
     }
 }
-class TestPublisher : AbstractPublisher<string>
+class TestPublisher : AbstractPublisherHandler<string>
 {
     RemoteControl<string> rc;
     public TestPublisher(RemoteControl<string> remote) : base()
@@ -33,10 +33,17 @@ class TestPublisher : AbstractPublisher<string>
         rc.HasBeenDisposed = true;
     }
 
-    protected override bool AsyncPublish(byte[] body)
+    public bool Publish(string? message)
     {
-        rc.HasCalledAsyncPublish = true;
-        return rc.PublishFunction(body);
+        foreach (var handler in handlers)
+        {
+            message = handler(message);
+        }
+        if(message == null)
+        {
+            return false;
+        }
+        return rc.PublishFunction(message);
     }
 
     protected override bool IsHealthy()
@@ -55,87 +62,7 @@ class TestPublisher : AbstractPublisher<string>
 public class Publisher_UnitTest
 {
     [Fact]
-    public void PublisherShouldInvokeDispose()
-    {
-        var rc = new RemoteControl<string>();
-        using(var publisher = new TestPublisher(rc))
-        {
-            Assert.False(rc.HasBeenDisposed, "Shouldn't have been disposed yet.");
-        }
-        Assert.True(rc.HasBeenDisposed, "Should have been disposed.");
-    }
-
-    [Fact]
-    public async void ShouldCall_IsHealthy()
-    {
-        var rc = new RemoteControl<string>
-        {
-            IsHealthy = true
-        };
-        using(var publisher = new TestPublisher(rc))
-        {
-            await publisher.Publish("The Earth is round.");
-        }
-        Assert.True(rc.HasCalledHealthy, "Should have called IsHealthy.");
-    }
-
-    [Fact]
-    public async void IfIsHealthyThenShouldntCallResetConnection()
-    {
-        var rc = new RemoteControl<string>
-        {
-            IsHealthy = true
-        };
-        using(var publisher = new TestPublisher(rc))
-        {
-            await publisher.Publish("The Earth is round.");
-        }
-        Assert.True(rc.HasCalledHealthy, "Should have called IsHealthy.");
-        Assert.False(rc.HasResetConnection, "Shouldn't have called ResetConnection.");
-    }
-
-    [Fact]
-    public async void ShouldCall_ResetConnection()
-    {
-        var rc = new RemoteControl<string>();
-        using(var publisher = new TestPublisher(rc))
-        {
-            await publisher.Publish("The Moon is round.");
-        }
-        Assert.True(rc.HasResetConnection, "Should have called ResetConnection.");
-    }
-
-    [Fact]
-    public async void ShouldCall_AsyncPublish()
-    {
-        var rc = new RemoteControl<string>
-        {
-            IsHealthy = true
-        };
-        using(var publisher = new TestPublisher(rc))
-        {
-            await publisher.Publish("The Earth is orbiting the Sun.");
-        }
-        Assert.True(rc.HasCalledAsyncPublish, "Should have called AsyncPublish.");
-    }
-
-    [Fact]
-    public async void CallToAsyncPublishShouldSendTheSameMsg()
-    {
-        var msg = "Mercury is the planet closest to the sun.";
-        var rc = new RemoteControl<string>
-        {
-            IsHealthy = true
-        };
-        using(var publisher = new TestPublisher(rc))
-        {
-            await publisher.Publish(msg);
-        }
-        Assert.Equal(msg, rc.PublishResult);
-    }
-
-    [Fact]
-    public async void AddedMessageHandlerShouldBeInvoked()
+    public void AddedMessageHandlerShouldBeInvoked()
     {
         var rc = new RemoteControl<string>
         {
@@ -145,13 +72,13 @@ public class Publisher_UnitTest
         using(var publisher = new TestPublisher(rc))
         {
             publisher.AddMsgHandler(m => m + (++countCalls));
-            await publisher.Publish("The Earth is orbiting the Sun.");
+            publisher.Publish("The Earth is orbiting the Sun.");
         }
         Assert.Equal(1, countCalls);
     }
 
     [Fact]
-    public async void AddedMessageHandlersShouldBeInvoked()
+    public void AddedMessageHandlersShouldBeInvoked()
     {
         var rc = new RemoteControl<string>
         {
@@ -165,13 +92,13 @@ public class Publisher_UnitTest
             {
                 publisher.AddMsgHandler(m => m + (++countCalls));
             }
-            await publisher.Publish("The Earth is orbiting the Sun.");
+            publisher.Publish("The Earth is orbiting the Sun.");
         }
         Assert.Equal(handlersCount, countCalls);
     }
 
     [Fact]
-    public async void AddedMessageHandlerShouldAffectTheMessage()
+    public void AddedMessageHandlerShouldAffectTheMessage()
     {
         var token = "There are other planets orbiting the Sun.";
         var result = token;
@@ -183,13 +110,13 @@ public class Publisher_UnitTest
         {
             publisher.AddMsgHandler(m => m?.Replace('e', '_'));
             result = result.Replace('e', '_');
-            await publisher.Publish(token);
+            publisher.Publish(token);
         }
         Assert.Equal(result, rc.PublishResult);
     }
 
     [Fact]
-    public async void AddedMessageHandlersShouldAffectTheMessageByAddedOrder()
+    public void AddedMessageHandlersShouldAffectTheMessageByAddedOrder()
     {
         var token = "The Sun is in a Galaxy.";
         var result = token;
@@ -207,7 +134,7 @@ public class Publisher_UnitTest
             result = result.Replace('a', '?');
             publisher.AddMsgHandler(m => m?.Replace('_', '-'));
             result = result.Replace('_', '-');
-            await publisher.Publish(token);
+            publisher.Publish(token);
         }
         Assert.Equal(result, rc.PublishResult);
     }
