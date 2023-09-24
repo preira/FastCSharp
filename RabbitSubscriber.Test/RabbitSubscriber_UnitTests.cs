@@ -168,7 +168,7 @@ public class RabbitSubscriber_UnitTest
         var connection = new Mock<IConnection>();
         connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
 
-        using var subscriber = new RabbitSubscriber<object>(connectionFactory.Object, queue, loggerFactory);
+        using var subscriber = new RabbitSubscriber<object>(connectionFactory.Object, queue, loggerFactory, null);
         Assert.NotNull(subscriber);
     }
 
@@ -212,7 +212,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             subscriber.Register(async (msg) => await new Task<bool>(() => true));
         }
@@ -239,7 +239,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             var basicProperties = new Mock<IBasicProperties>();
             basicProperties.SetupGet(prop => prop.MessageId).Returns("TestMessageId-1");
@@ -277,7 +277,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             var basicProperties = new Mock<IBasicProperties>();
             basicProperties.SetupGet(prop => prop.MessageId).Returns("TestMessageId-1");
@@ -335,7 +335,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             subscriber.Register(async (msg) => await new Task<bool>(() => true));
             connection.Setup(conn => conn.IsOpen).Returns(false);
@@ -363,7 +363,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             subscriber.Register(async (msg) => await new Task<bool>(() => true));
             connection.Setup(conn => conn.IsOpen).Returns(true);
@@ -396,7 +396,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             Assert.Throws<IncorrectInitializationException>(() => subscriber.Reset());
         }
@@ -417,7 +417,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             subscriber.Register(async (msg) => await new Task<bool>(() => true));
             subscriber.Reset();
@@ -440,7 +440,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             subscriber.Register(async (msg) => await new Task<bool>(() => true));
             subscriber.UnSubscribe();
@@ -467,7 +467,7 @@ public class RabbitSubscriber_UnitTest
         var model = new Mock<IModel>();
         connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
 
-        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory))
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             subscriber.Register(async (msg) => await new Task<bool>(() => true));
             subscriber.CloseChannel();
