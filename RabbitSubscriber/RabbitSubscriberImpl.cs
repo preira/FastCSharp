@@ -39,6 +39,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
 {
     readonly private IConnectionFactory connectionFactory;
     readonly private RabbitQueueConfig q;
+    private readonly IList<AmqpTcpEndpoint>? endpoints;
     private IConnection connection;
     private IModel channel;
 
@@ -53,15 +54,24 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     public RabbitSubscriber(
             IConnectionFactory connectionFactory,
             RabbitQueueConfig queue,
-            ILoggerFactory loggerFactory
+            ILoggerFactory loggerFactory,
+            IList<AmqpTcpEndpoint>? hosts
         ) : base()
     {
+        endpoints = hosts;
         this.connectionFactory = connectionFactory;
         q = queue;
 
         logger = loggerFactory.CreateLogger<RabbitSubscriber<T>>();
 
-        connection = connectionFactory.CreateConnection();
+        if(endpoints == null)
+        {
+            connection = connectionFactory.CreateConnection();
+        }
+        else
+        {
+            connection = connectionFactory.CreateConnection(endpoints);
+        }
         channel = connection.CreateModel();
 
         _consumerTag = Guid.NewGuid().ToString();
@@ -74,7 +84,14 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             connection.Close();
             channel.Dispose();
             connection.Dispose();
-            connection = connectionFactory.CreateConnection();
+            if(endpoints == null)
+            {
+                connection = connectionFactory.CreateConnection();
+            }
+            else
+            {
+                connection = connectionFactory.CreateConnection(endpoints);
+            }
             channel = connection.CreateModel();
         }
         else if(channel.IsClosed)

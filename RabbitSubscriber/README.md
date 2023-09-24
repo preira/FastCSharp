@@ -47,19 +47,43 @@ public class Message
     "RabbitSubscriberConfig" : 
     {
         "HostName"  : "localhost",
-        "VirtualHost" : "MyVirtualHost",
         "Port"      : 5672,
+        "VirtualHost": "test-vhost",
         "UserName"  : "guest",
         "Password"  : "guest",
         "HeartbeatTimeout"  : "00:00:20",
         "Queues"    :
         {
-            "TASK_QUEUE"    : 
+            "DIRECT_QUEUE"    : 
             {
                 "Name":"test.direct.q",
                 "PrefecthCount":1,
                 "PrefecthSize":0
-            }            
+            },
+            "TOPIC_QUEUE.1"    : 
+            {
+                "Name":"test.topic.q.1",
+                "PrefecthCount":1,
+                "PrefecthSize":0
+            },
+            "TOPIC_QUEUE.2"    : 
+            {
+                "Name":"test.topic.q.1",
+                "PrefecthCount":1,
+                "PrefecthSize":0
+            },
+            "FANOUT_QUEUE.1"    : 
+            {
+                "Name":"test.fanout.q.1",
+                "PrefecthCount":1,
+                "PrefecthSize":0
+            },
+            "FANOUT_QUEUE.2"    : 
+            {
+                "Name":"test.fanout.q.2",
+                "PrefecthCount":1,
+                "PrefecthSize":0
+            }
         }
     }
 }

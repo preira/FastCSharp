@@ -5,6 +5,7 @@ using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using FastCSharp.RabbitSubscriber.Impl;
+using System.Text.Json;
 
 namespace FastCSharp.RabbitSubscriber;
 
@@ -44,9 +45,10 @@ public class RabbitSubscriberFactory : ISubscriberFactory
         _loggerFactory = loggerFactory;
         configuration.GetSection(nameof(RabbitSubscriberConfig)).Bind(config);
 
-        if (config.HostName == null || config.Port == 0)
+        if ((config.HostName == null || config.Port == 0) && config.Hosts == null)
         {
-            throw new IncorrectInitializationException($"Message Queue was configuration configured with Hostname:'{config.HostName}', Port:'{config.Port}'.");
+            throw new IncorrectInitializationException(
+                $"Message Queue was configuration configured with Hostname:'{config.HostName}', Port:'{config.Port}', enpoints: '{JsonSerializer.Serialize(config.Hosts)}'.");
         }
 
 
@@ -81,7 +83,7 @@ public class RabbitSubscriberFactory : ISubscriberFactory
                 throw new ArgumentException($"Could not find the queue for '{messageOrigin}' in the section {nameof(RabbitSubscriberConfig)}. Please check your configuration.");
             }
 
-            return new RabbitSubscriber<T>(connectionFactory, queue, _loggerFactory);
+            return new RabbitSubscriber<T>(connectionFactory, queue, _loggerFactory, config.Hosts);
         }
         catch (KeyNotFoundException)
         {
