@@ -45,7 +45,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
 
     readonly private ILogger<RabbitSubscriber<T>> logger;
     private OnMessageCallback<T>? _callback;
-
+    private bool disposedValue;
     readonly private string _consumerTag;
     public string ConsumerTag
     {
@@ -200,8 +200,16 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
 
     protected override void Dispose(bool disposing)
     {
-        channel?.Dispose();
-        connection?.Dispose();
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                // dispose managed state (managed objects)
+                channel?.Dispose();
+                connection?.Dispose();
+            }
+            disposedValue = true;
+        }
     }
 }
 

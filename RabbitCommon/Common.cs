@@ -2,13 +2,12 @@
 
 namespace FastCSharp.RabbitCommon;
 
-public interface IFCSConnection
+public interface IFCSConnection : IDisposable
 {
     bool IsOpen { get; }
     IModel CreateModel();
     bool ResetConnection(bool dispose = true);
     void Close();
-    void Dispose();
 }
 
 /// <summary>

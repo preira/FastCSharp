@@ -49,7 +49,7 @@ public interface IBatchPublisher<T>: IHandler<T>
 /// <summary>
 /// Factory to create new Publisher.  
 /// </summary>
-public interface IPublisherFactory
+public interface IPublisherFactory : IDisposable
 {
     /// <summary>
     /// Creates a new Publisher for a specific destination. In case the destination has a direct output
@@ -67,7 +67,7 @@ public interface IPublisherFactory
 /// <summary>
 /// Factory to create new Publisher.  
 /// </summary>
-public interface IBatchPublisherFactory
+public interface IBatchPublisherFactory : IDisposable
 {
     /// <summary>
     /// Creates a new Publisher for a specific destination. In case the destination has a direct output

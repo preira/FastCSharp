@@ -3,6 +3,7 @@ using RabbitMQ.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using FastCSharp.SDK.Publisher;
+using System.Collections.Concurrent;
 
 namespace FastCSharp.RabbitPublisher.Common;
 
@@ -25,7 +26,7 @@ public class RabbitConnection : IFCSConnection
     private readonly IConnectionFactory factory;
     private readonly IList<AmqpTcpEndpoint>? endpoints;
     private IConnection? connection;
-    private readonly IList<IModel> channels;
+    private readonly ConcurrentQueue<IModel> channels;
     readonly private ILogger logger;
     public RabbitConnection(IConnectionFactory connectionFactory, ILoggerFactory ILoggerFactory, IList<AmqpTcpEndpoint>? hosts)
     {
@@ -33,7 +34,7 @@ public class RabbitConnection : IFCSConnection
         logger = ILoggerFactory.CreateLogger<RabbitConnection>();
         factory = connectionFactory;
 
-        channels = new List<IModel>();
+        channels = new ();
     }
     public bool IsOpen => connection?.IsOpen ?? false;
     public IModel CreateModel()
@@ -47,24 +48,29 @@ public class RabbitConnection : IFCSConnection
         {
             throw new Exception("FastCSharp could not create a new channel.");
         }
-        channels.Add(channel);
+        channels.Append(channel);
         return channel;
     }
     public void Close() 
     {
-        foreach (var channel in channels)
+        while(channels.TryDequeue(out var channel))
         {
-            channels.Remove(channel);
-            channel.Close();
-            channel.Dispose();
+            if(!channel.IsClosed)
+            {
+                channel.Close();
+                channel.Dispose();
+            }
         }
-        connection?.Close();
-
+        if(connection?.IsOpen ?? false)
+        {
+            connection.Close();
+        }
     } 
     public bool ResetConnection(bool dispose = true)
     {
         try
         {
+            connection?.Close();
             connection?.Dispose();
 
             if(endpoints == null)
@@ -80,7 +86,27 @@ public class RabbitConnection : IFCSConnection
         {
             if (dispose)
             {
-                logger.LogError("[CONFIG ERROR] {message}", ex.Message);
+                var debugFactory =  factory as ConnectionFactory;
+
+                var error = $"\tFactory URI: {factory.Uri}\n";
+                error += $"\tFactory endpoint: {debugFactory?.HostName}:{debugFactory?.Port}\n";
+
+                if(endpoints != null)
+                {
+                    var i = 0;
+                    endpoints.ToList().ForEach(e =>
+                        error += $"\tendpoint {++i}: {e}\n"
+                    );
+                }
+                var pw = debugFactory?.Password;
+                string? staredPw = null;
+
+                if (pw!=null)
+                {
+                    staredPw = $"{pw[..1]}******{pw[^2..]}";
+                }
+                error += $"\nThis may be due to incorrect authentication. Please check your user ('{debugFactory?.UserName}') and password ('{staredPw}').";
+                logger.LogError("[CONFIG ERROR] {message}\n{error}\n", ex.Message, error);
             }
             else
             {
@@ -89,27 +115,24 @@ public class RabbitConnection : IFCSConnection
             logger.LogDebug("{stackTrace}", ex.GetType());
             logger.LogDebug("{stackTrace}", ex.StackTrace);
 
-            return false;
-        }
+            return false;        }
         return true;
     }    
     public void Dispose() 
     {
-        foreach (var channel in channels)
-        {
-            channels.Remove(channel);
-            channel.Dispose();
-        }
+        Close();
         connection?.Dispose();
     } 
 }
 
-public abstract class AbstractRabbitExchangeFactory
+public abstract class AbstractRabbitExchangeFactory : IDisposable
 {
     protected RabbitPublisherConfig config = new();
     
     protected readonly IFCSConnection connectionFactory;
     protected ILoggerFactory ILoggerFactory;
+    private bool disposedValue;
+
     protected AbstractRabbitExchangeFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
     {
         this.ILoggerFactory = ILoggerFactory;
@@ -150,6 +173,26 @@ public abstract class AbstractRabbitExchangeFactory
         {
             throw new ArgumentException($"Could not find the exchange for '{destination}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.", ex);
         }
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                // dispose managed state (managed objects)
+                connectionFactory.Dispose();
+            }
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
 
