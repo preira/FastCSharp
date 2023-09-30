@@ -7,13 +7,10 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using Microsoft.Extensions.Primitives;
 using FastCSharp.RabbitPublisher.Common;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using FastCSharp.Publisher;
 
 namespace FastCSharp.RabbitPublisher.Tests;
 
-public class RabbitPublisher_UnitTest
+public class RabbitBatchPublisher_UnitTest
 {
     readonly ILoggerFactory loggerFactory;
 
@@ -26,7 +23,7 @@ public class RabbitPublisher_UnitTest
         new AmqpTcpEndpoint("localhost", 5672)
     };
 
-    public RabbitPublisher_UnitTest()
+    public RabbitBatchPublisher_UnitTest()
     {
         loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -83,14 +80,14 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void CreateNewPublisherFactory()
     {
-        using var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitDirectBatchPublisherFactory(configuration, loggerFactory);
         Assert.NotNull(exchange);
     }
 
     [Fact]
     public void CreateNewDirectPublisher()
     {
-        using var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitDirectBatchPublisherFactory(configuration, loggerFactory);
         {
             using var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE");
             Assert.NotNull(publisher);
@@ -101,50 +98,37 @@ public class RabbitPublisher_UnitTest
     }
 
     [Fact]
-    public void TestRabbitConnection()
-    {
-        // Given
-        var connectionFactory = new Mock<IConnectionFactory>();
-        var loggerFactory = new Mock<ILoggerFactory>();
-        var hosts = new List<AmqpTcpEndpoint>();
-        var conn = new RabbitConnection(connectionFactory.Object, loggerFactory.Object, hosts);
-        // When
-        Assert.False(conn.IsOpen);
-        // Then
-    }
-
-    [Fact]
     public void FailToCreateNewDirectPublisher()
     {
-        using var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitDirectBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
     public void FailToCreateNewDirectPublisherWithNullRoutingKey()
     {
-        using var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitDirectBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", null));
     }
 
     [Fact]
     public void FailToCreateNewDirectPublisherWithDefaultRoutingKey()
     {
-        using var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitDirectBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT"));
     }
 
     [Fact]
     public void CreateNewDirectPublisherWithoutFailedConfiguration()
     {
-        using var exchange = new RabbitDirectPublisherFactory(emptyConfiguration, loggerFactory);
+        using var exchange = new RabbitDirectBatchPublisherFactory(emptyConfiguration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
     public void CreateTopicPublisherWithoutFailedConfiguration()
     {
-        using var exchange = new RabbitTopicPublisherFactory(emptyConfiguration, loggerFactory);
+        using var exchange = new RabbitTopicBatchPublisherFactory(emptyConfiguration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
@@ -156,52 +140,37 @@ public class RabbitPublisher_UnitTest
         var config = new Mock<RabbitPublisherConfig>();
         configuration.Setup(c => c.GetSection(nameof(RabbitPublisherConfig)))
             .Returns(section);
-        using var exchange = new RabbitTopicPublisherFactory(configuration.Object, loggerFactory);
+        using var exchange = new RabbitTopicBatchPublisherFactory(configuration.Object, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("FAIL.TO.GET.EXCHANGE", "TASK_QUEUE"));
     }
 
     [Fact]
     public void CreateTopicPublisherWithMissingRoutingKey()
     {
-        using var exchange = new RabbitTopicPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitTopicBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".snail."));
     }
 
     [Fact]
     public void DirectPublisherWrongQueue()
     {
-        using var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitDirectBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "WRONG_QUEUE"));
     }
 
     [Fact]
     public void CreateNewFanoutPublisher()
     {
-        using var exchange = new RabbitFanoutPublisherFactory(configuration, loggerFactory);
-        using (var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT"))
-        {
-            Assert.NotNull(publisher);
-        };
-        
-    }
-
-    [Fact]
-    public async void CreateNewFanoutPublisher_ConfirmDispose()
-    {
-        using var exchange = new RabbitFanoutPublisherFactory(configuration, loggerFactory);
-        IPublisher<string>? publisher = null;
-        using (publisher = exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT"))
-        {
-            Assert.NotNull(publisher);
-        };
-        GC.Collect();
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => publisher.Publish(""));
+        using var exchange = new RabbitFanoutBatchPublisherFactory(configuration, loggerFactory);
+        using var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT");
+        Assert.NotNull(publisher);
+        publisher.Dispose();
     }
 
     [Fact]
     public void CreateNewTopicPublisher()
     {
-        using var exchange = new RabbitTopicPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitTopicBatchPublisherFactory(configuration, loggerFactory);
         using var publisher = exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".mail.");
         Assert.NotNull(publisher);
         Assert.NotNull(exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".sms."));
@@ -212,14 +181,14 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void TopicPublisherWrongKey()
     {
-        using var exchange = new RabbitTopicPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitTopicBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<KeyNotFoundException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", "wrong.key"));
     }
 
     [Fact]
     public void CreateWrongPublisherConfigurationTypeForFanout()
     {
-        using var exchange = new RabbitFanoutPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitFanoutBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC"));
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE"));
     }
@@ -227,7 +196,7 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void CreateWrongPublisherConfigurationTypeForDirect()
     {
-        using var exchange = new RabbitDirectPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitDirectBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.TOPIC", ".mail."));
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT", "TASK_QUEUE"));
     }
@@ -235,7 +204,7 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public void CreateWrongPublisherConfigurationTypeForTopic()
     {
-        using var exchange = new RabbitTopicPublisherFactory(configuration, loggerFactory);
+        using var exchange = new RabbitTopicBatchPublisherFactory(configuration, loggerFactory);
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.FANOUT", "TASK_QUEUE"));
         Assert.Throws<ArgumentException>(() => exchange.NewPublisher<string>("PUBLISH.SDK.DIRECT", "TASK_QUEUE"));
     }
@@ -248,7 +217,7 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedFactory.Setup(conn => conn.CreateChannel()).Returns(mockedModel.Object);
 
-        using var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitBatchPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -256,13 +225,38 @@ public class RabbitPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.True(await publisher.Publish("Test Message"));
+        Assert.True(await publisher.BatchPublish(new string[] { "Test Message" }));	
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
         mockedModel.Verify(model => 
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+    }
+
+    [Fact]
+    public async void DirectExchange_BatchPublish_Success()
+    {
+        var mockedFactory = new Mock<IFCSConnection>();
+
+        var mockedModel = new Mock<IModel>();
+        mockedFactory.Setup(conn => conn.CreateChannel()).Returns(mockedModel.Object);
+
+        using var publisher = new DirectRabbitBatchPublisher<string>(
+            mockedFactory.Object,
+            loggerFactory,
+            "TestExchange",
+            Timeout.InfiniteTimeSpan,
+            "TestQueue"
+            );
+
+        Assert.True(await publisher.BatchPublish(new string[] { "Test Message", "Test Message", "Test Message" }));	
+
+        mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
+
+        mockedModel.Verify(model => 
+            model.BasicPublish("TestExchange", "TestQueue", false, null, 
+                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeast(3));
     }
 
     [Fact]
@@ -276,7 +270,7 @@ public class RabbitPublisher_UnitTest
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<ReadOnlyMemory<byte>>())).Throws<Exception>();
 
-        using var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitBatchPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -284,7 +278,7 @@ public class RabbitPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.Publish("Test Message"));
+        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
@@ -309,7 +303,7 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
-        using var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitBatchPublisher<string>(
             factory,
             loggerFactory,
             "TestExchange",
@@ -317,8 +311,8 @@ public class RabbitPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.True(await publisher.Publish("Test Message"));
+        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.True(await publisher.BatchPublish(new string[]{"Test Message"}));
 
         mockedModel.Verify(model => 
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
@@ -341,22 +335,22 @@ public class RabbitPublisher_UnitTest
         var mockedModel = new Mock<IModel>();
         mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
 
-        using var publisher = new FanoutRabbitPublisher<string>(
+        using var publisher = new FanoutRabbitBatchPublisher<string>(
             factory,
             loggerFactory,
             "TestExchange",
             Timeout.InfiniteTimeSpan
             );
 
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.True(await publisher.Publish("Test Message"));
+        Assert.False(await publisher.BatchPublish(new string[]{"Test Message", "Test Message", "Test Message"}));
+        Assert.True(await publisher.BatchPublish(new string[]{"Test Message", "Test Message", "Test Message"}));
 
         mockedConnectionFactory.Verify(factory => factory.CreateConnection(hosts), Times.AtLeastOnce());
         mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
 
         mockedModel.Verify(model => 
             model.BasicPublish("TestExchange", "", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+                It.IsAny<ReadOnlyMemory<byte>>()), Times.Exactly(3));
     }
 
     [Fact]
@@ -375,7 +369,7 @@ public class RabbitPublisher_UnitTest
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<ReadOnlyMemory<byte>>()));
 
-        using var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitBatchPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -383,8 +377,8 @@ public class RabbitPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.True(await publisher.Publish("Test Message"));
+        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.True(await publisher.BatchPublish(new string[]{"Test Message"}));
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
@@ -411,7 +405,7 @@ public class RabbitPublisher_UnitTest
         mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
         mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
 
-        using var publisher = new DirectRabbitPublisher<string>(
+        using var publisher = new DirectRabbitBatchPublisher<string>(
             factory,
             loggerFactory,
             "TestExchange",
@@ -419,9 +413,9 @@ public class RabbitPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.True(await publisher.Publish("Test Message"));
+        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.True(await publisher.BatchPublish(new string[]{"Test Message"}));
 
         mockedConnectionFactory.Verify(factory => factory.CreateConnection(hosts), Times.AtLeastOnce());
         mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
@@ -442,7 +436,7 @@ public class RabbitPublisher_UnitTest
         var sequence = new MockSequence();
         mockedModel.InSequence(sequence).Setup(channel => channel.WaitForConfirmsOrDie(It.IsAny<TimeSpan>())).Throws<Exception>();
 
-        using var publisher = new TopicRabbitPublisher<string>(
+        using var publisher = new TopicRabbitBatchPublisher<string>(
             mockedFactory.Object,
             loggerFactory,
             "TestExchange",
@@ -450,8 +444,8 @@ public class RabbitPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.True(await publisher.Publish("Test Message"));
+        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.True(await publisher.BatchPublish(new string[]{"Test Message"}));
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
@@ -459,83 +453,41 @@ public class RabbitPublisher_UnitTest
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
                 It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
     }
-
-    [Fact]
-    public void FanoutExchange_UseDependencyInjection()
-    {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddRabbitPublisher(configuration);
-        
-        serviceCollection.AddSingleton<ILoggerFactory>(new LoggerFactory());
-
-        var serviceProvider = serviceCollection.BuildServiceProvider();
-        var rabbitOptions = serviceProvider.GetRequiredService<IOptions<RabbitPublisherConfig>>();
-        Assert.NotNull(rabbitOptions);
-        Assert.NotNull(rabbitOptions.Value);
-        Assert.Equal("FCS Test", rabbitOptions.Value.ClientName);
-
-        using var serviceScope = serviceProvider.CreateScope();
-        var services = serviceScope.ServiceProvider;
-        Assert.NotNull(services);
-        Assert.Equal(typeof(RabbitFanoutPublisherFactory), services.GetRequiredService<IPublisherFactory<IFanoutPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitTopicPublisherFactory), services.GetRequiredService<IPublisherFactory<ITopicPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitDirectPublisherFactory), services.GetRequiredService<IPublisherFactory<IDirectPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitFanoutBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IFanoutBatchPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitTopicBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<ITopicBatchPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitDirectBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IDirectBatchPublisher>>().GetType());
-    }
-
-    [Fact]
-    public void TestName()
-    {
-        // Given
-        var section = new Section();
-        // When
-
-        // Then
-        Assert.Throws<NotImplementedException>(() => section["a"]);
-        Assert.Throws<NotImplementedException>(() => section["a"] = "a");
-        Assert.Throws<NotImplementedException>(() => section.Key);
-        Assert.Throws<NotImplementedException>(() => section.Path);
-        section.Value = "a";
-        Assert.Throws<NotImplementedException>(section.GetReloadToken);
-        Assert.Throws<NotImplementedException>(() => section.GetSection("a"));
-    }
 }
 
-class Section : IConfigurationSection
-{
-    public string? this[string key] 
-    { 
-        get => throw new NotImplementedException(); 
-        set => throw new NotImplementedException(); 
-    }
+// class Section : IConfigurationSection
+// {
+//     public string? this[string key] 
+//     { 
+//         get => throw new NotImplementedException(); 
+//         set => throw new NotImplementedException(); 
+//     }
 
-    public string Key => throw new NotImplementedException();
+//     public string Key => throw new NotImplementedException();
 
-    public string Path => throw new NotImplementedException();
+//     public string Path => throw new NotImplementedException();
 
-    public string? Value 
-    {   
-        get 
-        {
-            return null;
-        } 
-        set { } 
-    }
+//     public string? Value 
+//     {   
+//         get 
+//         {
+//             return null;
+//         } 
+//         set { } 
+//     }
 
-    public IEnumerable<IConfigurationSection> GetChildren()
-    {
-        return new List<IConfigurationSection>();
-    }
+    // public IEnumerable<IConfigurationSection> GetChildren()
+    // {
+    //     return new List<IConfigurationSection>();
+    // }
 
-    public IChangeToken GetReloadToken()
-    {
-        throw new NotImplementedException();
-    }
+    // public IChangeToken GetReloadToken()
+    // {
+    //     throw new NotImplementedException();
+    // }
 
-    public IConfigurationSection GetSection(string key)
-    {
-        throw new NotImplementedException();
-    }
-}
+    // public IConfigurationSection GetSection(string key)
+    // {
+    //     throw new NotImplementedException();
+    // }
+// }

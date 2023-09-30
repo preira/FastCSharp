@@ -23,7 +23,7 @@ public abstract class AbstractPublisherHandler<T> : IHandler<T>
             return true;
         }
         // try to recover
-        return ResetConnection();
+        return ResetChannel();
     }
 
     /// <summary>
@@ -38,7 +38,7 @@ public abstract class AbstractPublisherHandler<T> : IHandler<T>
     /// </summary>
     /// <param name="dispose"></param>
     /// <returns></returns>
-    protected abstract bool ResetConnection(bool dispose = true);
+    protected abstract bool ResetChannel(bool dispose = true);
 
     /// <summary>
     /// Should dispose of any managed or unmanaged resources.

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using FastCSharp.SDK.Publisher;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Options;
 
 namespace FastCSharp.RabbitPublisher.Common;
 
@@ -26,7 +27,7 @@ public class RabbitConnection : IFCSConnection
     private readonly IConnectionFactory factory;
     private readonly IList<AmqpTcpEndpoint>? endpoints;
     private IConnection? connection;
-    private readonly ConcurrentQueue<IModel> channels;
+    private readonly ConcurrentBag<IModel> channels;
     readonly private ILogger logger;
     public RabbitConnection(IConnectionFactory connectionFactory, ILoggerFactory ILoggerFactory, IList<AmqpTcpEndpoint>? hosts)
     {
@@ -37,7 +38,7 @@ public class RabbitConnection : IFCSConnection
         channels = new ();
     }
     public bool IsOpen => connection?.IsOpen ?? false;
-    public IModel CreateModel()
+    public IModel CreateChannel()
     {
         if (connection == null || !connection.IsOpen)
         {
@@ -51,9 +52,20 @@ public class RabbitConnection : IFCSConnection
         channels.Append(channel);
         return channel;
     }
+    public bool DisposeChannel(IModel? channel)
+    {
+        if(channel != null  && channels.ToList().Remove(channel))
+        {
+            channel.Close();
+            channel.Dispose();
+
+            return true;
+        }
+        return false;
+    }
     public void Close() 
     {
-        while(channels.TryDequeue(out var channel))
+        while(channels.TryTake(out var channel))
         {
             if(!channel.IsClosed)
             {
@@ -115,7 +127,8 @@ public class RabbitConnection : IFCSConnection
             logger.LogDebug("{stackTrace}", ex.GetType());
             logger.LogDebug("{stackTrace}", ex.StackTrace);
 
-            return false;        }
+            return false;        
+        }
         return true;
     }    
     public void Dispose() 
@@ -133,12 +146,24 @@ public abstract class AbstractRabbitExchangeFactory : IDisposable
     protected ILoggerFactory ILoggerFactory;
     private bool disposedValue;
 
-    protected AbstractRabbitExchangeFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
+    protected AbstractRabbitExchangeFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
     {
-        this.ILoggerFactory = ILoggerFactory;
+        this.ILoggerFactory = loggerFactory;
+        config = options.Value;
+        connectionFactory = CreateRabbitConnection(config, loggerFactory);
+    }
+
+    protected AbstractRabbitExchangeFactory(IConfiguration configuration, ILoggerFactory loggerFactory)
+    {
+        this.ILoggerFactory = loggerFactory;
         var section = configuration.GetSection(nameof(RabbitPublisherConfig));
         section.Bind(config);
+        
+        connectionFactory = CreateRabbitConnection(config, loggerFactory);
+    }
 
+    private static RabbitConnection CreateRabbitConnection(RabbitPublisherConfig config, ILoggerFactory loggerFactory)
+    {
         var factory = new ConnectionFactory
         {
             ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitPublisher"
@@ -151,10 +176,10 @@ public abstract class AbstractRabbitExchangeFactory : IDisposable
         if(config.UserName != null) factory.UserName = config.UserName;
         if(config.Heartbeat != null) factory.RequestedHeartbeat = (TimeSpan) config.Heartbeat;
         
-        connectionFactory = new RabbitConnection(factory, ILoggerFactory, config.Hosts);
+        return new RabbitConnection(factory, loggerFactory, config.Hosts);
     }
 
-    protected ExchangeConfig _NewPublisher(string destination)
+    protected ExchangeConfig GetExchangeConfig(string destination)
     {
         try
         {
@@ -227,16 +252,17 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisherHandler<T>
 
     private void Init()
     {
-        ResetConnection(dispose: false);
+        ResetChannel(dispose: false);
     }
 
-    protected override bool ResetConnection(bool dispose = true)
+    protected override bool ResetChannel(bool dispose = true)
     {
         try
         {
-            channel?.Dispose();
+            // TODO: pass responsibility to the connection factory
+            connection.DisposeChannel(channel);
 
-            channel = connection.CreateModel();
+            channel = connection.CreateChannel();
             channel.ConfirmSelect();
 
             ResourceDeclarePassive(channel);
@@ -263,6 +289,7 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisherHandler<T>
 
     protected override void Dispose(bool disposing)
     {
+        // TODO: return to the channels' pool
         if(!disposed)
         {
             if(disposing)

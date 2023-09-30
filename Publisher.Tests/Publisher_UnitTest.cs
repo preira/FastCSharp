@@ -1,6 +1,5 @@
 using Xunit;
 using FastCSharp.SDK.Publisher;
-using System.Text.Json;
 
 namespace Publisher.Tests;
 
@@ -13,8 +12,9 @@ class RemoteControl<T>
     public bool HasResetConnection { get; set; }
     public bool HasCalledPublish { get; set; }
     public T? PublishResult { get; set; }
-    public bool PublishFunction(T value)
+    public bool PublishFunction(T? value)
     {
+        HasCalledPublish = true;
         // PublishResult = Encoding.UTF8.GetString(arr);
         PublishResult = value;
         return true;
@@ -33,26 +33,27 @@ class TestPublisher : AbstractPublisherHandler<string>
         rc.HasBeenDisposed = true;
     }
 
-    public bool Publish(string? message)
+    public async Task<bool> Publish(string? message)
     {
         foreach (var handler in handlers)
         {
-            message = handler(message);
-        }
-        if(message == null)
-        {
-            return false;
+            message = await handler(message);
         }
         return rc.PublishFunction(message);
     }
 
+    public void NOp()
+    {
+        IsHealthy();
+        ResetChannel();
+    }
     protected override bool IsHealthy()
     {
         rc.HasCalledHealthy = true;
         return rc.IsHealthy;
     }
 
-    protected override bool ResetConnection(bool dispose = true)
+    protected override bool ResetChannel(bool dispose = true)
     {
         rc.HasResetConnection = true;
         return rc.IsResetConnection;
@@ -62,7 +63,7 @@ class TestPublisher : AbstractPublisherHandler<string>
 public class Publisher_UnitTest
 {
     [Fact]
-    public void AddedMessageHandlerShouldBeInvoked()
+    public async void AddedMessageHandlerShouldBeInvoked()
     {
         var rc = new RemoteControl<string>
         {
@@ -71,14 +72,29 @@ public class Publisher_UnitTest
         var countCalls = 0;
         using(var publisher = new TestPublisher(rc))
         {
-            publisher.AddMsgHandler(m => m + (++countCalls));
-            publisher.Publish("The Earth is orbiting the Sun.");
+            publisher.AddMsgHandler(m => Task.FromResult<string?>(m + (++countCalls)));
+            await publisher.Publish("The Earth is orbiting the Sun.");
         }
         Assert.Equal(1, countCalls);
     }
 
     [Fact]
-    public void AddedMessageHandlersShouldBeInvoked()
+    public void TestPublisher_increaseCoverage()
+    {
+        var rc = new RemoteControl<string>
+        {
+            IsHealthy = true
+        };
+        using(var publisher = new TestPublisher(rc))
+        {
+            publisher.NOp();
+        }
+        Assert.True(rc.HasCalledHealthy);
+        Assert.True(rc.HasResetConnection);
+    }
+
+    [Fact]
+    public async void AddedMessageHandlersShouldBeInvoked()
     {
         var rc = new RemoteControl<string>
         {
@@ -90,15 +106,15 @@ public class Publisher_UnitTest
         {
             for (; handlersCount < 10;++handlersCount)
             {
-                publisher.AddMsgHandler(m => m + (++countCalls));
+                publisher.AddMsgHandler(m => Task.FromResult<string?>(m + (++countCalls)));
             }
-            publisher.Publish("The Earth is orbiting the Sun.");
+            await publisher.Publish("The Earth is orbiting the Sun.");
         }
         Assert.Equal(handlersCount, countCalls);
     }
 
     [Fact]
-    public void AddedMessageHandlerShouldAffectTheMessage()
+    public async void AddedMessageHandlerShouldAffectTheMessage()
     {
         var token = "There are other planets orbiting the Sun.";
         var result = token;
@@ -108,15 +124,15 @@ public class Publisher_UnitTest
         };
         using(var publisher = new TestPublisher(rc))
         {
-            publisher.AddMsgHandler(m => m?.Replace('e', '_'));
+            publisher.AddMsgHandler(m => Task.FromResult(m?.Replace('e', '_')));
             result = result.Replace('e', '_');
-            publisher.Publish(token);
+            await publisher.Publish(token);
         }
         Assert.Equal(result, rc.PublishResult);
     }
 
     [Fact]
-    public void AddedMessageHandlersShouldAffectTheMessageByAddedOrder()
+    public async void AddedMessageHandlersShouldAffectTheMessageByAddedOrder()
     {
         var token = "The Sun is in a Galaxy.";
         var result = token;
@@ -126,15 +142,15 @@ public class Publisher_UnitTest
         };
         using(var publisher = new TestPublisher(rc))
         {
-            publisher.AddMsgHandler(m => m?.Replace('e', '_'));
+            publisher.AddMsgHandler(m => Task.FromResult(m?.Replace('e', '_')));
             result = result.Replace('e', '_');
-            publisher.AddMsgHandler(m => m?.Replace('a', '*'));
+            publisher.AddMsgHandler(m => Task.FromResult(m?.Replace('a', '*')));
             result = result.Replace('a', '*');
-            publisher.AddMsgHandler(m => m?.Replace('a', '?'));
+            publisher.AddMsgHandler(m => Task.FromResult(m?.Replace('a', '?')));
             result = result.Replace('a', '?');
-            publisher.AddMsgHandler(m => m?.Replace('_', '-'));
+            publisher.AddMsgHandler(m => Task.FromResult(m?.Replace('_', '-')));
             result = result.Replace('_', '-');
-            publisher.Publish(token);
+            await publisher.Publish(token);
         }
         Assert.Equal(result, rc.PublishResult);
     }

@@ -5,7 +5,8 @@ namespace FastCSharp.RabbitCommon;
 public interface IFCSConnection : IDisposable
 {
     bool IsOpen { get; }
-    IModel CreateModel();
+    bool DisposeChannel(IModel? channel);
+    IModel CreateChannel();
     bool ResetConnection(bool dispose = true);
     void Close();
 }
