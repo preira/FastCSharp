@@ -104,7 +104,7 @@ public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<
 
 }
 
-public class DirectRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, IDirectBatchPublisher
+public class DirectRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, IDirectPublisher
 {
     readonly private ILogger logger;
     public DirectRabbitBatchPublisher(
@@ -144,7 +144,7 @@ public class DirectRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, ID
     }
 }
 
-public class FanoutRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, IFanoutBatchPublisher
+public class FanoutRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, IFanoutPublisher
 {
     public FanoutRabbitBatchPublisher(
         IFCSConnection factory, 
@@ -160,7 +160,7 @@ public class FanoutRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, IF
 }
 
 
-public class TopicRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, ITopicBatchPublisher
+public class TopicRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, ITopicPublisher
 {
     public TopicRabbitBatchPublisher(
         IFCSConnection factory, 

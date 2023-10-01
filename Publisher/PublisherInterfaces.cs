@@ -92,12 +92,3 @@ public interface IFanoutPublisher
 public interface ITopicPublisher 
 {
 }
-public interface IDirectBatchPublisher
-{
-}
-public interface IFanoutBatchPublisher
-{
-}
-public interface ITopicBatchPublisher
-{
-}

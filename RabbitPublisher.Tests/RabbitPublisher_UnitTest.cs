@@ -477,12 +477,13 @@ public class RabbitPublisher_UnitTest
         using var serviceScope = serviceProvider.CreateScope();
         var services = serviceScope.ServiceProvider;
         Assert.NotNull(services);
+
         Assert.Equal(typeof(RabbitFanoutPublisherFactory), services.GetRequiredService<IPublisherFactory<IFanoutPublisher>>().GetType());
         Assert.Equal(typeof(RabbitTopicPublisherFactory), services.GetRequiredService<IPublisherFactory<ITopicPublisher>>().GetType());
         Assert.Equal(typeof(RabbitDirectPublisherFactory), services.GetRequiredService<IPublisherFactory<IDirectPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitFanoutBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IFanoutBatchPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitTopicBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<ITopicBatchPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitDirectBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IDirectBatchPublisher>>().GetType());
+        Assert.Equal(typeof(RabbitFanoutBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IFanoutPublisher>>().GetType());
+        Assert.Equal(typeof(RabbitTopicBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<ITopicPublisher>>().GetType());
+        Assert.Equal(typeof(RabbitDirectBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IDirectPublisher>>().GetType());
     }
 
     [Fact]

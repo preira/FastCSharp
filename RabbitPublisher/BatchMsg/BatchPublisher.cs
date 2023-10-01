@@ -19,7 +19,7 @@ public abstract class AbstractRabbitBatchPublisherFactory<T> : AbstractRabbitExc
     }
     public abstract IBatchPublisher<M> NewPublisher<M>(string destination, string? routingKey = null);
 }
-public class RabbitDirectBatchPublisherFactory : AbstractRabbitBatchPublisherFactory<IDirectBatchPublisher>
+public class RabbitDirectBatchPublisherFactory : AbstractRabbitBatchPublisherFactory<IDirectPublisher>
 {
     public RabbitDirectBatchPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
         : base(options, loggerFactory)
@@ -52,7 +52,7 @@ public class RabbitDirectBatchPublisherFactory : AbstractRabbitBatchPublisherFac
     }
 }
 
-public class RabbitFanoutBatchPublisherFactory : AbstractRabbitBatchPublisherFactory<IFanoutBatchPublisher>
+public class RabbitFanoutBatchPublisherFactory : AbstractRabbitBatchPublisherFactory<IFanoutPublisher>
 {
     public RabbitFanoutBatchPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
         : base(options, loggerFactory)
@@ -73,7 +73,7 @@ public class RabbitFanoutBatchPublisherFactory : AbstractRabbitBatchPublisherFac
     }
 }
 
-public class RabbitTopicBatchPublisherFactory : AbstractRabbitBatchPublisherFactory<ITopicBatchPublisher>
+public class RabbitTopicBatchPublisherFactory : AbstractRabbitBatchPublisherFactory<ITopicPublisher>
 {
     public RabbitTopicBatchPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
         : base(options, loggerFactory)

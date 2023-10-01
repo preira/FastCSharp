@@ -4,7 +4,6 @@ using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.Options;
 using FastCSharp.RabbitPublisher.Injection;
 using FastCSharp.Publisher;
-using FastCSharp.RabbitPublisher.Impl;
 using FastCSharp.RabbitPublisher;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -24,12 +23,12 @@ public static class FrameworkServiceExtension
         });
 
         // TODO: these should be scoped so that they can be disposed of properly returning the connection to the pool
-        services.AddScoped<IPublisherFactory<ITopicPublisher>, RabbitTopicPublisherFactory>();
-        services.AddScoped<IPublisherFactory<IFanoutPublisher>, RabbitFanoutPublisherFactory>();
-        services.AddScoped<IPublisherFactory<IDirectPublisher>, RabbitDirectPublisherFactory>();
-        services.AddScoped<IBatchPublisherFactory<ITopicBatchPublisher>, RabbitTopicBatchPublisherFactory>();
-        services.AddScoped<IBatchPublisherFactory<IFanoutBatchPublisher>, RabbitFanoutBatchPublisherFactory>();
-        services.AddScoped<IBatchPublisherFactory<IDirectBatchPublisher>, RabbitDirectBatchPublisherFactory>();
+        services.AddScoped<IPublisherFactory<ITopicPublisher>, TopicPublisherFactory>();
+        services.AddScoped<IPublisherFactory<IFanoutPublisher>, FanoutPublisherFactory>();
+        services.AddScoped<IPublisherFactory<IDirectPublisher>, DirectPublisherFactory>();
+        services.AddScoped<IBatchPublisherFactory<ITopicPublisher>, TopicBatchPublisherFactory>();
+        services.AddScoped<IBatchPublisherFactory<IFanoutPublisher>, FanoutBatchPublisherFactory>();
+        services.AddScoped<IBatchPublisherFactory<IDirectPublisher>, DirectBatchPublisherFactory>();
 
     }
 }

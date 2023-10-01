@@ -26,7 +26,7 @@ public abstract class AbstractRabbitPublisherFactory<T> : AbstractRabbitExchange
 
 public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory<IDirectPublisher>
 {
-    public RabbitDirectPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
+    protected RabbitDirectPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
         : base(options, loggerFactory)
     {
     }
@@ -59,7 +59,7 @@ public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory<IDire
 
 public class RabbitFanoutPublisherFactory : AbstractRabbitPublisherFactory<IFanoutPublisher>
 {
-    public RabbitFanoutPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
+    protected RabbitFanoutPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
         : base(options, loggerFactory)
     {
     }
@@ -80,7 +80,7 @@ public class RabbitFanoutPublisherFactory : AbstractRabbitPublisherFactory<IFano
 
 public class RabbitTopicPublisherFactory : AbstractRabbitPublisherFactory<ITopicPublisher>
 {
-    public RabbitTopicPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
+    protected RabbitTopicPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
         : base(options, loggerFactory)
     {
     }
