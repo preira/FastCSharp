@@ -43,7 +43,7 @@ public interface IBatchPublisher<T>: IHandler<T>
     /// </summary>
     /// <param name="message">The object to publish.</param>
     /// <returns>A Boolean future indicating if the message was published or not.</returns>
-    Task<bool> BatchPublish(IEnumerable<T> messages);
+    Task<bool> Publish(IEnumerable<T> messages);
 }
 
 /// <summary>

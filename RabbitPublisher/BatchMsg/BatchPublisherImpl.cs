@@ -28,7 +28,7 @@ public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<
     /// <param name="messages">The list of messages to publish.</param>
     /// <returns>A Boolean future that indicates if the whole batch has been published
     /// or if a problem occured.</returns>
-    public async Task<bool> BatchPublish(IEnumerable<T> messages)
+    public async Task<bool> Publish(IEnumerable<T> messages)
     {
         if (IsHealthyOrTryRecovery())
         {

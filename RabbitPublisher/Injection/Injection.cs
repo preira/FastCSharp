@@ -4,7 +4,6 @@ using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.Options;
 using FastCSharp.RabbitPublisher.Injection;
 using FastCSharp.Publisher;
-using FastCSharp.RabbitPublisher;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -21,8 +20,18 @@ public static class FrameworkServiceExtension
             section.Bind(options.Value);
             return options;
         });
+        AddRabbitPublisher(services);
+    }
+    public static void AddRabbitPublisher(this IServiceCollection services, string file)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile(file, true, true)
+            .Build();
 
-        // TODO: these should be scoped so that they can be disposed of properly returning the connection to the pool
+        services.AddRabbitPublisher(configuration);
+    }
+    private static void AddRabbitPublisher(IServiceCollection services)
+    {
         services.AddScoped<IPublisherFactory<ITopicPublisher>, TopicPublisherFactory>();
         services.AddScoped<IPublisherFactory<IFanoutPublisher>, FanoutPublisherFactory>();
         services.AddScoped<IPublisherFactory<IDirectPublisher>, DirectPublisherFactory>();

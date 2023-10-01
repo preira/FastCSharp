@@ -10,6 +10,7 @@ using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using FastCSharp.Publisher;
+using FastCSharp.RabbitPublisher.Injection;
 
 namespace FastCSharp.RabbitPublisher.Tests;
 
@@ -478,12 +479,38 @@ public class RabbitPublisher_UnitTest
         var services = serviceScope.ServiceProvider;
         Assert.NotNull(services);
 
-        Assert.Equal(typeof(RabbitFanoutPublisherFactory), services.GetRequiredService<IPublisherFactory<IFanoutPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitTopicPublisherFactory), services.GetRequiredService<IPublisherFactory<ITopicPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitDirectPublisherFactory), services.GetRequiredService<IPublisherFactory<IDirectPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitFanoutBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IFanoutPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitTopicBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<ITopicPublisher>>().GetType());
-        Assert.Equal(typeof(RabbitDirectBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IDirectPublisher>>().GetType());
+        Assert.Equal(typeof(FanoutPublisherFactory), services.GetRequiredService<IPublisherFactory<IFanoutPublisher>>().GetType());
+        Assert.Equal(typeof(TopicPublisherFactory), services.GetRequiredService<IPublisherFactory<ITopicPublisher>>().GetType());
+        Assert.Equal(typeof(DirectPublisherFactory), services.GetRequiredService<IPublisherFactory<IDirectPublisher>>().GetType());
+        Assert.Equal(typeof(FanoutBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IFanoutPublisher>>().GetType());
+        Assert.Equal(typeof(TopicBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<ITopicPublisher>>().GetType());
+        Assert.Equal(typeof(DirectBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IDirectPublisher>>().GetType());
+    }
+
+    [Fact]
+    public void FanoutExchange_UseDependencyInjectionConfigFromFile()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddRabbitPublisher("rabbitsettings.json");
+        
+        serviceCollection.AddSingleton<ILoggerFactory>(new LoggerFactory());
+
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+        var rabbitOptions = serviceProvider.GetRequiredService<IOptions<RabbitPublisherConfig>>();
+        Assert.NotNull(rabbitOptions);
+        Assert.NotNull(rabbitOptions.Value);
+        Assert.Equal("FastCSharp", rabbitOptions.Value.ClientName);
+
+        using var serviceScope = serviceProvider.CreateScope();
+        var services = serviceScope.ServiceProvider;
+        Assert.NotNull(services);
+
+        Assert.Equal(typeof(FanoutPublisherFactory), services.GetRequiredService<IPublisherFactory<IFanoutPublisher>>().GetType());
+        Assert.Equal(typeof(TopicPublisherFactory), services.GetRequiredService<IPublisherFactory<ITopicPublisher>>().GetType());
+        Assert.Equal(typeof(DirectPublisherFactory), services.GetRequiredService<IPublisherFactory<IDirectPublisher>>().GetType());
+        Assert.Equal(typeof(FanoutBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IFanoutPublisher>>().GetType());
+        Assert.Equal(typeof(TopicBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<ITopicPublisher>>().GetType());
+        Assert.Equal(typeof(DirectBatchPublisherFactory), services.GetRequiredService<IBatchPublisherFactory<IDirectPublisher>>().GetType());
     }
 
     [Fact]

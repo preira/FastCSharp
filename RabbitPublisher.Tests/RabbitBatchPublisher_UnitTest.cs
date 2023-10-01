@@ -225,7 +225,7 @@ public class RabbitBatchPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.True(await publisher.BatchPublish(new string[] { "Test Message" }));	
+        Assert.True(await publisher.Publish(new string[] { "Test Message" }));	
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
@@ -250,7 +250,7 @@ public class RabbitBatchPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.True(await publisher.BatchPublish(new string[] { "Test Message", "Test Message", "Test Message" }));	
+        Assert.True(await publisher.Publish(new string[] { "Test Message", "Test Message", "Test Message" }));	
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
@@ -278,7 +278,7 @@ public class RabbitBatchPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.False(await publisher.Publish(new string[]{"Test Message"}));
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
@@ -311,8 +311,8 @@ public class RabbitBatchPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
-        Assert.True(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.False(await publisher.Publish(new string[]{"Test Message"}));
+        Assert.True(await publisher.Publish(new string[]{"Test Message"}));
 
         mockedModel.Verify(model => 
             model.BasicPublish("TestExchange", "TestQueue", false, null, 
@@ -342,8 +342,8 @@ public class RabbitBatchPublisher_UnitTest
             Timeout.InfiniteTimeSpan
             );
 
-        Assert.False(await publisher.BatchPublish(new string[]{"Test Message", "Test Message", "Test Message"}));
-        Assert.True(await publisher.BatchPublish(new string[]{"Test Message", "Test Message", "Test Message"}));
+        Assert.False(await publisher.Publish(new string[]{"Test Message", "Test Message", "Test Message"}));
+        Assert.True(await publisher.Publish(new string[]{"Test Message", "Test Message", "Test Message"}));
 
         mockedConnectionFactory.Verify(factory => factory.CreateConnection(hosts), Times.AtLeastOnce());
         mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
@@ -377,8 +377,8 @@ public class RabbitBatchPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
-        Assert.True(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.False(await publisher.Publish(new string[]{"Test Message"}));
+        Assert.True(await publisher.Publish(new string[]{"Test Message"}));
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
@@ -413,9 +413,9 @@ public class RabbitBatchPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
-        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
-        Assert.True(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.False(await publisher.Publish(new string[]{"Test Message"}));
+        Assert.False(await publisher.Publish(new string[]{"Test Message"}));
+        Assert.True(await publisher.Publish(new string[]{"Test Message"}));
 
         mockedConnectionFactory.Verify(factory => factory.CreateConnection(hosts), Times.AtLeastOnce());
         mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
@@ -444,8 +444,8 @@ public class RabbitBatchPublisher_UnitTest
             "TestQueue"
             );
 
-        Assert.False(await publisher.BatchPublish(new string[]{"Test Message"}));
-        Assert.True(await publisher.BatchPublish(new string[]{"Test Message"}));
+        Assert.False(await publisher.Publish(new string[]{"Test Message"}));
+        Assert.True(await publisher.Publish(new string[]{"Test Message"}));
 
         mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
 
