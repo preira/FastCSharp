@@ -143,19 +143,19 @@ public abstract class AbstractRabbitExchangeFactory : IDisposable
     protected RabbitPublisherConfig config = new();
     
     protected readonly IFCSConnection connectionFactory;
-    protected ILoggerFactory ILoggerFactory;
-    private bool disposedValue;
+    protected ILoggerFactory loggerFactory;
+    private bool disposed = false;
 
     protected AbstractRabbitExchangeFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
     {
-        this.ILoggerFactory = loggerFactory;
+        this.loggerFactory = loggerFactory;
         config = options.Value;
         connectionFactory = CreateRabbitConnection(config, loggerFactory);
     }
 
     protected AbstractRabbitExchangeFactory(IConfiguration configuration, ILoggerFactory loggerFactory)
     {
-        this.ILoggerFactory = loggerFactory;
+        this.loggerFactory = loggerFactory;
         var section = configuration.GetSection(nameof(RabbitPublisherConfig));
         section.Bind(config);
         
@@ -202,14 +202,14 @@ public abstract class AbstractRabbitExchangeFactory : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposedValue)
+        if (!disposed)
         {
             if (disposing)
             {
                 // dispose managed state (managed objects)
                 connectionFactory.Dispose();
             }
-            disposedValue = true;
+            disposed = true;
         }
     }
 

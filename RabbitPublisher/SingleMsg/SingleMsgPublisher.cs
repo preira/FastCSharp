@@ -49,7 +49,7 @@ public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory<IDire
         string exchangeName = Util.SafelyExtractExchageName(exchange, "direct");
         return new DirectRabbitPublisher<M>(
                             factory: connectionFactory,
-                            ILoggerFactory: ILoggerFactory,
+                            ILoggerFactory: loggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout,
                             routingKey: key
@@ -72,7 +72,7 @@ public class RabbitFanoutPublisherFactory : AbstractRabbitPublisherFactory<IFano
         ExchangeConfig exchange = GetExchangeConfig(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
         return new FanoutRabbitPublisher<M>(factory: connectionFactory,
-                            ILoggerFactory,
+                            loggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout);
     }
@@ -97,7 +97,7 @@ public class RabbitTopicPublisherFactory : AbstractRabbitPublisherFactory<ITopic
         if (routingKey == "" || isOk)
         {
             return new TopicRabbitPublisher<M>(factory: connectionFactory,
-                                ILoggerFactory,
+                                loggerFactory,
                                 exchange: exchangeName,
                                 timeout: config.Timeout,
                                 routingKey: routingKey);

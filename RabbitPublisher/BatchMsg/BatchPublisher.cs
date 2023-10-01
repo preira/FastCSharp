@@ -44,7 +44,7 @@ public class RabbitDirectBatchPublisherFactory : AbstractRabbitBatchPublisherFac
         string exchangeName = Util.SafelyExtractExchageName(exchange, "direct");
         return new DirectRabbitBatchPublisher<M>(
                             factory: connectionFactory,
-                            ILoggerFactory: ILoggerFactory,
+                            ILoggerFactory: loggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout,
                             routingKey: key
@@ -67,7 +67,7 @@ public class RabbitFanoutBatchPublisherFactory : AbstractRabbitBatchPublisherFac
         ExchangeConfig exchange = base.GetExchangeConfig(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
         return new FanoutRabbitBatchPublisher<M>(factory: connectionFactory,
-                            ILoggerFactory,
+                            loggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout);
     }
@@ -92,7 +92,7 @@ public class RabbitTopicBatchPublisherFactory : AbstractRabbitBatchPublisherFact
         if (routingKey == "" || isOk)
         {
             return new TopicRabbitBatchPublisher<M>(factory: connectionFactory,
-                                ILoggerFactory,
+                                loggerFactory,
                                 exchange: exchangeName,
                                 timeout: config.Timeout,
                                 routingKey: routingKey);
