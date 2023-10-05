@@ -27,19 +27,27 @@ public class RabbitConnection : IFCSConnection
     private readonly IConnectionFactory factory;
     private readonly IList<AmqpTcpEndpoint>? endpoints;
     private IConnection? connection;
-    private readonly ConcurrentBag<IModel> channels;
+    public bool IsOpen => connection?.IsOpen ?? false;
+    private readonly Pool<IModel> channels;
     readonly private ILogger logger;
+    private bool disposed;
     public RabbitConnection(IConnectionFactory connectionFactory, ILoggerFactory ILoggerFactory, IList<AmqpTcpEndpoint>? hosts)
     {
         endpoints = hosts;
         logger = ILoggerFactory.CreateLogger<RabbitConnection>();
         factory = connectionFactory;
 
-        channels = new ();
+        // TODO: min and max should come from the configuration
+        channels = new (Create, 3, 15);
     }
-    public bool IsOpen => connection?.IsOpen ?? false;
+
     public IModel CreateChannel()
     {
+        return channels.Get();
+    }
+    public IModel Create()
+    {
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
         if (connection == null || !connection.IsOpen)
         {
             ResetConnection();
@@ -49,30 +57,16 @@ public class RabbitConnection : IFCSConnection
         {
             throw new Exception("FastCSharp could not create a new channel.");
         }
-        channels.Append(channel);
+        // channels.Append(channel);
         return channel;
     }
-    public bool DisposeChannel(IModel? channel)
+    public bool DisposeChannel(IModel channel)
     {
-        if(channel != null  && channels.ToList().Remove(channel))
-        {
-            channel.Close();
-            channel.Dispose();
-
-            return true;
-        }
-        return false;
+        return channels.Return(channel);
     }
     public void Close() 
     {
-        while(channels.TryTake(out var channel))
-        {
-            if(!channel.IsClosed)
-            {
-                channel.Close();
-                channel.Dispose();
-            }
-        }
+        channels.Dispose();
         if(connection?.IsOpen ?? false)
         {
             connection.Close();
@@ -80,6 +74,7 @@ public class RabbitConnection : IFCSConnection
     } 
     public bool ResetConnection(bool dispose = true)
     {
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
         try
         {
             connection?.Close();
@@ -135,6 +130,7 @@ public class RabbitConnection : IFCSConnection
     {
         Close();
         connection?.Dispose();
+        disposed = true;
     } 
 }
 
@@ -144,7 +140,7 @@ public abstract class AbstractRabbitExchangeFactory : IDisposable
     
     protected readonly IFCSConnection connectionFactory;
     protected ILoggerFactory loggerFactory;
-    private bool disposed = false;
+    protected bool disposed = false;
 
     protected AbstractRabbitExchangeFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
     {
@@ -181,6 +177,8 @@ public abstract class AbstractRabbitExchangeFactory : IDisposable
 
     protected ExchangeConfig GetExchangeConfig(string destination)
     {
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
+
         try
         {
             var exchange = config?.Exchanges?[destination];
@@ -257,10 +255,14 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisherHandler<T>
 
     protected override bool ResetChannel(bool dispose = true)
     {
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
         try
         {
             // TODO: pass responsibility to the connection factory
-            connection.DisposeChannel(channel);
+            if (channel != null)
+            {
+                connection.DisposeChannel(channel);
+            }
 
             channel = connection.CreateChannel();
             channel.ConfirmSelect();
@@ -294,7 +296,11 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisherHandler<T>
         {
             if(disposing)
             {
-                channel?.Dispose();
+                if (channel != null)
+                {
+                    connection.DisposeChannel(channel);
+                }
+                // channel?.Dispose();
             }
             disposed = true;
         }
@@ -314,3 +320,184 @@ internal static class Util
     }
 }
 
+
+public delegate T Create<T>();
+public class Pool<T>  : IDisposable
+where T : class, IDisposable
+{
+    private Create<T> Factory { get; set; }
+    readonly ConcurrentQueue<T> available;
+    readonly ConcurrentDictionary<int, WeakReference<T>> inUse;
+    public int MinSize { get; private set;}
+    public int MaxSize { get; private set;}
+    private int count;
+    public int Count { get => count; }
+    private int idx = 0;
+    private bool disposed;
+
+    private int Index {
+        get => Interlocked.Exchange(ref idx, idx = (idx + 1) % MaxSize);
+    }
+    
+    public readonly object _lock = new ();
+
+    // TODO: implement a connection pool
+    // Add pool statistics
+    public Pool(Create<T> factory, int minSize, int maxSize)
+    {
+        Factory = factory;
+
+        MinSize = minSize;
+        MaxSize = maxSize;
+
+        available = new ();
+        inUse = new ();
+    }
+
+    public T Get(int timeout = 1000)
+    {
+        if (disposed) throw new ObjectDisposedException(GetType().FullName);
+        try
+        {
+            var timeLimit = DateTime.Now.AddMilliseconds(timeout);
+            Monitor.Enter(_lock);
+
+Console.WriteLine($"[WAIT ??] available.IsEmpty: {available.IsEmpty} Count >= MaxSize: {Count} >= {MaxSize}");
+            while (available.IsEmpty && Count >= MaxSize)
+            {
+this.PurgeInUse();
+                var remaining = timeLimit - DateTime.Now;
+                if (remaining <= TimeSpan.Zero) 
+                {
+                    throw new TimeoutException("Could not get a connection from the pool within the timeout.");
+                }
+                    
+Console.WriteLine($"[WAITING] for: {remaining}");
+                bool timedout = Monitor.Wait(_lock, remaining);
+                
+                if (!available.IsEmpty || Count < MaxSize) break;
+
+                if (timedout)
+                {
+                    throw new TimeoutException("Could not get a connection from the pool within the timeout.");
+                }
+            }
+
+            if (available.TryDequeue(out var element))
+            {
+                inUse[Index] = new WeakReference<T>(element);
+Console.WriteLine($"[POOL] Got from Pool: {element.GetHashCode()}");
+                Monitor.Pulse(_lock);
+                return element;
+            }
+            if (Count < MaxSize)
+            {
+                Interlocked.Increment(ref count);
+                var newElement = Factory();
+                inUse[Index] = new WeakReference<T>(newElement);
+Console.WriteLine($"[POOL] Created new: {newElement.GetHashCode()} - Count: {Count}; Index: {Index}");
+                Monitor.Pulse(_lock);
+                return newElement;
+            }
+            throw new Exception("If you are reading this, something is wrong with the pool implementation.");
+        }
+        finally
+        {
+            Monitor.Exit(_lock);
+        }
+    }
+
+    public bool Return(T element)
+    {
+        if (disposed) return false;
+        try
+        {
+            Monitor.Enter(_lock);
+            
+            var entry = inUse.Where(e => e.Value.TryGetTarget(out var target) && target == element).FirstOrDefault();
+            if (entry.Key != 0)
+            {
+                inUse.TryRemove(entry.Key, out _);
+                if(available.Count <= MinSize)
+                {
+                    available.Enqueue(element);
+Console.WriteLine($"[POOL] Returned to Pool: {element.GetHashCode()}");
+                }
+                else
+                {
+                    element.Dispose();
+                    Interlocked.Decrement(ref count);
+Console.WriteLine($"[POOL] Pool full disposing channel: {element.GetHashCode()}");
+                }
+                Monitor.Pulse(_lock);
+                return true;
+            }
+            else
+            {
+Console.WriteLine($"[POOL] NOT in the Pool: {element.GetHashCode()}");
+                // If it is not in the inUse list, it is not a valid connection.
+                element.Dispose();
+                return false;
+            }
+        }
+        finally
+        {
+            Monitor.Exit(_lock);
+        }
+    }
+
+    public void PurgeInUse()
+    {
+        if (disposed) return;
+        try
+        {
+            Monitor.Enter(_lock);
+Console.WriteLine($"[PURGING] pool inUse.Count: {inUse.Count} available.Count: {available.Count} Count: {Count}");
+            inUse
+                .Where(e => !e.Value.TryGetTarget(out var target))
+                .ToList()
+                .ForEach(e => inUse.TryRemove(e.Key, out _));
+            Interlocked.Exchange(ref count, inUse.Count + available.Count);
+        }
+        finally
+        {
+            Monitor.Exit(_lock);
+        }
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        try
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+ Console.WriteLine($"[POOL] Disposing queue inUse.Count: {inUse.Count} available.Count: {available.Count} Count: {Count}");
+                   // dispose managed state (managed objects)
+                disposed = true;
+                    Monitor.TryEnter(_lock, 5000);
+                    foreach (var element in available)
+                    {
+                        element.Dispose();
+                    }
+                    for(int i = 0; i < Count; i++)
+                        inUse.TryRemove(i, out _);
+                }
+
+                Monitor.PulseAll(_lock);
+            }
+        }
+        finally
+        {
+            Monitor.Exit(_lock);
+        }
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+}

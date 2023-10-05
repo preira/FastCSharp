@@ -126,6 +126,7 @@ public class DirectRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, ID
 
     override protected bool IsHealthy()
     {
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
         if (channel != null)
         {
             try

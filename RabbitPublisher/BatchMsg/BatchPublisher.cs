@@ -30,6 +30,7 @@ public class RabbitDirectBatchPublisherFactory : AbstractRabbitBatchPublisherFac
     { }
     public override IBatchPublisher<M> NewPublisher<M>(string destination, string? routingKey = null)
     {
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
         if (routingKey == null)
         {
             throw new ArgumentException($"Cannot create a new Publisher without a Routing Key. Routing key is mandatory and should match the NamedRoutingKeys of section {nameof(RabbitPublisherConfig)}. Please check your implementation and configuration.");
@@ -64,6 +65,7 @@ public class RabbitFanoutBatchPublisherFactory : AbstractRabbitBatchPublisherFac
     }
     public override IBatchPublisher<M> NewPublisher<M>(string destination, string? routingKey = null)
     {
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
         ExchangeConfig exchange = base.GetExchangeConfig(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
         return new FanoutRabbitBatchPublisher<M>(factory: connectionFactory,
@@ -85,6 +87,7 @@ public class RabbitTopicBatchPublisherFactory : AbstractRabbitBatchPublisherFact
     }
     public override IBatchPublisher<M> NewPublisher<M>(string destination, string? routingKey = null)
     {
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
         routingKey ??= "";
         ExchangeConfig exchange = base.GetExchangeConfig(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "topic");

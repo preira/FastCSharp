@@ -20,6 +20,22 @@ public static class FrameworkServiceExtension
             section.Bind(options.Value);
             return options;
         });
+
+        //TODO: create connection pool
+        // var factory = new ConnectionFactory
+        // {
+        //     ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitPublisher"
+        // };
+
+        // if (config.HostName != null) factory.HostName = config.HostName;
+        // if(config.Port != null) factory.Port = (int) config.Port;
+        // if(config.VirtualHost != null) factory.VirtualHost = config.VirtualHost;
+        // if(config.Password != null) factory.Password = config.Password;
+        // if(config.UserName != null) factory.UserName = config.UserName;
+        // if(config.Heartbeat != null) factory.RequestedHeartbeat = (TimeSpan) config.Heartbeat;
+        
+        // return new RabbitConnection(factory, loggerFactory, config.Hosts);
+
         AddRabbitPublisher(services);
     }
     public static void AddRabbitPublisher(this IServiceCollection services, string file)

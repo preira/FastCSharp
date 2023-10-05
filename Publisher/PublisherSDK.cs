@@ -1,4 +1,5 @@
-﻿using FastCSharp.Publisher;
+﻿using System.Collections.Concurrent;
+using FastCSharp.Publisher;
 
 namespace FastCSharp.SDK.Publisher;
 /// <summary>
@@ -18,6 +19,7 @@ public abstract class AbstractPublisherHandler<T> : IHandler<T>
 
     protected bool IsHealthyOrTryRecovery()
     {
+        if(disposed) throw new ObjectDisposedException(nameof(AbstractPublisherHandler<T>));
         if(IsHealthy())
         {
             return true;
@@ -62,6 +64,7 @@ public abstract class AbstractPublisherHandler<T> : IHandler<T>
     /// <returns>The publisher it self.</returns>
     public IHandler<T> AddMsgHandler(Handler<T> handler)
     {
+        if(disposed) throw new ObjectDisposedException(nameof(AbstractPublisherHandler<T>));
         handlers.Add(handler);
         return this;
     }

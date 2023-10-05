@@ -30,10 +30,8 @@ public abstract class AbstractRabbitSinglePublisher<T> : AbstractRabbitPublisher
     /// <returns>A Boolean future.</returns>
     public virtual async Task<bool> Publish(T? message)
     {
-        if (disposed)
-        {
-            throw new ObjectDisposedException(this.GetType().FullName);
-        } 
+        if(disposed) throw new ObjectDisposedException(GetType().FullName);
+
         foreach (var handler in handlers)
         {
             message = await handler(message);
