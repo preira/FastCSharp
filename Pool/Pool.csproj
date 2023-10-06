@@ -4,19 +4,19 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp.Common</PackageId>
-    <version>0.0.0-alpha</version>
+    <PackageId>FastCSharp.Publisher</PackageId>
+    <version>0.4.0-alpha</version>
 
-    <Authors>João Pereira</Authors>
+    <Author>João Pereira</Author>
 
-    <Description>Package containing functions common to FastCSharp libraries.</Description>
-    <PackageTags>FastCSharp Common Functions</PackageTags>
+    <Description>Package containing Message Queue Publisher SDK.</Description>
+    <PackageTags>FastCSharp Publisher SDK</PackageTags>
 
    <Copyright>
       <![CDATA[Copyright © FastCSharp 2023]]>
     </Copyright>
 
-    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Common</ProjectUrl>
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Publisher</ProjectUrl>
 
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -30,4 +30,9 @@
     <None Include="LICENSE" Pack="true" PackagePath="" />
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+
 </Project>

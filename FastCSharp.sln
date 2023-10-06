@@ -29,6 +29,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitCommon", "RabbitCommon\RabbitCommon.csproj", "{FEA0943C-82F2-45B1-9DEA-3EFF042F4F65}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pool", "Pool\Pool.csproj", "{23D1E660-25BB-48F8-887D-773C2653D521}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PoolTest", "PoolTest\PoolTest.csproj", "{5B60D65F-0179-4FEB-97BF-0FC7B0E373A4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -90,5 +94,13 @@ Global
 		{FEA0943C-82F2-45B1-9DEA-3EFF042F4F65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FEA0943C-82F2-45B1-9DEA-3EFF042F4F65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FEA0943C-82F2-45B1-9DEA-3EFF042F4F65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23D1E660-25BB-48F8-887D-773C2653D521}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23D1E660-25BB-48F8-887D-773C2653D521}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23D1E660-25BB-48F8-887D-773C2653D521}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23D1E660-25BB-48F8-887D-773C2653D521}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B60D65F-0179-4FEB-97BF-0FC7B0E373A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B60D65F-0179-4FEB-97BF-0FC7B0E373A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B60D65F-0179-4FEB-97BF-0FC7B0E373A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B60D65F-0179-4FEB-97BF-0FC7B0E373A4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

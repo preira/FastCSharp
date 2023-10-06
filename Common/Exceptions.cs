@@ -1,9 +1,9 @@
 ﻿using System.Runtime.Serialization;
 
-namespace FastCSharp.Exception;
+namespace FastCSharp.Exceptions;
 
 [Serializable]
-public class IncorrectInitializationException : System.Exception
+public class IncorrectInitializationException : Exception
 {
     public IncorrectInitializationException() : base()
     {
