@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Text.Json;
 using Xunit;
 
 namespace FastCSharp.Pool.Tests;
@@ -241,6 +240,7 @@ public class Pool_UnitTest
             thread.Join();
         }
 
+        Assert.NotNull(pool.Stats);
         IPoolStats stats = pool.Stats;
 
         // Assert.Fail(JsonSerializer.Serialize(stats.ToJson()));

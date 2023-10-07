@@ -1,5 +1,4 @@
 using FastCSharp.RabbitCommon;
-using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using FastCSharp.Publisher;
 using System.Text.Json;
@@ -12,12 +11,12 @@ public abstract class AbstractRabbitSinglePublisher<T> : AbstractRabbitPublisher
     readonly private ILogger logger;
 
     protected AbstractRabbitSinglePublisher(
-        IFCSConnection factory,
+        IRabbitConnectionPool connectionPool,
         ILoggerFactory ILoggerFactory,
         string exchange,
         TimeSpan timeout,
         string key = "")
-    : base(factory, ILoggerFactory, exchange, timeout, key)
+    : base(connectionPool, ILoggerFactory, exchange, timeout, key)
     {
         logger = ILoggerFactory.CreateLogger<AbstractRabbitSinglePublisher<T>>();
     }
@@ -42,31 +41,25 @@ public abstract class AbstractRabbitSinglePublisher<T> : AbstractRabbitPublisher
 
     private async Task<bool> Publish(byte[] message)
     {
-        if (IsHealthyOrTryRecovery())
-        {
-            Task<bool> task = new ( () => AsyncPublish(message) );
-            task.Start();
+        Task<bool> task = new ( () => AsyncPublish(message) );
+        task.Start();
 
-            return await task;
-        }
-        else
-        {
-            return false;
-        }
+        return await task;
     }
+
     protected bool AsyncPublish(byte[] body)
     {
         try
         {
-            ulong? sequenceNumber = channel?.NextPublishSeqNo;
-            channel.BasicPublish(exchange: exchangeName,
-                routingKey: routingKey,
+            using var connection = pool.Connection(this);
+            using var channel = connection.Channel(this, exchangeName, routingKey);
+            channel?.BasicPublish(this, 
                 basicProperties: null,
                 body: body);
 
-            channel?.WaitForConfirmsOrDie(confirmTimeout);
-            logger.LogDebug("{\"Exchange\"=\"{exchange}\", \"RoutingKey\"=\"{key}\", \"SequenceNumber\"=\"{seqNr}\"}", 
-                            exchangeName, routingKey, sequenceNumber);
+            channel?.WaitForConfirmsOrDie(this, confirmTimeout);
+            logger.LogDebug("{\"Exchange\"=\"{exchange}\", \"RoutingKey\"=\"{key}\"}", 
+                            exchangeName, routingKey);
             return true;
         }
         catch (Exception ex)
@@ -80,70 +73,39 @@ public class DirectRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>, IDirec
 {
     readonly private ILogger logger;
     public DirectRabbitPublisher(
-        IFCSConnection factory,
+        IRabbitConnectionPool connectionPool,
         ILoggerFactory ILoggerFactory,
         string exchange,
         TimeSpan timeout,
         string routingKey)
-        : base(factory, ILoggerFactory, exchange, timeout, key: routingKey)
+        : base(connectionPool, ILoggerFactory, exchange, timeout, key: routingKey)
     {
         logger = ILoggerFactory.CreateLogger<DirectRabbitPublisher<T>>();
-    }
-
-    protected override void ResourceDeclarePassive(IModel channel)
-    {
-        channel.ExchangeDeclarePassive(exchangeName);
-        channel.QueueDeclarePassive(routingKey);
-    }
-
-    override protected bool IsHealthy()
-    {
-        if (channel != null)
-        {
-            try
-            {
-                // WaitForConfirmsOrDie already breaks when the exchange is unkown.
-                // So, no need to check the exchange.
-                channel.QueueDeclarePassive(routingKey);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError("[WARNING] ${message}", ex.Message);
-            }
-        }
-        return false;
     }
 }
 
 public class FanoutRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>, IFanoutPublisher
 {
     public FanoutRabbitPublisher(
-        IFCSConnection factory, 
+        IRabbitConnectionPool connectionPool, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
         TimeSpan timeout)
-        : base(factory, ILoggerFactory, exchange, timeout)
+        : base(connectionPool, ILoggerFactory, exchange, timeout)
     {
     }
-
-    protected override void ResourceDeclarePassive(IModel channel) => channel.ExchangeDeclarePassive(exchangeName);
-
 }
 
 public class TopicRabbitPublisher<T> : AbstractRabbitSinglePublisher<T>, ITopicPublisher
 {
     public TopicRabbitPublisher(
-        IFCSConnection factory, 
+        IRabbitConnectionPool connectionPool, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
         TimeSpan timeout, 
         string routingKey)
-        : base(factory, ILoggerFactory, exchange, timeout, routingKey)
+        : base(connectionPool, ILoggerFactory, exchange, timeout, routingKey)
     {
     }
-
-    protected override void ResourceDeclarePassive(IModel channel) => channel.ExchangeDeclarePassive(exchangeName);
-
 }
 

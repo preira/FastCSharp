@@ -9,8 +9,9 @@ using Microsoft.Extensions.Primitives;
 using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Injection;
+using FastCSharp.Publisher;
+using FastCSharp.Pool;
 
 namespace FastCSharp.RabbitPublisher.Tests;
 
@@ -105,10 +106,9 @@ public class RabbitPublisher_UnitTest
     public void TestRabbitConnection()
     {
         // Given
-        var connectionFactory = new Mock<IConnectionFactory>();
+        var connectionFactory = new Mock<IConnection>();
         var loggerFactory = new Mock<ILoggerFactory>();
-        var hosts = new List<AmqpTcpEndpoint>();
-        var conn = new RabbitConnection(connectionFactory.Object, loggerFactory.Object, hosts);
+        var conn = new RabbitConnection(connectionFactory.Object, loggerFactory.Object);
         // When
         Assert.False(conn.IsOpen);
         // Then
@@ -183,7 +183,6 @@ public class RabbitPublisher_UnitTest
         {
             Assert.NotNull(publisher);
         };
-        
     }
 
     [Fact]
@@ -244,221 +243,265 @@ public class RabbitPublisher_UnitTest
     [Fact]
     public async void DirectExchange_Publish_Success()
     {
-        var mockedFactory = new Mock<IFCSConnection>();
+        var exchangeName = "TestExchange";
+        var routingKey = "TestQueue";
+        var mockedPool = new Mock<IRabbitConnectionPool>();
 
-        var mockedModel = new Mock<IModel>();
-        mockedFactory.Setup(conn => conn.CreateChannel()).Returns(mockedModel.Object);
+        var mockedChannel = new Mock<IRabbitChannel>();
+        var mockedConnection = new Mock<IRabbitConnection>();
+        var mockedLoggerFactory = new Mock<ILoggerFactory>();
+
+        // var mockedRabbitPublisherConfiguration = new Mock<RabbitPublisherConfig>();
 
         using var publisher = new DirectRabbitPublisher<string>(
-            mockedFactory.Object,
+            mockedPool.Object,
             loggerFactory,
-            "TestExchange",
+            exchangeName,
             Timeout.InfiniteTimeSpan,
-            "TestQueue"
+            routingKey
             );
+
+        mockedConnection.Setup(conn => conn.Channel(publisher, exchangeName, routingKey)).Returns(mockedChannel.Object);
+
+        mockedChannel.Setup(model => model.BasicPublish(publisher, It.IsAny<IBasicProperties>(), It.IsAny<byte[]>()))
+            .Verifiable("BasicPublish was not called");
+        mockedChannel.Setup(model => model.WaitForConfirmsOrDie(publisher, It.IsAny<TimeSpan>()))
+            .Verifiable("BasicPublish was not called");
+            
+        mockedPool.Setup(conn => conn.Connection(publisher)).Returns(mockedConnection.Object);
 
         Assert.True(await publisher.Publish("Test Message"));
 
-        mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
-
-        mockedModel.Verify(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+        mockedChannel.VerifyAll();
     }
 
     [Fact]
     public async void DirectExchange_Publish_Fails()
     {
-        var mockedFactory = new Mock<IFCSConnection>();
+        var exchangeName = "TestExchange";
+        var routingKey = "TestQueue";
 
-        var mockedModel = new Mock<IModel>();
-        mockedFactory.Setup(conn => conn.CreateChannel()).Returns(mockedModel.Object);
-        mockedModel.Setup(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>())).Throws<Exception>();
+        var mockedPool = new Mock<IRabbitConnectionPool>();
+        var mockedChannel = new Mock<IRabbitChannel>();
+        var mockedConnection = new Mock<IRabbitConnection>();
+
+        mockedChannel.Setup(model => 
+            model.BasicPublish(It.IsAny<object>(), 
+                null, 
+                It.IsAny<byte[]>())).Throws<Exception>();
 
         using var publisher = new DirectRabbitPublisher<string>(
-            mockedFactory.Object,
+            mockedPool.Object,
             loggerFactory,
-            "TestExchange",
+            exchangeName,
             Timeout.InfiniteTimeSpan,
-            "TestQueue"
+            routingKey
             );
+
+        mockedPool.Setup(conn => conn.Connection(publisher)).Returns(mockedConnection.Object);
+        mockedConnection.Setup(conn => conn.Channel(publisher, exchangeName, routingKey)).Returns(mockedChannel.Object);
 
         Assert.False(await publisher.Publish("Test Message"));
 
-        mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
+        mockedPool.Verify(connection => connection.Connection(publisher), Times.AtLeastOnce());
 
-        mockedModel.Verify(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+        mockedChannel.Verify(model => 
+            model.BasicPublish(
+                It.IsAny<object>(), 
+                null, 
+                It.IsAny<byte[]>()), Times.AtLeastOnce());
+                
     }
 
     [Fact]
     public async void DirectExchange_FailToStartConnectionAndRecover()
     {
-        var mockedConnectionFactory = new Mock<IConnectionFactory>();
-        var mockedConnection = new Mock<IConnection>();
+        var exchangeName = "TestExchange";
+        var routingKey = "TestQueue";
+
+        var mockedConnectionPool = new Mock<IRabbitConnectionPool>();
+        var mockedConnection = new Mock<IRabbitConnection>();
+
+
+        var mockedChannel = new Mock<IRabbitChannel>();
+
+        using var publisher = new DirectRabbitPublisher<string>(
+            mockedConnectionPool.Object,
+            loggerFactory,
+            exchangeName,
+            Timeout.InfiniteTimeSpan,
+            routingKey
+            );
 
         var sequence = new MockSequence();
 
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Throws<Exception>();
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Throws<Exception>();
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Returns(mockedConnection.Object);
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Throws<Exception>();
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Throws<Exception>();
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Returns(mockedConnection.Object);
 
-        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory, hosts);
-        var mockedModel = new Mock<IModel>();
-        mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
+        mockedConnection.Setup(conn => conn.Channel(publisher, exchangeName, routingKey)).Returns(mockedChannel.Object);
 
-        using var publisher = new DirectRabbitPublisher<string>(
-            factory,
-            loggerFactory,
-            "TestExchange",
-            Timeout.InfiniteTimeSpan,
-            "TestQueue"
-            );
-
+        Assert.False(await publisher.Publish("Test Message"));
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
-        mockedModel.Verify(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+        mockedChannel.Verify(model => 
+            model.BasicPublish(publisher, null, 
+                It.IsAny<byte[]>()), Times.AtLeastOnce());
     }
 
     [Fact]
     public async void FanoutExchange_FailToStartConnectionAndRecover()
     {
-        var mockedConnectionFactory = new Mock<IConnectionFactory>();
-        var mockedConnection = new Mock<IConnection>();
+        var exchangeName = "TestExchange";
+        var routingKey = "";
 
-        var sequence = new MockSequence();
+        var mockedConnectionPool = new Mock<IRabbitConnectionPool>();
+        var mockedConnection = new Mock<IRabbitConnection>();
 
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Throws<Exception>();
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Throws<Exception>();
-        mockedConnectionFactory.InSequence(sequence).Setup(factory => factory.CreateConnection(hosts)).Returns(mockedConnection.Object);
 
-        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory, hosts);
-        var mockedModel = new Mock<IModel>();
-        mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
+        var mockedChannel = new Mock<IRabbitChannel>();
 
         using var publisher = new FanoutRabbitPublisher<string>(
-            factory,
+            mockedConnectionPool.Object,
             loggerFactory,
-            "TestExchange",
+            exchangeName,
             Timeout.InfiniteTimeSpan
             );
 
+        var sequence = new MockSequence();
+
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Throws<Exception>();
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Throws<Exception>();
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Returns(mockedConnection.Object);
+
+        mockedConnection.Setup(conn => conn.Channel(publisher, exchangeName, routingKey)).Returns(mockedChannel.Object);
+
+        Assert.False(await publisher.Publish("Test Message"));
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
-        mockedConnectionFactory.Verify(factory => factory.CreateConnection(hosts), Times.AtLeastOnce());
-        mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
+        mockedConnectionPool.Verify(pool => pool.Connection(publisher), Times.AtLeastOnce());
+        mockedConnection.Verify(connection => connection.Channel(publisher, exchangeName, routingKey), Times.AtLeastOnce());
 
-        mockedModel.Verify(model => 
-            model.BasicPublish("TestExchange", "", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+        mockedChannel.Verify(model => 
+            model.BasicPublish(publisher, null, 
+                It.IsAny<byte[]>()), Times.AtLeastOnce());
     }
 
     [Fact]
     public async void DirectExchange_PublishRecoverThenOk()
     {
-        var mockedFactory = new Mock<IFCSConnection>();
+        var exchangeName = "TestExchange";
+        var routingKey = "TestQueue";
 
-        var mockedModel = new Mock<IModel>();
-        mockedFactory.Setup(conn => conn.CreateChannel()).Returns(mockedModel.Object);
-        
-        MockSequence sequence = new ();
-        mockedModel.InSequence(sequence).Setup(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>())).Throws<Exception>();
-        mockedModel.InSequence(sequence).Setup(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()));
+        var mockedConnectionPool = new Mock<IRabbitConnectionPool>();
+        var mockedConnection = new Mock<IRabbitConnection>();
+
+
+        var mockedChannel = new Mock<IRabbitChannel>();
 
         using var publisher = new DirectRabbitPublisher<string>(
-            mockedFactory.Object,
+            mockedConnectionPool.Object,
             loggerFactory,
-            "TestExchange",
+            exchangeName,
             Timeout.InfiniteTimeSpan,
-            "TestQueue"
+            routingKey
             );
+
+        MockSequence sequence = new ();
+        mockedChannel.InSequence(sequence).Setup(model => 
+            model.BasicPublish(publisher, 
+                null, 
+                It.IsAny<byte[]>())).Throws<Exception>();
+
+        mockedChannel.InSequence(sequence).Setup(model => 
+            model.BasicPublish(publisher, 
+                null, 
+                It.IsAny<byte[]>()));
+
+        mockedConnectionPool.Setup(conn => conn.Connection(publisher)).Returns(mockedConnection.Object);
+        mockedConnection.Setup(conn => conn.Channel(publisher, exchangeName, routingKey)).Returns(mockedChannel.Object);
 
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
-        mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
-
-        mockedModel.Verify(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+        mockedChannel.Verify(model => 
+            model.BasicPublish(It.IsAny<object>(), 
+                null, 
+                It.IsAny<byte[]>()), Times.AtLeastOnce());
     }
 
     [Fact]
     public async void DirectExchange_PublishFailsRecoverThenOk()
     {
-        var mockedConnectionFactory = new Mock<IConnectionFactory>();
+        var exchangeName = "TestExchange";
+        var routingKey = "TestQueue";
 
-        var mockedConnection = new Mock<IConnection>();
-        mockedConnectionFactory.Setup(conn => conn.CreateConnection(hosts)).Returns(mockedConnection.Object);
+        var mockedConnectionPool = new Mock<IRabbitConnectionPool>();
+        var mockedConnection = new Mock<IRabbitConnection>();
+        var mockedChannel = new Mock<IRabbitChannel>();
+
+        using var publisher = new DirectRabbitPublisher<string>(
+            mockedConnectionPool.Object,
+            loggerFactory,
+            exchangeName,
+            Timeout.InfiniteTimeSpan,
+            routingKey
+            );
+
+        mockedConnectionPool.Setup(pool => pool.Connection(publisher)).Returns(mockedConnection.Object);
+        mockedConnection.Setup(conn => conn.Channel(publisher, exchangeName, routingKey)).Returns(mockedChannel.Object);
 
         var sequence = new MockSequence();
 
-        var factory = new RabbitConnection(mockedConnectionFactory.Object, loggerFactory, hosts);
-        var mockedModel = new Mock<IModel>();
-        mockedConnection.Setup(conn => conn.CreateModel()).Returns(mockedModel.Object);
+        mockedChannel.InSequence(sequence).Setup(channel => channel.WaitForConfirmsOrDie(publisher, It.IsAny<TimeSpan>()) ).Throws<Exception>();
 
-        mockedModel.InSequence(sequence).Setup(channel => channel.WaitForConfirmsOrDie(It.IsAny<TimeSpan>())).Throws<Exception>();
-        mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
-        mockedModel.InSequence(sequence).Setup(channel => channel.QueueDeclarePassive("TestQueue")).Throws<Exception>();
-
-        using var publisher = new DirectRabbitPublisher<string>(
-            factory,
-            loggerFactory,
-            "TestExchange",
-            Timeout.InfiniteTimeSpan,
-            "TestQueue"
-            );
-
-        Assert.False(await publisher.Publish("Test Message"));
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
-        mockedConnectionFactory.Verify(factory => factory.CreateConnection(hosts), Times.AtLeastOnce());
-        mockedConnection.Verify(connection => connection.CreateModel(), Times.AtLeastOnce());
+        mockedConnectionPool.Verify(pool => pool.Connection(publisher), Times.AtLeastOnce());
+        mockedConnection.Verify(conn => conn.Channel(publisher, exchangeName, routingKey), Times.AtLeastOnce());
 
-        mockedModel.Verify(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+        mockedChannel.Verify(model => 
+            model.BasicPublish(publisher, null, It.IsAny<byte[]>()), Times.AtLeastOnce());
     }
 
     [Fact]
     public async void TopicExchange_PublishFailsRecoverThenOk()
     {
-        var mockedFactory = new Mock<IFCSConnection>();
+        var exchangeName = "TestExchange";
+        var routingKey = "TestQueue";
 
-        var mockedModel = new Mock<IModel>();
-        mockedFactory.Setup(conn => conn.CreateChannel()).Returns(mockedModel.Object);
-
-        var sequence = new MockSequence();
-        mockedModel.InSequence(sequence).Setup(channel => channel.WaitForConfirmsOrDie(It.IsAny<TimeSpan>())).Throws<Exception>();
+        var mockedConnectionPool = new Mock<IRabbitConnectionPool>();
+        var mockedConnection = new Mock<IRabbitConnection>();
+        var mockedChannel = new Mock<IRabbitChannel>();
 
         using var publisher = new TopicRabbitPublisher<string>(
-            mockedFactory.Object,
+            mockedConnectionPool.Object,
             loggerFactory,
-            "TestExchange",
+            exchangeName,
             Timeout.InfiniteTimeSpan,
-            "TestQueue"
+            routingKey
             );
+
+        mockedConnectionPool.Setup(pool => pool.Connection(publisher)).Returns(mockedConnection.Object);
+        mockedConnection.Setup(conn => conn.Channel(publisher, exchangeName, routingKey)).Returns(mockedChannel.Object);
+
+        var sequence = new MockSequence();
+        mockedChannel.InSequence(sequence).Setup(
+            channel => channel.WaitForConfirmsOrDie(It.IsAny<object>(), It.IsAny<TimeSpan>())
+            ).Throws<Exception>();
 
         Assert.False(await publisher.Publish("Test Message"));
         Assert.True(await publisher.Publish("Test Message"));
 
-        mockedFactory.Verify(connection => connection.CreateChannel(), Times.AtLeastOnce());
+        mockedConnection.Verify(connection => connection.Channel(publisher, exchangeName, routingKey), Times.AtLeastOnce());
 
-        mockedModel.Verify(model => 
-            model.BasicPublish("TestExchange", "TestQueue", false, null, 
-                It.IsAny<ReadOnlyMemory<byte>>()), Times.AtLeastOnce());
+        mockedChannel.Verify(model => 
+            model.BasicPublish(It.IsAny<object>(), 
+                null, 
+                It.IsAny<byte[]>()), Times.AtLeastOnce());
     }
 
     [Fact]

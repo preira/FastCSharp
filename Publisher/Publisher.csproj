@@ -4,8 +4,8 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp.Publisher</PackageId>
-    <version>0.4.0-alpha</version>
+    <PackageId>FastCSharp.Pool</PackageId>
+    <version>0.1.0-alpha</version>
 
     <Author>João Pereira</Author>
 

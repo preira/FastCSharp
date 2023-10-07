@@ -27,13 +27,13 @@ public interface IPool<T>
     /// <returns></returns>
     /// <exception cref="ObjectDisposedException"></exception>
     /// <exception cref="TimeoutException"></exception>
-    /// <exception cref="System.Exception"></exception> <summary>
+    /// <exception cref="Exception"></exception> <summary>
     /// 
     /// </summary>
     /// <param name="caller"></param>
-    /// <param name="timeout"></param>
+    /// <param name="timeout">A timeout of -1 signals to wait for the default timeout (this is the default value)</param>
     /// <returns></returns>
-    T Borrow(object caller, int timeout = 1000);
+    T Borrow(object caller, int timeout = -1);
 }
 
 public delegate T Create<T>();
@@ -47,12 +47,13 @@ where K : class, IDisposable
     readonly ConcurrentDictionary<int, WeakReference<Individual<K>>> inUse;
     public int MinSize { get; private set;}
     public int MaxSize { get; private set;}
+    public int DefaultTimeout { get; private set;}
     private int count;
     public int Count { get => count; }
     private int idx = 0;
     private bool disposed;
-    private PoolStats stats;
-    public IPoolStats Stats { get => stats; }
+    private PoolStats? stats;
+    public IPoolStats? Stats { get => stats; }
 
     private int Index {
         get => Interlocked.Exchange(ref idx, idx = (idx) % Int32.MaxValue + 1);
@@ -60,12 +61,19 @@ where K : class, IDisposable
     
     public readonly object _lock = new ();
 
-    public Pool(Create<T> factory, int minSize, int maxSize, bool initialize = false, bool registerStats = true)
+    public Pool(
+        Create<T> factory, 
+        int minSize, 
+        int maxSize, 
+        bool initialize = false, 
+        bool registerStats = true, 
+        int defaultTimeout = 1000)
     {
         Factory = factory;
 
         MinSize = minSize;
         MaxSize = maxSize;
+        DefaultTimeout = defaultTimeout;
 
         available = new ();
         inUse = new ();
@@ -80,12 +88,15 @@ where K : class, IDisposable
             Interlocked.Exchange(ref count, minSize);
         }
         // TODO: Revise to comply with stats history also TBD
-        stats = new PoolStats(TimeSpan.FromHours(1), Count);
+        if (registerStats) stats = new PoolStats(TimeSpan.FromHours(1), Count);
     }
 
-    public T Borrow(object caller, int timeout = 1000)
+    public T Borrow(object caller, int timeout = -1)
     {
         if (disposed) throw new ObjectDisposedException(GetType().FullName);
+
+        // -1 signals to use defautl
+        timeout = timeout > -1 ? timeout : DefaultTimeout;
         try
         {
             var timeLimit = DateTime.Now.AddMilliseconds(timeout);
@@ -96,20 +107,20 @@ where K : class, IDisposable
                 var remaining = timeLimit - DateTime.Now;
                 if (remaining <= TimeSpan.Zero) 
                 {
-                    stats.PoolTimeout();
-                    if (stats.TimeoutRatio > 0.5) PurgeInUse();
+                    stats?.PoolTimeout();
+                    if (stats?.TimeoutRatio > 0.5) PurgeInUse();
                     throw new TimeoutException($"Could not get a {typeof(T)} from the pool within the {timeout} ms timeout.");
                 }
                 
-                stats.PoolWait();
+                stats?.PoolWait();
                 bool timedout = Monitor.Wait(_lock, remaining);
                 
                 if (!available.IsEmpty || Count < MaxSize) break;
 
                 if (timedout)
                 {
-                    stats.PoolTimeout();
-                    if (stats.LastPeriodTimeoutRatio > 0.5) PurgeInUse();
+                    stats?.PoolTimeout();
+                    if (stats?.LastPeriodTimeoutRatio > 0.5) PurgeInUse();
                     throw new TimeoutException($"Could not get a {typeof(T)} from the pool within the {timeout} ms timeout.");
                 }
             }
@@ -126,13 +137,13 @@ where K : class, IDisposable
 
             if (individual != null)
             {
-                stats.PoolRequest(isHit, Count);
+                stats?.PoolRequest(isHit, Count);
             
                 PutInUse(caller, individual);
             }
             else
             {
-                stats.PoolError();
+                stats?.PoolError();
                 throw new Exception("If you are reading this, something is wrong with the pool implementation.");
             }
 
@@ -164,13 +175,13 @@ where K : class, IDisposable
                 // Else it is not in the inUse list, it is not a valid connection and should be terminated without updating counters.
                 individual.DisposeValue(true);
  
-                stats.PoolDisposed();
+                stats?.PoolDisposed();
                 Monitor.Pulse(_lock);
                 return false;
             }
 
             available.Enqueue(individual);
-            stats.PoolReturn(Count);
+            stats?.PoolReturn(Count);
 
             Monitor.Pulse(_lock);
             return true;
@@ -192,7 +203,7 @@ where K : class, IDisposable
                 .ToList()
                 .ForEach(e => inUse.TryRemove(e.Key, out _));
             Interlocked.Exchange(ref count, inUse.Count + available.Count);
-            stats.PoolPurge(Count);
+            stats?.PoolPurge(Count);
         }
         finally
         {
@@ -219,13 +230,13 @@ where K : class, IDisposable
     {
         try
         {
+            Monitor.TryEnter(_lock, 5000);
             if (!disposed)
             {
                 if (disposing)
                 {
                     // dispose managed state (managed objects)
                     disposed = true;
-                    Monitor.TryEnter(_lock, 5000);
                     foreach (var individual in available)
                     {
                         individual.DisposeValue(true);
@@ -236,8 +247,8 @@ where K : class, IDisposable
                     }
                 }
 
-                Monitor.PulseAll(_lock);
             }
+            Monitor.PulseAll(_lock);
         }
         finally
         {
@@ -266,6 +277,11 @@ where K : class, IDisposable
 public class Individual<T> : IDisposable
 where T : class, IDisposable
 {
+
+    // TODO: add isStale. Stale object should be disposed and not returned to the pool.
+    // Extending classes should implement a method to check if the object is stale.
+    // The method should notify this class (maybe abstract to force implementantion).
+
     private WeakReference? owner;
     protected bool disposed;
     internal object? Owner { 

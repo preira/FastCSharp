@@ -11,12 +11,12 @@ public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<
 {
     readonly private ILogger logger;
     protected AbstractRabbitBatchPublisher(
-        IFCSConnection factory,
+        IRabbitConnectionPool connectionPool,
         ILoggerFactory ILoggerFactory,
         string exchange,
         TimeSpan timeout,
         string key = "")
-    : base(factory, ILoggerFactory, exchange, timeout, key)
+    : base(connectionPool, ILoggerFactory, exchange, timeout, key)
     {
         logger = ILoggerFactory.CreateLogger<AbstractRabbitBatchPublisher<T>>();
     }
@@ -30,8 +30,11 @@ public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<
     /// or if a problem occured.</returns>
     public async Task<bool> Publish(IEnumerable<T> messages)
     {
-        if (IsHealthyOrTryRecovery())
+        try
         {
+            using var connection = pool.Connection(this);
+            using var channel = connection.Channel(this, exchangeName, routingKey);
+
             foreach (var message in messages)
             {
                 var msg = message;
@@ -40,7 +43,7 @@ public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<
                     msg = await handler(msg);
                 }
                 byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(msg);
-                Task<bool> task = new ( () => AsyncPublish(jsonUtf8Bytes) );
+                Task<bool> task = new ( () => AsyncPublish(channel, jsonUtf8Bytes) );
                 task.Start();
 
                 bool isOk = await task;
@@ -50,23 +53,24 @@ public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<
                     return false;
                 }
             }
-            Task<bool> confirm = new ( () => Confirm() );
+            Task<bool> confirm = new ( () => Confirm(channel) );
             confirm.Start();
             return await confirm;
         }
-        else
+        catch (Exception ex)
         {
+            logger.LogError("[ERROR SENDING] {Message}", ex.Message);
             return false;
         }
     }
 
     // TODO: async confirm can be implemented using yeld return and a concurrent dictionary 
     // * using also a TaskCompletionSource ??
-    protected bool Confirm()
+    protected bool Confirm(IRabbitChannel channel)
     {
         try
         {
-            channel?.WaitForConfirmsOrDie(confirmTimeout);
+            channel?.WaitForConfirmsOrDie(this, confirmTimeout);
             return true;
         }
         catch (Exception ex)
@@ -79,15 +83,14 @@ public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<
     /// <summary>
     /// Async publish a message. In this version, the message is not confirmed.
     /// </summary>
-    /// <param name="body"></param>
+    /// <param name="body">message content in bytes</param>
     /// <returns>True if the message was published to the channel. False if an exception is raised.</returns>
-    protected bool AsyncPublish(byte[] body)
+    protected bool AsyncPublish(IRabbitChannel channel, byte[] body)
     {
         try
         {
-            ulong? sequenceNumber = channel?.NextPublishSeqNo;
-            channel.BasicPublish(exchange: exchangeName,
-                routingKey: routingKey,
+            ulong? sequenceNumber = channel?.NextPublishSeqNo(this);
+            channel?.BasicPublish(this, 
                 basicProperties: null,
                 body: body);
 
@@ -108,73 +111,41 @@ public class DirectRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, ID
 {
     readonly private ILogger logger;
     public DirectRabbitBatchPublisher(
-        IFCSConnection factory,
+        IRabbitConnectionPool connectionPool,
         ILoggerFactory ILoggerFactory,
         string exchange,
         TimeSpan timeout,
         string routingKey)
-        : base(factory, ILoggerFactory, exchange, timeout, key: routingKey)
+        : base(connectionPool, ILoggerFactory, exchange, timeout, key: routingKey)
     {
         logger = ILoggerFactory.CreateLogger<DirectRabbitBatchPublisher<T>>();
-    }
-
-    protected override void ResourceDeclarePassive(IModel channel)
-    {
-        channel.ExchangeDeclarePassive(exchangeName);
-        channel.QueueDeclarePassive(routingKey);
-    }
-
-    override protected bool IsHealthy()
-    {
-        if(disposed) throw new ObjectDisposedException(GetType().FullName);
-        if (channel != null)
-        {
-            try
-            {
-                // WaitForConfirmsOrDie already breaks when the exchange is unkown.
-                // So, no need to check the exchange.
-                channel.QueueDeclarePassive(routingKey);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError("[WARNING] ${message}", ex.Message);
-            }
-        }
-        return false;
     }
 }
 
 public class FanoutRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, IFanoutPublisher
 {
     public FanoutRabbitBatchPublisher(
-        IFCSConnection factory, 
+        IRabbitConnectionPool connectionPool, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
         TimeSpan timeout)
-        : base(factory, ILoggerFactory, exchange, timeout)
+        : base(connectionPool, ILoggerFactory, exchange, timeout)
     {
     }
-
-    protected override void ResourceDeclarePassive(IModel channel) => channel.ExchangeDeclarePassive(exchangeName);
-
 }
 
 
 public class TopicRabbitBatchPublisher<T> : AbstractRabbitBatchPublisher<T>, ITopicPublisher
 {
     public TopicRabbitBatchPublisher(
-        IFCSConnection factory, 
+        IRabbitConnectionPool connectionPool, 
         ILoggerFactory ILoggerFactory,
         string exchange, 
         TimeSpan timeout, 
         string routingKey)
-        : base(factory, ILoggerFactory, exchange, timeout, routingKey)
+        : base(connectionPool, ILoggerFactory, exchange, timeout, routingKey)
     {
     }
-
-    protected override void ResourceDeclarePassive(IModel channel) => channel.ExchangeDeclarePassive(exchangeName);
-
 }
 
 

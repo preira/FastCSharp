@@ -34,6 +34,8 @@
   <ItemGroup>
     <ProjectReference Include="..\RabbitPublisher\RabbitPublisher.csproj" />
     <ProjectReference Include="..\RabbitCommon\RabbitCommon.csproj" />
+    <ProjectReference Include="..\Pool\Pool.csproj" />
+    <ProjectReference Include="..\Publisher\Publisher.csproj" />
   </ItemGroup>
 
 </Project>

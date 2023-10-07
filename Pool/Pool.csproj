@@ -4,19 +4,19 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp.Publisher</PackageId>
-    <version>0.4.0-alpha</version>
+    <PackageId>FastCSharp.Pool</PackageId>
+    <version>1.0.0</version>
 
     <Author>João Pereira</Author>
 
     <Description>Package containing Message Queue Publisher SDK.</Description>
-    <PackageTags>FastCSharp Publisher SDK</PackageTags>
+    <PackageTags>FastCSharp Pool SDK</PackageTags>
 
    <Copyright>
       <![CDATA[Copyright © FastCSharp 2023]]>
     </Copyright>
 
-    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Publisher</ProjectUrl>
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Pool</ProjectUrl>
 
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>

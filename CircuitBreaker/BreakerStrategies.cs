@@ -1,4 +1,4 @@
-using FastCSharp.Exception;
+using FastCSharp.Exceptions;
 
 namespace FastCSharp.CircuitBreaker;
 

@@ -17,30 +17,30 @@ public abstract class AbstractPublisherHandler<T> : IHandler<T>
         handlers = new List<Handler<T>>();
     }
 
-    protected bool IsHealthyOrTryRecovery()
-    {
-        if(disposed) throw new ObjectDisposedException(nameof(AbstractPublisherHandler<T>));
-        if(IsHealthy())
-        {
-            return true;
-        }
-        // try to recover
-        return ResetChannel();
-    }
+    // protected bool IsHealthyOrTryRecovery()
+    // {
+    //     if(disposed) throw new ObjectDisposedException(nameof(AbstractPublisherHandler<T>));
+    //     if(IsHealthy())
+    //     {
+    //         return true;
+    //     }
+    //     // try to recover
+    //     return ResetChannel();
+    // }
 
     /// <summary>
     /// Should contain logic to make sure that the publication will succeed, like checking connection
     /// or queues.
     /// </summary>
     /// <returns>a Boolean indicating if the service is healthy</returns>
-    protected abstract bool IsHealthy();
+    // protected abstract bool IsHealthy();
 
     /// <summary>
     /// Should contain logic to recover a faulty connection status given by IsHealthy().
     /// </summary>
     /// <param name="dispose"></param>
     /// <returns></returns>
-    protected abstract bool ResetChannel(bool dispose = true);
+    // protected abstract bool ResetChannel(bool dispose = true);
 
     /// <summary>
     /// Should dispose of any managed or unmanaged resources.

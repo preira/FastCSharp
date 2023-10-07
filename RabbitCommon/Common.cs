@@ -1,13 +1,14 @@
-﻿using RabbitMQ.Client;
+﻿using FastCSharp.Pool;
+using RabbitMQ.Client;
 
 namespace FastCSharp.RabbitCommon;
 
-public interface IFCSConnection : IDisposable
+public interface IRabbitConnection : IDisposable
 {
     bool IsOpen { get; }
-    bool DisposeChannel(IModel channel);
-    IModel CreateChannel();
-    bool ResetConnection(bool dispose = true);
+    // bool DisposeChannel_Depracated(RabbitChannel channel);
+    IRabbitChannel Channel(object owner, string exchangeName, string routingKey);
+    // bool ResetConnection(bool dispose = true);
     void Close();
 }
 

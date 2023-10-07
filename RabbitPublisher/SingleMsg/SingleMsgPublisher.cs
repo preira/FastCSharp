@@ -21,6 +21,8 @@ public abstract class AbstractRabbitPublisherFactory<T> : AbstractRabbitExchange
         : base(configuration, ILoggerFactory)
     {
     }
+
+        // TODO: Should pass connection Pool for this publisher
     public abstract IPublisher<M> NewPublisher<M>(string destination, string? routingKey = null);
 }
 
@@ -35,6 +37,7 @@ public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory<IDire
     { }
     public override IPublisher<M> NewPublisher<M>(string destination, string? routingKey = null)
     {
+        // TODO: get specific pool for the pair of exchange and routing key
         if(disposed) throw new ObjectDisposedException(GetType().FullName);
         if (routingKey == null)
         {
@@ -48,8 +51,10 @@ public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory<IDire
         }
 
         string exchangeName = Util.SafelyExtractExchageName(exchange, "direct");
+
+        // TODO: Should pass connection Pool for this publisher
         return new DirectRabbitPublisher<M>(
-                            factory: connectionFactory,
+                            connectionPool: connectionPool,
                             ILoggerFactory: loggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout,
@@ -73,7 +78,7 @@ public class RabbitFanoutPublisherFactory : AbstractRabbitPublisherFactory<IFano
         if(disposed) throw new ObjectDisposedException(GetType().FullName);
         ExchangeConfig exchange = GetExchangeConfig(destination);
         string exchangeName = Util.SafelyExtractExchageName(exchange, "fanout");
-        return new FanoutRabbitPublisher<M>(factory: connectionFactory,
+        return new FanoutRabbitPublisher<M>(connectionPool: connectionPool,
                             loggerFactory,
                             exchange: exchangeName,
                             timeout: config.Timeout);
@@ -99,7 +104,7 @@ public class RabbitTopicPublisherFactory : AbstractRabbitPublisherFactory<ITopic
         var isOk = exchange?.RoutingKeys?.Contains(routingKey) ?? false;
         if (routingKey == "" || isOk)
         {
-            return new TopicRabbitPublisher<M>(factory: connectionFactory,
+            return new TopicRabbitPublisher<M>(connectionPool: connectionPool,
                                 loggerFactory,
                                 exchange: exchangeName,
                                 timeout: config.Timeout,

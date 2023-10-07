@@ -5,7 +5,7 @@ using RabbitMQ.Client.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
-using FastCSharp.Exception;
+using FastCSharp.Exceptions;
 using FastCSharp.Subscriber;
 using FastCSharp.RabbitSubscriber.Impl;
 using RabbitMQ.Client.Exceptions;

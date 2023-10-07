@@ -1,7 +1,6 @@
 using Xunit;
 using FastCSharp.Criptography;
-using FastCSharp.Exception;
-using System.Text.Json;
+using FastCSharp.Exceptions;
 
 namespace Common.Tests;
 

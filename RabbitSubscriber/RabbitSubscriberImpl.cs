@@ -1,5 +1,5 @@
 ﻿using FastCSharp.Subscriber;
-using FastCSharp.Exception;
+using FastCSharp.Exceptions;
 using FastCSharp.SDK.Subscriber;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;

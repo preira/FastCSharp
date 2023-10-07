@@ -1,9 +1,13 @@
-
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.Options;
 using FastCSharp.RabbitPublisher.Injection;
 using FastCSharp.Publisher;
+using FastCSharp.Pool;
+using RabbitMQ.Client;
+using Microsoft.Extensions.Logging;
+using FastCSharp.RabbitCommon;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -21,23 +25,9 @@ public static class FrameworkServiceExtension
             return options;
         });
 
-        //TODO: create connection pool
-        // var factory = new ConnectionFactory
-        // {
-        //     ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitPublisher"
-        // };
-
-        // if (config.HostName != null) factory.HostName = config.HostName;
-        // if(config.Port != null) factory.Port = (int) config.Port;
-        // if(config.VirtualHost != null) factory.VirtualHost = config.VirtualHost;
-        // if(config.Password != null) factory.Password = config.Password;
-        // if(config.UserName != null) factory.UserName = config.UserName;
-        // if(config.Heartbeat != null) factory.RequestedHeartbeat = (TimeSpan) config.Heartbeat;
-        
-        // return new RabbitConnection(factory, loggerFactory, config.Hosts);
-
         AddRabbitPublisher(services);
     }
+
     public static void AddRabbitPublisher(this IServiceCollection services, string file)
     {
         var configuration = new ConfigurationBuilder()

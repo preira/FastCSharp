@@ -1,6 +1,5 @@
 using Xunit;
 using FastCSharp.CircuitBreaker;
-using FastCSharp;
 
 namespace Circuit_Breaker.Tests;
 

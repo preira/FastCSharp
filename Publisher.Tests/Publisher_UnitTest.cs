@@ -6,10 +6,7 @@ namespace Publisher.Tests;
 class RemoteControl<T>
 {
     public bool HasBeenDisposed { get; set; }
-    public bool IsHealthy { get; set; }
-    public bool HasCalledHealthy { get; set; }
-    public bool IsResetConnection { get; set; }
-    public bool HasResetConnection { get; set; }
+    public bool IsNopCalled { get; set; }
     public bool HasCalledPublish { get; set; }
     public T? PublishResult { get; set; }
     public bool PublishFunction(T? value)
@@ -44,19 +41,7 @@ class TestPublisher : AbstractPublisherHandler<string>
 
     public void NOp()
     {
-        IsHealthy();
-        ResetChannel();
-    }
-    protected override bool IsHealthy()
-    {
-        rc.HasCalledHealthy = true;
-        return rc.IsHealthy;
-    }
-
-    protected override bool ResetChannel(bool dispose = true)
-    {
-        rc.HasResetConnection = true;
-        return rc.IsResetConnection;
+        rc.IsNopCalled = true;
     }
 }
 
@@ -67,7 +52,7 @@ public class Publisher_UnitTest
     {
         var rc = new RemoteControl<string>
         {
-            IsHealthy = true
+            // IsHealthy = true
         };
         var countCalls = 0;
         using(var publisher = new TestPublisher(rc))
@@ -83,14 +68,12 @@ public class Publisher_UnitTest
     {
         var rc = new RemoteControl<string>
         {
-            IsHealthy = true
+            // IsHealthy = true
         };
         using(var publisher = new TestPublisher(rc))
         {
             publisher.NOp();
         }
-        Assert.True(rc.HasCalledHealthy);
-        Assert.True(rc.HasResetConnection);
     }
 
     [Fact]
@@ -98,7 +81,7 @@ public class Publisher_UnitTest
     {
         var rc = new RemoteControl<string>
         {
-            IsHealthy = true
+            // IsHealthy = true
         };
         var countCalls = 0;
         var handlersCount = 0;
@@ -120,7 +103,7 @@ public class Publisher_UnitTest
         var result = token;
         var rc = new RemoteControl<string>
         {
-            IsHealthy = true
+            // IsHealthy = true
         };
         using(var publisher = new TestPublisher(rc))
         {
@@ -138,7 +121,7 @@ public class Publisher_UnitTest
         var result = token;
         var rc = new RemoteControl<string>
         {
-            IsHealthy = true
+            // IsHealthy = true
         };
         using(var publisher = new TestPublisher(rc))
         {
