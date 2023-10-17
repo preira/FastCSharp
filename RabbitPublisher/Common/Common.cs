@@ -6,6 +6,7 @@ using FastCSharp.SDK.Publisher;
 using Microsoft.Extensions.Options;
 using FastCSharp.Pool;
 using System.Collections.Concurrent;
+using System.Net;
 
 namespace FastCSharp.RabbitPublisher.Common;
 
@@ -63,13 +64,17 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 
         return pool.Borrow(owner);
     }
-    private RabbitChannel Create(string exchangeName, string routingKey)
+    private RabbitChannel Create(string exchangeName, string routingKey, bool confims = true)
     {
         if(disposed) throw new ObjectDisposedException(GetType().FullName);
         var channel = connection?.CreateModel();
         if(channel == null)
         {
             throw new Exception("FastCSharp could not create a new channel.");
+        }
+        if(confims)
+        {
+            channel.ConfirmSelect();
         }
         return new RabbitChannel(channel, exchangeName, routingKey);
     }
@@ -192,8 +197,8 @@ public abstract class AbstractRabbitPublisher<T> : AbstractPublisherHandler<T>
         confirmTimeout = timeout;
         exchangeName = exchange;
         routingKey = key;
-        pool = connectionPool;
         IsInitialized = false;
+        pool = connectionPool;
     }
 
     protected override void Dispose(bool disposing)
@@ -225,6 +230,8 @@ internal static class Util
 public interface IRabbitConnectionPool : IDisposable
 {
     IRabbitConnection Connection(object owner);
+
+    IPoolStats? Stats { get; }
 }
 
 public class RabbitConnectionPool : IRabbitConnectionPool
@@ -232,7 +239,11 @@ public class RabbitConnectionPool : IRabbitConnectionPool
     readonly Pool<RabbitConnection, IConnection> pool;
     readonly ILogger logger;
 
-    public RabbitConnectionPool(RabbitPublisherConfig config, ILoggerFactory loggerFactory)
+    public IPoolStats? Stats => pool?.Stats;
+
+    public RabbitConnectionPool(
+        RabbitPublisherConfig config, 
+        ILoggerFactory loggerFactory)
     {
         logger = loggerFactory.CreateLogger<RabbitConnectionPool>();
 
@@ -248,14 +259,37 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         if(config.UserName != null)     factory.UserName = config.UserName;
         if(config.Heartbeat != null)    factory.RequestedHeartbeat = (TimeSpan) config.Heartbeat;
 
+        var poolConfig = PoolConfigOrDefaults(config.Pool);
+
         // TODO: pass initizalization and timeout from configuration
         pool = new Pool<RabbitConnection, IConnection>(
             () => CreateConnection(factory, config.Hosts, loggerFactory),
-            1, 5
+            poolConfig.MinSize, 
+            poolConfig.MaxSize, 
+            poolConfig.Initialize, 
+            poolConfig.GatherStats, 
+            poolConfig.DefaultWaitTimeout.TotalMilliseconds
         );
     }
+
+    static private PoolConfig PoolConfigOrDefaults(PoolConfig? fromConfig)
+    {
+        var poolConf = new PoolConfig
+        {
+            MinSize = fromConfig?.MinSize ?? 1,
+            MaxSize = fromConfig?.MaxSize ?? 5,
+            Initialize = fromConfig?.Initialize ?? false,
+            GatherStats = fromConfig?.GatherStats ?? false,
+            DefaultWaitTimeout = fromConfig?.DefaultWaitTimeout ?? TimeSpan.FromMilliseconds(100)
+        };
+        return poolConf;
+    }
+
+    static private int instanceCount = 0;
+
     private RabbitConnection CreateConnection(ConnectionFactory factory, IList<AmqpTcpEndpoint>? endpoints, ILoggerFactory loggerFactory)
     {
+        logger.LogInformation($"Created RabbitConnection #{instanceCount++}");
         IConnection? connection;
         try
         {

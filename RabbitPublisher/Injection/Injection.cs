@@ -1,13 +1,8 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.Options;
 using FastCSharp.RabbitPublisher.Injection;
 using FastCSharp.Publisher;
-using FastCSharp.Pool;
-using RabbitMQ.Client;
-using Microsoft.Extensions.Logging;
-using FastCSharp.RabbitCommon;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -38,12 +33,12 @@ public static class FrameworkServiceExtension
     }
     private static void AddRabbitPublisher(IServiceCollection services)
     {
-        services.AddScoped<IPublisherFactory<ITopicPublisher>, TopicPublisherFactory>();
-        services.AddScoped<IPublisherFactory<IFanoutPublisher>, FanoutPublisherFactory>();
-        services.AddScoped<IPublisherFactory<IDirectPublisher>, DirectPublisherFactory>();
-        services.AddScoped<IBatchPublisherFactory<ITopicPublisher>, TopicBatchPublisherFactory>();
-        services.AddScoped<IBatchPublisherFactory<IFanoutPublisher>, FanoutBatchPublisherFactory>();
-        services.AddScoped<IBatchPublisherFactory<IDirectPublisher>, DirectBatchPublisherFactory>();
+        services.AddSingleton<IPublisherFactory<ITopicPublisher>, TopicPublisherFactory>();
+        services.AddSingleton<IPublisherFactory<IFanoutPublisher>, FanoutPublisherFactory>();
+        services.AddSingleton<IPublisherFactory<IDirectPublisher>, DirectPublisherFactory>();
+        services.AddSingleton<IBatchPublisherFactory<ITopicPublisher>, TopicBatchPublisherFactory>();
+        services.AddSingleton<IBatchPublisherFactory<IFanoutPublisher>, FanoutBatchPublisherFactory>();
+        services.AddSingleton<IBatchPublisherFactory<IDirectPublisher>, DirectBatchPublisherFactory>();
 
     }
 }

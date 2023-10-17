@@ -12,6 +12,7 @@ public class RabbitOptions : IOptions<RabbitPublisherConfig>
     public RabbitPublisherConfig Value => value;
 }
 
+// this creates an association between the interface <code> IPublisherFactory<IDirectPublisher> </code> and the implementation <code> RabbitDirectPublisherFactory </code>
 public class DirectPublisherFactory : RabbitDirectPublisherFactory, IPublisherFactory<IDirectPublisher>
 {
     public DirectPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)

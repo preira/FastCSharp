@@ -37,6 +37,7 @@ public class RabbitConfig
     /// <seealso href="https://www.rabbitmq.com/uri-spec.html"/>
     /// <seealso href="https://www.rabbitmq.com/vhosts.html"/>
     public string? VirtualHost { get; set; }
+    public PoolConfig? Pool { get; set; }
     public IList<AmqpTcpEndpoint>? Hosts { get; set; }
     public string? UserName { get; set; }
     public string? Password { get; set; }

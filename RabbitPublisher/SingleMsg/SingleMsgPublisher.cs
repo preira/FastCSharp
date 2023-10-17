@@ -1,4 +1,5 @@
-﻿using FastCSharp.Publisher;
+﻿using FastCSharp.Pool;
+using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Common;
 using FastCSharp.RabbitPublisher.Impl;
 using Microsoft.Extensions.Configuration;
@@ -13,8 +14,10 @@ namespace FastCSharp.RabbitPublisher;
 /// <typeparam name="T">The type of the publisher to create</typeparam>
 public abstract class AbstractRabbitPublisherFactory<T> : AbstractRabbitExchangeFactory, IPublisherFactory<T>
 {
-    protected AbstractRabbitPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
-        : base(options, loggerFactory)
+    protected AbstractRabbitPublisherFactory(
+        IOptions<RabbitPublisherConfig> options, 
+        ILoggerFactory loggerFactory)
+    : base(options, loggerFactory)
     {
     }
     protected AbstractRabbitPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory) 
@@ -24,15 +27,21 @@ public abstract class AbstractRabbitPublisherFactory<T> : AbstractRabbitExchange
 
         // TODO: Should pass connection Pool for this publisher
     public abstract IPublisher<M> NewPublisher<M>(string destination, string? routingKey = null);
+
+    public IPoolStats? PoolStats => connectionPool.Stats;
 }
 
 public class RabbitDirectPublisherFactory : AbstractRabbitPublisherFactory<IDirectPublisher>
 {
-    protected RabbitDirectPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
-        : base(options, loggerFactory)
+    protected RabbitDirectPublisherFactory(
+        IOptions<RabbitPublisherConfig> options, 
+        ILoggerFactory loggerFactory)
+    : base(options, loggerFactory)
     {
     }
-    public RabbitDirectPublisherFactory(IConfiguration configuration, ILoggerFactory ILoggerFactory)
+    public RabbitDirectPublisherFactory(
+        IConfiguration configuration, 
+        ILoggerFactory ILoggerFactory)
     : base(configuration, ILoggerFactory)
     { }
     public override IPublisher<M> NewPublisher<M>(string destination, string? routingKey = null)

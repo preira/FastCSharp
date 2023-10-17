@@ -1,4 +1,5 @@
-﻿using FastCSharp.Publisher;
+﻿using FastCSharp.Pool;
+using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Common;
 using FastCSharp.RabbitPublisher.Impl;
 using Microsoft.Extensions.Configuration;
@@ -17,8 +18,12 @@ public abstract class AbstractRabbitBatchPublisherFactory<T> : AbstractRabbitExc
         : base(configuration, ILoggerFactory)
     {
     }
+
     public abstract IBatchPublisher<M> NewPublisher<M>(string destination, string? routingKey = null);
+
+    public IPoolStats? PoolStats => connectionPool.Stats;
 }
+
 public class RabbitDirectBatchPublisherFactory : AbstractRabbitBatchPublisherFactory<IDirectPublisher>
 {
     public RabbitDirectBatchPublisherFactory(IOptions<RabbitPublisherConfig> options, ILoggerFactory loggerFactory)
@@ -51,6 +56,7 @@ public class RabbitDirectBatchPublisherFactory : AbstractRabbitBatchPublisherFac
                             routingKey: key
                             );
     }
+
 }
 
 public class RabbitFanoutBatchPublisherFactory : AbstractRabbitBatchPublisherFactory<IFanoutPublisher>

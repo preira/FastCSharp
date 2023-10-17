@@ -33,7 +33,7 @@ public interface IPool<T>
     /// <param name="caller"></param>
     /// <param name="timeout">A timeout of -1 signals to wait for the default timeout (this is the default value)</param>
     /// <returns></returns>
-    T Borrow(object caller, int timeout = -1);
+    T Borrow(object caller, double timeout = -1);
 }
 
 public delegate T Create<T>();
@@ -47,7 +47,7 @@ where K : class, IDisposable
     readonly ConcurrentDictionary<int, WeakReference<Individual<K>>> inUse;
     public int MinSize { get; private set;}
     public int MaxSize { get; private set;}
-    public int DefaultTimeout { get; private set;}
+    public double DefaultTimeout { get; private set;}
     private int count;
     public int Count { get => count; }
     private int idx = 0;
@@ -61,13 +61,14 @@ where K : class, IDisposable
     
     public readonly object _lock = new ();
 
+    // TODO: change to accept a PoolConfig object
     public Pool(
         Create<T> factory, 
         int minSize, 
         int maxSize, 
         bool initialize = false, 
         bool registerStats = true, 
-        int defaultTimeout = 1000)
+        double defaultTimeout = 1000)
     {
         Factory = factory;
 
@@ -91,7 +92,7 @@ where K : class, IDisposable
         if (registerStats) stats = new PoolStats(TimeSpan.FromHours(1), Count);
     }
 
-    public T Borrow(object caller, int timeout = -1)
+    public T Borrow(object caller, double timeout = -1)
     {
         if (disposed) throw new ObjectDisposedException(GetType().FullName);
 
@@ -467,8 +468,9 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var hitCount = poolHitCount.Sum(e => e.Value);
-                var requestCount = poolRequestCount.Sum(e => e.Value);
+                double hitCount = poolHitCount.Sum(e => e.Value);
+                double requestCount = poolRequestCount.Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return hitCount / requestCount;
             }
         }
@@ -480,8 +482,9 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var returnCount = poolReturnCount.Sum(e => e.Value);
-                var requestCount = poolRequestCount.Sum(e => e.Value);
+                double returnCount = poolReturnCount.Sum(e => e.Value);
+                double requestCount = poolRequestCount.Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return returnCount / requestCount;
             }
         }
@@ -493,8 +496,9 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var errorCount = poolErrorCount.Sum(e => e.Value);
-                var requestCount = poolRequestCount.Sum(e => e.Value);
+                double errorCount = poolErrorCount.Sum(e => e.Value);
+                double requestCount = poolRequestCount.Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return errorCount / requestCount;
             }
         }
@@ -506,8 +510,9 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var purgeCount = poolPurgeCount.Sum(e => e.Value);
-                var requestCount = poolRequestCount.Sum(e => e.Value);
+                double purgeCount = poolPurgeCount.Sum(e => e.Value);
+                double requestCount = poolRequestCount.Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return purgeCount / requestCount;
             }
         }
@@ -519,8 +524,9 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var waitCount = poolWaitCount.Sum(e => e.Value);
-                var requestCount = poolRequestCount.Sum(e => e.Value);
+                double waitCount = poolWaitCount.Sum(e => e.Value);
+                double requestCount = poolRequestCount.Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return waitCount / requestCount;
             }
         }
@@ -532,8 +538,9 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var timeoutCount = poolTimeoutCount.Sum(e => e.Value);
-                var requestCount = poolRequestCount.Sum(e => e.Value);
+                double timeoutCount = poolTimeoutCount.Sum(e => e.Value);
+                double requestCount = poolRequestCount.Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return timeoutCount / requestCount;
             }
         }
@@ -546,8 +553,9 @@ public class PoolStats : IPoolStats
             lock (this)
             {
                 var key = DateTime.Now.Truncate(period);
-                var timeoutCount = poolTimeoutCount.Where(e => e.Key == key).Sum(e => e.Value);
-                var requestCount = poolRequestCount.Where(e => e.Key == key).Sum(e => e.Value);
+                double timeoutCount = poolTimeoutCount.Where(e => e.Key == key).Sum(e => e.Value);
+                double requestCount = poolRequestCount.Where(e => e.Key == key).Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return requestCount == 0 ? 0 : timeoutCount / requestCount;
             }
         }
@@ -559,8 +567,9 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var disposedCount = poolDisposedCount.Sum(e => e.Value);
-                var requestCount = poolRequestCount.Sum(e => e.Value);
+                double disposedCount = poolDisposedCount.Sum(e => e.Value);
+                double requestCount = poolRequestCount.Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return disposedCount / requestCount;
             }
         }
@@ -572,8 +581,9 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var sizeChangeEventsCount = poolSizeChangeEvents.Sum(e => e.Value);
-                var requestCount = poolRequestCount.Sum(e => e.Value);
+                double sizeChangeEventsCount = poolSizeChangeEvents.Sum(e => e.Value);
+                double requestCount = poolRequestCount.Sum(e => e.Value);
+                requestCount = requestCount == 0 ? 1 : requestCount;
                 return sizeChangeEventsCount / requestCount;
             }
         }
@@ -585,9 +595,11 @@ public class PoolStats : IPoolStats
         {
             lock (this)
             {
-                var sizeChangeEventsCount = poolSizeChangeEvents.Sum(e => e.Value);
+                double sizeChangeEventsCount = poolSizeChangeEvents.Sum(e => e.Value);
                 var period = poolSizeChangeEvents.Max(e => e.Key) - poolSizeChangeEvents.Min(e => e.Key);
-                return sizeChangeEventsCount / period.TotalMinutes;
+                double totalMinutes = period.TotalMinutes;
+                totalMinutes = totalMinutes == 0 ? 1 : totalMinutes;
+                return sizeChangeEventsCount / totalMinutes;
             }
         }
     }

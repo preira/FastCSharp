@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using FastCSharp.RabbitPublisher.Injection;
 using FastCSharp.Publisher;
-using FastCSharp.Pool;
 
 namespace FastCSharp.RabbitPublisher.Tests;
 

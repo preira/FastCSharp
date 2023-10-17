@@ -1,4 +1,6 @@
-﻿namespace FastCSharp.Publisher;
+﻿using FastCSharp.Pool;
+
+namespace FastCSharp.Publisher;
 
 public delegate  Task<M?> Handler<M>(M? message);
 
@@ -63,6 +65,8 @@ public interface IPublisherFactory<T> : IDisposable
     /// <returns></returns>
     public IPublisher<M> NewPublisher<M>(string destination, string? routingKey = null);
 
+    public IPoolStats? PoolStats { get; }
+
 }
 
 /// <summary>
@@ -81,6 +85,7 @@ public interface IBatchPublisherFactory<T> : IDisposable
     /// <returns></returns>
     public IBatchPublisher<M> NewPublisher<M>(string destination, string? routingKey = null);
 
+    public IPoolStats? PoolStats { get; }
 }
 
 public interface IDirectPublisher 
