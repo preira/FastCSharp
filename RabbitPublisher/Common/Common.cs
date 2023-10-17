@@ -6,7 +6,6 @@ using FastCSharp.SDK.Publisher;
 using Microsoft.Extensions.Options;
 using FastCSharp.Pool;
 using System.Collections.Concurrent;
-using System.Net;
 
 namespace FastCSharp.RabbitPublisher.Common;
 

@@ -167,7 +167,7 @@ where K : class, IDisposable
 
             var removed = inUse.Remove(individual.Id, out _);
             // If the available count is greater than 80% of the minimum size, we can dispose this individual.
-            if (!removed || available.Count > (MinSize * 0.8)   && Count > MinSize)
+            if (!removed || individual.IsStalled || available.Count > (MinSize * 0.8)   && Count > MinSize)
             {
                 if (removed)
                 {
@@ -270,6 +270,13 @@ where K : class, IDisposable
 /// When extending this class you must never give control of the value to the caller.
 /// In this way we can ensure that after disposing the value the caller will not be able to use it.
 /// This is important because the value is returned to the pool and may be used by another caller.
+/// If the caller is able to use the value after disposing it, it may cause unexpected behavior.
+/// <br/>
+/// The recommended approach is to use the <c>using</c> statement to ensure that the individual is returned to the pool:
+/// <example><code>using var item = owner.Borrow(this);</code></example>
+/// If you don't use the <c>using</c> statement you must call <c>Dispose()</c> on the individual to return it to the pool.
+/// <br/>
+/// You should implement your own logic to determine if the individual is stalled and set this flag accordingly.
 /// </summary>
 /// <typeparam name="T"></typeparam> <summary>
 /// 
@@ -279,12 +286,17 @@ public class Individual<T> : IDisposable
 where T : class, IDisposable
 {
 
-    // TODO: add isStale. Stale object should be disposed and not returned to the pool.
-    // Extending classes should implement a method to check if the object is stale.
-    // The method should notify this class (maybe abstract to force implementantion).
-
     private WeakReference? owner;
     protected bool disposed;
+
+    /// <summary>
+    /// A Stalled individual is not working properly and will not be reclaimed to the pool.
+    /// It will be disposed instead.
+    /// You should implement your own logic to determine if the individual is stalled and set this flag accordingly. 
+    /// If you implement your own logic to determine if the individual is stalled, you should reduce this method visibility.
+    /// </summary>
+    /// <value></value>
+    public bool IsStalled { get; set;}
     internal object? Owner { 
         get => owner?.Target; 
         set => owner = new WeakReference(value);
@@ -314,6 +326,7 @@ where T : class, IDisposable
             value?.Dispose();
         }
     }
+    
     public void Dispose()
     {
         var isPoolExists = ReturnAddress?.Return(this);

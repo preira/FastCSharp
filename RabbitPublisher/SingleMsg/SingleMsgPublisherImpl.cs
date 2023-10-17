@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using FastCSharp.Publisher;
 using System.Text.Json;
 using FastCSharp.RabbitPublisher.Common;
+using RabbitMQ.Client.Exceptions;
 
 namespace FastCSharp.RabbitPublisher.Impl;
 
@@ -34,36 +35,34 @@ public abstract class AbstractRabbitSinglePublisher<T> : AbstractRabbitPublisher
         {
             message = await handler(message);
         } 
-        byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(message);
-        return await Publish(jsonUtf8Bytes);   
-    }
-
-    private async Task<bool> Publish(byte[] message)
-    {
-        Task<bool> task = new ( () => AsyncPublish(message) );
-        task.Start();
-
-        return await task;
-    }
-
-    protected bool AsyncPublish(byte[] body)
-    {
+        
         try
         {
             using var connection = pool.Connection(this);
             using var channel = connection.Channel(this, exchangeName, routingKey);
-            channel?.BasicPublish(this, 
-                basicProperties: null,
-                body: body);
+            try
+            {
+                byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(message);
+                channel?.BasicPublish(this,
+                    basicProperties: null,
+                    body: jsonUtf8Bytes);
 
-            channel?.WaitForConfirmsOrDie(this, confirmTimeout);
+                channel?.WaitForConfirmsOrDie(this, confirmTimeout);
+            }
+            catch (AlreadyClosedException ace)
+            {
+                logger.LogError("[ERROR PUBLISHING: CHANNEL IS CLOSED] {Exception}: {Message}", ace.GetType().FullName, ace.Message);
+                logger.LogDebug(ace.StackTrace);
+                channel.IsStalled = true;
+            }
             logger.LogDebug("{\"Exchange\"=\"{exchange}\", \"RoutingKey\"=\"{key}\"}", 
                             exchangeName, routingKey);
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError("[ERROR SENDING] {Message}", ex.Message);
+            logger.LogError("[ERROR PUBLISHING] {Exception}: {Message}", ex.GetType().FullName, ex.Message);
+            logger.LogDebug(ex.StackTrace);
         }
         return false;
     }

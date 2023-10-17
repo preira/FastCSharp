@@ -1,9 +1,8 @@
-using FastCSharp.RabbitCommon;
-using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Common;
+using RabbitMQ.Client.Exceptions;
 
 namespace FastCSharp.RabbitPublisher.Impl;
 
@@ -35,72 +34,42 @@ public abstract class AbstractRabbitBatchPublisher<T> : AbstractRabbitPublisher<
             using var connection = pool.Connection(this);
             using var channel = connection.Channel(this, exchangeName, routingKey);
 
-            foreach (var message in messages)
+            IList<Task<bool>> tasks = new List<Task<bool>>();
+            try
             {
-                var msg = message;
-                foreach (var handler in handlers)
+                foreach (var message in messages)
                 {
-                    msg = await handler(msg);
-                }
-                byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(msg);
-                Task<bool> task = new ( () => AsyncPublish(channel, jsonUtf8Bytes) );
-                task.Start();
+                    var msg = message;
+                    foreach (var handler in handlers)
+                    {
+                        msg = await handler(msg);
+                    }
+                    byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes<T?>(msg);
 
-                bool isOk = await task;
-                if (!isOk)
-                {
-                    // Something went wrong. Stop the batch.
-                    return false;
+                    ulong? sequenceNumber = channel.NextPublishSeqNo(this);
+                    channel.BasicPublish(this, 
+                        basicProperties: null,
+                        body: jsonUtf8Bytes);
+
+                    logger.LogDebug("{\"Exchange\"=\"{exchange}\", \"RoutingKey\"=\"{key}\", \"SequenceNumber\"=\"{seqNr}\"}",
+                                    exchangeName, routingKey, sequenceNumber);
+
                 }
+                channel.WaitForConfirmsOrDie(this, confirmTimeout);
+                return true;
             }
-            Task<bool> confirm = new ( () => Confirm(channel) );
-            confirm.Start();
-            return await confirm;
+            catch (AlreadyClosedException ace)
+            {
+                logger.LogError("[ERROR WAITING FOR CONFIRMATION: CHANNEL CLOSED] {Exception}: {Message}", ace.GetType().FullName, ace.Message);
+                logger.LogDebug(ace.StackTrace);
+                channel.IsStalled = true;
+            }
         }
         catch (Exception ex)
         {
-            logger.LogError("[ERROR SENDING] {Message}", ex.Message);
-            return false;
-        }
-    }
+            logger.LogError("[ERROR BATCH SENDING] {Exception}: {Message}", ex.GetType().FullName, ex.Message);
+            logger.LogDebug(ex.StackTrace);
 
-    // TODO: async confirm can be implemented using yeld return and a concurrent dictionary 
-    // * using also a TaskCompletionSource ??
-    protected bool Confirm(IRabbitChannel channel)
-    {
-        try
-        {
-            channel?.WaitForConfirmsOrDie(this, confirmTimeout);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError("[ERROR SENDING] {Message}", ex.Message);
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Async publish a message. In this version, the message is not confirmed.
-    /// </summary>
-    /// <param name="body">message content in bytes</param>
-    /// <returns>True if the message was published to the channel. False if an exception is raised.</returns>
-    protected bool AsyncPublish(IRabbitChannel channel, byte[] body)
-    {
-        try
-        {
-            ulong? sequenceNumber = channel?.NextPublishSeqNo(this);
-            channel?.BasicPublish(this, 
-                basicProperties: null,
-                body: body);
-
-            logger.LogDebug("{\"Exchange\"=\"{exchange}\", \"RoutingKey\"=\"{key}\", \"SequenceNumber\"=\"{seqNr}\"}",
-                            exchangeName, routingKey, sequenceNumber);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError("[ERROR SENDING] {Message}", ex.Message);
         }
         return false;
     }

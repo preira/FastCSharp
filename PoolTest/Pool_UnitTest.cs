@@ -45,6 +45,32 @@ public class Pool_UnitTest
         var item = new Owner().Borrow(pool);
         Assert.Throws<InvalidOperationException>(() => new Owner().Use(item));
     }
+
+    [Fact]
+    public void CallPoolAndDeclareStalledItem()
+    {
+
+        int count = 0;
+        var pool = new Pool<Item, Int>(
+            () => {
+                return new Item(
+                    new Int
+                    {
+                        Value = count++
+                    }
+                );
+            },
+            1, 10
+            );
+
+        var item = new Owner().Borrow(pool);
+        item.SetStalled();
+        item.Dispose();
+        var owner = new Owner();
+        item = owner.Borrow(pool);
+        Assert.Equal(count-1, item.Value(owner));
+    }
+
     [Fact]
     public void DisposeItemAndTryToUse()
     {
@@ -222,7 +248,7 @@ public class Pool_UnitTest
                     for(int j = 0; j < 100; j++)
                     {
                         owner.BorrowAndUseWithRandomSpinWait(pool);
-                        Thread.SpinWait(100*Random.Shared.Next(1, 10));
+                        Thread.SpinWait(10*Random.Shared.Next(1, 10));
                     }
                 }
                 catch(Exception ex)
@@ -376,6 +402,11 @@ class Item : Individual<Int>
     public int Value(object owner)
     {
         return GetValue(owner).Value;
+    }
+
+    public void SetStalled()
+    {
+        IsStalled = true;
     }
 
     public void DisposeValue()

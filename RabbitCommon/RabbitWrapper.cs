@@ -37,7 +37,7 @@ public interface IRabbitChannel : IDisposable
 
     public ulong? NextPublishSeqNo(object owner);
 
-
+    public bool IsStalled { get; set;  }
 }
 public class RabbitChannel : Individual<IModel>, IRabbitChannel
 {
