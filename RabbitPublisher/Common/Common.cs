@@ -1,8 +1,6 @@
 ﻿using FastCSharp.RabbitCommon;
 using RabbitMQ.Client;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using FastCSharp.SDK.Publisher;
 using Microsoft.Extensions.Options;
 using FastCSharp.Pool;
 using System.Collections.Concurrent;
@@ -13,7 +11,7 @@ public class ExchangeConfig
 {
     public string? Name { get; set; }
     public string? Type { get; set; }
-    public IDictionary<string, string?>? NamedRoutingKeys { get; set; }
+    public IDictionary<string, string?>? Queues { get; set; }
     public IList<string>? RoutingKeys { get; set; }
 }
 
@@ -27,33 +25,44 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 {
     private readonly IConnection connection;
     public bool IsOpen => connection.IsOpen;
-    private readonly ConcurrentDictionary<Tuple<string, string>, Pool<RabbitChannel, IModel>> channelsPool;
+    private readonly ConcurrentDictionary<Tuple<string, string?, string?>, Pool<RabbitChannel, IModel>> channelsPools;
     readonly private ILogger logger;
+    private readonly int minObjects;
+    private readonly int maxObjects;
+    private readonly int defaultTimeout;
+    private readonly bool gatherStats = false;
+    private readonly bool initialize = false;
 
+    // TODO: pass min, max, defaultTimeout and gather stats from configuration
     public RabbitConnection(IConnection connection, ILoggerFactory ILoggerFactory)
     : base(connection)
     {
         this.connection = connection;
         logger = ILoggerFactory.CreateLogger<RabbitConnection>();
-        channelsPool = new ();
+        channelsPools = new ();
+        minObjects = 1;
+        maxObjects = 10;
+        defaultTimeout = 1000;
+
     }
 
-    public IRabbitChannel Channel(object owner, string exchangeName, string routingKey)
+    public IRabbitChannel Channel(object owner, string exchangeName, string? queue, string? routingKey = null)
     {
         if(disposed) throw new ObjectDisposedException(GetType().FullName);
 
         Pool<RabbitChannel, IModel>? pool;
-        bool poolExists = channelsPool.TryGetValue(Tuple.Create(exchangeName, routingKey), out pool);
+        bool poolExists = channelsPools.TryGetValue(Tuple.Create(exchangeName, queue, routingKey), out pool);
 
         if(!poolExists)
         {
+            // TODO: pass min, max, initialize defaultTimeout and gather stats from configuration
             // if it doesn't exist create a new pool after verifying the exchange and routing key
             pool = new Pool<RabbitChannel, IModel>(
-                () => Create(exchangeName, routingKey),
-                1, 5, true
+                () => Create(exchangeName, queue, routingKey),
+                minObjects, maxObjects, initialize, gatherStats, defaultTimeout
             );
-            _ = Create(exchangeName, routingKey);
-            channelsPool.TryAdd(Tuple.Create(exchangeName, routingKey), pool);
+            _ = Create(exchangeName, queue, routingKey);
+            channelsPools.TryAdd(Tuple.Create(exchangeName, queue, routingKey), pool);
         }
 
         if(pool == null)
@@ -63,7 +72,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 
         return pool.Borrow(owner);
     }
-    private RabbitChannel Create(string exchangeName, string routingKey, bool confims = true)
+    private RabbitChannel Create(string exchangeName, string? queue, string? routingKey, bool confims = true)
     {
         if(disposed) throw new ObjectDisposedException(GetType().FullName);
         var channel = connection?.CreateModel();
@@ -75,13 +84,13 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
         {
             channel.ConfirmSelect();
         }
-        return new RabbitChannel(channel, exchangeName, routingKey);
+        return new RabbitChannel(channel, exchangeName, queue, routingKey);
     }
 
     public void Close() 
     {
-        channelsPool.ToList().ForEach(e => e.Value.Dispose());
-        channelsPool.Clear();
+        channelsPools.ToList().ForEach(e => e.Value.Dispose());
+        channelsPools.Clear();
         if(connection?.IsOpen ?? false)
         {
             connection.Close();
@@ -93,125 +102,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
         Close();
         connection?.Dispose();
         disposed = true;
-    } 
-}
-
-public abstract class AbstractRabbitExchangeFactory : IDisposable
-{
-    protected RabbitPublisherConfig config = new();
-    
-    protected readonly IRabbitConnectionPool connectionPool;
-    protected ILoggerFactory loggerFactory;
-    protected bool disposed = false;
-
-    protected AbstractRabbitExchangeFactory(
-        IOptions<RabbitPublisherConfig> options, 
-        ILoggerFactory loggerFactory)
-    {
-        this.loggerFactory = loggerFactory;
-        config = options.Value;
-        connectionPool = CreateRabbitConnectionPool(config, loggerFactory);
     }
-
-    protected AbstractRabbitExchangeFactory(
-        IConfiguration configuration, 
-        ILoggerFactory loggerFactory)
-    {
-        this.loggerFactory = loggerFactory;
-        var section = configuration.GetSection(nameof(RabbitPublisherConfig));
-        section.Bind(config);
-        
-        connectionPool = CreateRabbitConnectionPool(config, loggerFactory);
-    }
-
-    private static RabbitConnectionPool CreateRabbitConnectionPool(RabbitPublisherConfig config, ILoggerFactory loggerFactory)
-    {
-        
-        return new RabbitConnectionPool(config, loggerFactory);
-    }
-
-    protected ExchangeConfig GetExchangeConfig(string destination)
-    {
-        if(disposed) throw new ObjectDisposedException(GetType().FullName);
-
-        try
-        {
-            var exchange = config?.Exchanges?[destination];
-            if (exchange == null || exchange.Name == null)
-            {
-                throw new ArgumentException($"Could not find the exchange for '{destination}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
-            }
-            return exchange;
-        }
-        catch (ArgumentException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ArgumentException($"Could not find the exchange for '{destination}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.", ex);
-        }
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposed)
-        {
-            if (disposing)
-            {
-                // dispose managed state (managed objects)
-                connectionPool.Dispose();
-            }
-            disposed = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-}
-
-public abstract class AbstractRabbitPublisher<T> : AbstractPublisherHandler<T>
-{
-    protected readonly string exchangeName;
-    protected readonly string routingKey;
-    protected readonly TimeSpan confirmTimeout;
-    protected readonly IRabbitConnectionPool pool;
-    // protected RabbitChannel? channel;
-    readonly private ILogger logger;
-    protected bool IsInitialized { get; private set; }
-
-    protected AbstractRabbitPublisher(
-        IRabbitConnectionPool connectionPool,
-        ILoggerFactory ILoggerFactory,
-        string exchange,
-        TimeSpan timeout,
-        string key)
-    : base()
-    {
-        logger = ILoggerFactory.CreateLogger<AbstractRabbitPublisher<T>>();
-        confirmTimeout = timeout;
-        exchangeName = exchange;
-        routingKey = key;
-        IsInitialized = false;
-        pool = connectionPool;
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if(!disposed)
-        {
-            if(disposing)
-            {
-                // pool.Dispose();
-            }
-            disposed = true;
-        }
-    }
-
 }
 
 internal static class Util
@@ -231,6 +122,15 @@ public interface IRabbitConnectionPool : IDisposable
     IRabbitConnection Connection(object owner);
 
     IPoolStats? Stats { get; }
+}
+
+
+public class InjectableRabbitConnectionPool : RabbitConnectionPool
+{
+    public InjectableRabbitConnectionPool(IOptions<RabbitPublisherConfig> config, ILoggerFactory loggerFactory)
+        : base(config.Value, loggerFactory)
+    {
+    }
 }
 
 public class RabbitConnectionPool : IRabbitConnectionPool

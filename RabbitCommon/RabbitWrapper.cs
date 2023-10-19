@@ -23,7 +23,7 @@ public interface IRabbitChannel : IDisposable
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="exchangeName">The name of the targeted Exchange</param>
-    public void ExchangeDeclarePassive(object owner, string exchangeName);
+    // public void ExchangeDeclarePassive(object owner, string exchangeName);
     
     /// <summary>
     /// Declare a queue passively; that is, check if the named queue exists.
@@ -31,7 +31,7 @@ public interface IRabbitChannel : IDisposable
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="routingKey">The name of the targeted Queue</param>
-    public void QueueDeclarePassive(object owner, string routingKey);
+    // public void QueueDeclarePassive(object owner, string routingKey);
 
     public void ConfirmSelect(object owner);
 
@@ -42,16 +42,23 @@ public interface IRabbitChannel : IDisposable
 public class RabbitChannel : Individual<IModel>, IRabbitChannel
 {
     private readonly string exchangeName;
-    private readonly string routingKey;
+    private readonly string? routingKey;
+    private readonly string? queue;
 
-    public RabbitChannel(IModel channel, string exchangeName, string routingKey) : base(channel)
+    public RabbitChannel(
+        IModel channel, 
+        string exchangeName, 
+        string? queue = null, 
+        string? routingKey = null) 
+    : base(channel)
     {
         this.exchangeName = exchangeName;
         this.routingKey = routingKey;
+        this.queue = queue;
 
         channel.ExchangeDeclarePassive(exchangeName);
-
-        if (!string.IsNullOrEmpty(routingKey)) channel.QueueDeclarePassive(routingKey);
+        
+        if (!string.IsNullOrWhiteSpace(queue)) channel.QueueDeclarePassive(queue);
     }
 
     /// <summary>
@@ -64,12 +71,10 @@ public class RabbitChannel : Individual<IModel>, IRabbitChannel
     /// <param name="body"></param>
     public void BasicPublish(
         object owner,
-        // string exchange, 
-        // string routingKey, 
         IBasicProperties? basicProperties, 
         byte[] body) 
         => GetValue(owner).BasicPublish(
-            exchangeName, routingKey, basicProperties, body);
+            exchangeName, queue ?? routingKey ?? "", basicProperties, body);
 
     /// <summary>
     /// Waits until all messages published since the last call have been either ack'd or nack'd by the broker.
@@ -86,17 +91,17 @@ public class RabbitChannel : Individual<IModel>, IRabbitChannel
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="exchangeName">The name of the targeted Exchange</param>
-    public void ExchangeDeclarePassive(object owner, string exchangeName) 
-        => GetValue(owner)?.ExchangeDeclarePassive(exchangeName);
+    // public void ExchangeDeclarePassive(object owner, string exchangeName) 
+    //     => GetValue(owner)?.ExchangeDeclarePassive(exchangeName);
     
     /// <summary>
     /// Declare a queue passively; that is, check if the named queue exists.
     /// You need to pass the this reference as the owner of the channel.
     /// </summary>
     /// <param name="owner"></param>
-    /// <param name="routingKey">The name of the targeted Queue</param>
-    public void QueueDeclarePassive(object owner, string routingKey)
-        => GetValue(owner)?.QueueDeclarePassive(routingKey);
+    /// <param name="queue">The name of the targeted Queue</param>
+    // public void QueueDeclarePassive(object owner, string queue)
+    //     => GetValue(owner)?.QueueDeclarePassive(queue);
 
     public void ConfirmSelect(object owner) => GetValue(owner)?.ConfirmSelect();
 

@@ -94,7 +94,7 @@ Checkout **FastCSharp.TestRabbitImpl** project for a more complete configuration
             "DIRECT_EXCHANGE" : {
                 "Name" : "test.direct.exchange.v-1.0",
                 "Type" : "direct",
-                "NamedRoutingKeys" : {
+                "Queues" : {
                     "TEST_QUEUE" : "test.direct.q"
                 }
             },

@@ -7,7 +7,7 @@ public interface IRabbitConnection : IDisposable
 {
     bool IsOpen { get; }
     // bool DisposeChannel_Depracated(RabbitChannel channel);
-    IRabbitChannel Channel(object owner, string exchangeName, string routingKey);
+    IRabbitChannel Channel(object owner, string exchangeName, string? queue, string? routingKey);
     // bool ResetConnection(bool dispose = true);
     void Close();
 }

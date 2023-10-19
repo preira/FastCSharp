@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using FastCSharp.Publisher;
+﻿using FastCSharp.Publisher;
 
 namespace FastCSharp.SDK.Publisher;
 /// <summary>
@@ -8,6 +7,7 @@ namespace FastCSharp.SDK.Publisher;
 /// implementation AsyncPublish.
 /// </summary>
 /// <typeparam name="T">The type of object to be published</typeparam>
+[Obsolete("Use the new implementation of RabbitPublisherFactory")]    
 public abstract class AbstractPublisherHandler<T> : IHandler<T>
 {
     protected bool disposed = false;
@@ -16,31 +16,6 @@ public abstract class AbstractPublisherHandler<T> : IHandler<T>
     {
         handlers = new List<Handler<T>>();
     }
-
-    // protected bool IsHealthyOrTryRecovery()
-    // {
-    //     if(disposed) throw new ObjectDisposedException(nameof(AbstractPublisherHandler<T>));
-    //     if(IsHealthy())
-    //     {
-    //         return true;
-    //     }
-    //     // try to recover
-    //     return ResetChannel();
-    // }
-
-    /// <summary>
-    /// Should contain logic to make sure that the publication will succeed, like checking connection
-    /// or queues.
-    /// </summary>
-    /// <returns>a Boolean indicating if the service is healthy</returns>
-    // protected abstract bool IsHealthy();
-
-    /// <summary>
-    /// Should contain logic to recover a faulty connection status given by IsHealthy().
-    /// </summary>
-    /// <param name="dispose"></param>
-    /// <returns></returns>
-    // protected abstract bool ResetChannel(bool dispose = true);
 
     /// <summary>
     /// Should dispose of any managed or unmanaged resources.

@@ -3,6 +3,7 @@ using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.Options;
 using FastCSharp.RabbitPublisher.Injection;
 using FastCSharp.Publisher;
+using FastCSharp.RabbitPublisher.Impl;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -11,34 +12,43 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class FrameworkServiceExtension
 {
-    public static void AddRabbitPublisher(this IServiceCollection services, IConfiguration configuration)
+    public static void AddRabbitPublisher<TMessage>(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<IOptions<RabbitPublisherConfig>>(sp => {
-            var section = configuration.GetSection(RabbitOptions.SectionName);
-            RabbitOptions options = new();
-            section.Bind(options.Value);
-            return options;
-        });
+        // TO THINK: for having a configuration per message type consider:
+        // services.AddSingleton<IOptions<RabbitPublisherConfig<TMessage>>>
 
-        AddRabbitPublisher(services);
+        // we must make sure that there in only one configuration per application
+        if (services.All(s => s.ServiceType != typeof(IOptions<RabbitPublisherConfig>)))
+        {
+            services.AddSingleton<IOptions<RabbitPublisherConfig>>(sp => {
+                var section = configuration.GetSection(RabbitOptions.SectionName);
+                RabbitOptions options = new();
+                section.Bind(options.Value);
+                return options;
+            });
+            AddConnecionPool(services);
+        }    
+        AddRabbitPublisher<TMessage>(services);
     }
 
-    public static void AddRabbitPublisher(this IServiceCollection services, string file)
+    public static void AddRabbitPublisher<TMessage>(this IServiceCollection services, string file)
     {
         var configuration = new ConfigurationBuilder()
             .AddJsonFile(file, true, true)
             .Build();
 
-        services.AddRabbitPublisher(configuration);
+        services.AddRabbitPublisher<TMessage>(configuration);
     }
-    private static void AddRabbitPublisher(IServiceCollection services)
-    {
-        services.AddSingleton<IPublisherFactory<ITopicPublisher>, TopicPublisherFactory>();
-        services.AddSingleton<IPublisherFactory<IFanoutPublisher>, FanoutPublisherFactory>();
-        services.AddSingleton<IPublisherFactory<IDirectPublisher>, DirectPublisherFactory>();
-        services.AddSingleton<IBatchPublisherFactory<ITopicPublisher>, TopicBatchPublisherFactory>();
-        services.AddSingleton<IBatchPublisherFactory<IFanoutPublisher>, FanoutBatchPublisherFactory>();
-        services.AddSingleton<IBatchPublisherFactory<IDirectPublisher>, DirectBatchPublisherFactory>();
 
+    private static void AddConnecionPool(IServiceCollection services)
+    {
+        // we must make that there is only one connection pool per application
+        if (services.All(s => s.ServiceType != typeof(IRabbitConnectionPool)))
+            services.AddSingleton<IRabbitConnectionPool, InjectableRabbitConnectionPool>();
+    }
+
+    private static void AddRabbitPublisher<TMessage>(IServiceCollection services)
+    {
+        services.AddScoped<IRabbitPublisher<TMessage>, RabbitPublisher<TMessage>>();
     }
 }
