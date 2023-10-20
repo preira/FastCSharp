@@ -5,7 +5,7 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.RabbitPublisher</PackageId>
-    <version>0.6.0-alpha</version>
+    <version>1.0.0</version>
 
     <Author>João Pereira</Author>
 

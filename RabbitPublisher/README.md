@@ -10,105 +10,169 @@ All you need to do is create a new publisher to an existing exchange and publish
 The example below shows how to publish a message to a direct exchange. Swagger is also configured to allow testing.  
 The code needed to run is manly in the Runner class.  
 Checkout **FastCSharp.TestRabbitImpl** project for a more complete example.  
-### Program.cs
+
+### Dependency injection Example (Check out BasicPublisher project at FastCSharp.TestRabbitImpl for full project)  
+Create a new minimal API project.
+```Console
+dotnet new web -o BasicPublisher
+cd .\BasicPublisher\
+dotnet add package FastCSharp.RabbitPublisher
+```
+Add the following configuration to appsettings.json.  
+
+```json
+  "RabbitPublisherConfig" : {
+    "Timeout" : "00:00:10",
+    "Exchanges" : 
+    {
+        "DIRECT_EXCHANGE" : {
+            "Name" : "amq.direct",
+            "Type" : "direct"
+        }
+    }
+  }
+```
+The file should look something like this.  
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "RabbitPublisherConfig" : {
+    "Timeout" : "00:00:10",
+    "Exchanges" : 
+    {
+        "DIRECT_EXCHANGE" : {
+            "Name" : "amq.direct",
+            "Type" : "direct"
+        }
+    }
+  }
+}
+```
+
+Open Program.cs and replace the code with the one below.  
+
 ```csharp
 using FastCSharp.Publisher;
-using FastCSharp.RabbitPublisher;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddRabbitPublisher<string>(builder.Configuration);
 
 var app = builder.Build();
 
-// http://localhost:5106/swagger/v1/swagger.json
-app.UseSwagger();
-// http://localhost:5106/swagger
-app.UseSwaggerUI();
 
-var runner = new Runner<Message>();
-
-// http://localhost:5106/SendDirectMessage?message=Hello%20World
-app.MapGet("/SendDirectMessage", async Task<IResult> (string? message) => {
-        var msg = new Message();
-        msg.Text = message;
-        await runner.Run(msg);
-        return TypedResults.Accepted("");
-    })
-    .WithOpenApi();
+app.MapGet("/", async (string message, IRabbitPublisher<string> publisher) => {
+    return await publisher.ForExchange("DIRECT_EXCHANGE").Publish(message);
+});
 
 app.Run();
-
-public class Runner<T>
-{
-    IPublisher<T> publisher;
-    public Runner()
-    {
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddJsonFile("rabbitsettings.json", true, true)
-            .Build();
-        ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-        IPublisherFactory publisherFactory = new RabbitDirectPublisherFactory(configuration, loggerFactory);
-        publisher = publisherFactory.NewPublisher<T>("TEST_EXCHANGE", "TEST_QUEUE");
-        Console.WriteLine(">> Runner Initialized!");
-    }
-
-    public async Task Run(T message)
-    {
-        bool isSent = await publisher.Publish(message);
-        if (!isSent)
-        {
-            throw new Exception(">> Message not sent!");
-        }
-        Console.WriteLine(">> Message Sent!");
-    }
-}
-
-public class Message
-{
-    public Message()
-    {
-    }
-
-    public string? Text { get; set; }
-}
 ```
 
-### rabbitsettings.json config file sample
-Checkout **FastCSharp.TestRabbitImpl** project for a more complete configuration files examples.  
+Create a queue (e.g. named "test") in RabbitMQ and bin it to the exchange ```amq.direct```.  
+
+Run the code.  
+    
+```Console
+dotnet run
+```
+
+Execute the endpoint with a message visiting the created endpoint (replace the 5033 port for the one configured in your API).  
+http://localhost:5033/?message=Hello%20World
+
+That's it. You should see the message in the queue.
+
+### Example using new (Check out BasicPublisher project at FastCSharp.TestRabbitImpl for full project)  
+We will use the same configuration as the previous example.  
+
+Create a new minimal API project.  
+```Console
+dotnet new web -o BasicPublisher
+cd .\BasicPublisher\
+dotnet add package FastCSharp.RabbitPublisher
+```
+Add the following configuration to appsettings.json.  
+
+```json
+  "RabbitPublisherConfig" : {
+    "Timeout" : "00:00:10",
+    "Exchanges" : 
+    {
+        "DIRECT_EXCHANGE" : {
+            "Name" : "amq.direct",
+            "Type" : "direct"
+        }
+    }
+  }
+```
+The file should look something like this.  
+
 ```json
 {
-    "RabbitPublisherConfig" : {
-        "ClientName" : "FastCSharp Publisher",
-        "Hosts" : [
-            {"HostName":"localhost", "Port":5671},
-            {"HostName":"localhost", "Port":5672}
-        ],
-        "UserName"  : "guest",
-        "Password"  : "guest",
-        "Timeout" : "00:00:10",
-        "Exchanges" : 
-        {
-            "DIRECT_EXCHANGE" : {
-                "Name" : "test.direct.exchange.v-1.0",
-                "Type" : "direct",
-                "Queues" : {
-                    "TEST_QUEUE" : "test.direct.q"
-                }
-            },
-            "TOPIC_EXCHANGE" : {
-                "Name" : "test.topic.exchange.v-1.0",
-                "Type" : "topic",
-                "RoutingKeys" : ["#"]
-            },
-            "FANOUT_EXCHANGE" : {
-                "Name" : "test.fanout.exchange.v-1.0",
-                "Type" : "fanout"
-            }
-        }        
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
     }
+  },
+  "AllowedHosts": "*",
+  "RabbitPublisherConfig" : {
+    "Timeout" : "00:00:10",
+    "Exchanges" : 
+    {
+        "DIRECT_EXCHANGE" : {
+            "Name" : "amq.direct",
+            "Type" : "direct"
+        }
+    }
+  }
 }
 ```
+
+Open Program.cs and replace the code with the one below.  
+
+```csharp
+using FastCSharp.Publisher;
+using FastCSharp.RabbitPublisher.Common;
+using FastCSharp.RabbitPublisher.Impl;
+using FastCSharp.RabbitPublisher.Injection;
+
+var builder = WebApplication.CreateBuilder(args);
+
+RabbitOptions options = new();
+builder.Configuration.GetSection(RabbitOptions.SectionName).Bind(options.Value);
+
+ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+
+var connectionPool = new RabbitConnectionPool(options.Value, loggerFactory);
+
+
+var app = builder.Build();
+
+app.MapGet("/", async (string message) => {
+    IRabbitPublisher<string> publisher = new RabbitPublisher<string>(connectionPool, loggerFactory, options);
+    return await publisher.ForExchange("DIRECT_EXCHANGE").Publish(message);
+});
+
+app.Run();
+```
+
+Create a queue (e.g. named "test") in RabbitMQ and bin it to the exchange ```amq.direct```.  
+
+Run the code.  
+    
+```Console
+dotnet run
+```
+
+Execute the endpoint with a message visiting the created endpoint (replace the 5033 port for the one configured in your API).  
+http://localhost:5033/?message=Hello%20World
+
+That's it. You should see the message in the queue.
 

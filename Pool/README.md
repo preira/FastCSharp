@@ -1,4 +1,2 @@
-# CircuitBreaker
-Circuit breaker implements a circuit breaker that releafs the de developer from implementing complex logic.
-
-It is a flexible implementation using BreakerStrategies and BackoffStrategies to provide multiple choices when implementing a breaker for your circuit.
+# Pool
+Object Pool composed by individuals that can be used and reused. When disposed, individuals are returned to the pool making this an easy to use, Thread safe object pool.

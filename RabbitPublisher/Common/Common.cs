@@ -43,7 +43,6 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
         minObjects = 1;
         maxObjects = 10;
         defaultTimeout = 1000;
-
     }
 
     public IRabbitChannel Channel(object owner, string exchangeName, string? queue, string? routingKey = null)
@@ -72,6 +71,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 
         return pool.Borrow(owner);
     }
+    
     private RabbitChannel Create(string exchangeName, string? queue, string? routingKey, bool confims = true)
     {
         if(disposed) throw new ObjectDisposedException(GetType().FullName);
@@ -135,6 +135,8 @@ public class InjectableRabbitConnectionPool : RabbitConnectionPool
 
 public class RabbitConnectionPool : IRabbitConnectionPool
 {
+    private readonly string nameToken;
+    static private int instanceCount = 0;
     readonly Pool<RabbitConnection, IConnection> pool;
     readonly ILogger logger;
 
@@ -146,10 +148,8 @@ public class RabbitConnectionPool : IRabbitConnectionPool
     {
         logger = loggerFactory.CreateLogger<RabbitConnectionPool>();
 
-        var factory = new ConnectionFactory
-        {
-            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitPublisher"
-        };
+        nameToken = config.ClientName ?? "FastCSharp.RabbitPublisher";
+        var factory = new ConnectionFactory();
 
         if(config.HostName != null)     factory.HostName = config.HostName;
         if(config.Port != null)         factory.Port = (int) config.Port;
@@ -160,7 +160,6 @@ public class RabbitConnectionPool : IRabbitConnectionPool
 
         var poolConfig = PoolConfigOrDefaults(config.Pool);
 
-        // TODO: pass initizalization and timeout from configuration
         pool = new Pool<RabbitConnection, IConnection>(
             () => CreateConnection(factory, config.Hosts, loggerFactory),
             poolConfig.MinSize, 
@@ -170,6 +169,8 @@ public class RabbitConnectionPool : IRabbitConnectionPool
             poolConfig.DefaultWaitTimeout.TotalMilliseconds
         );
     }
+
+    private string getName() => $"{nameToken}-{Interlocked.Increment(ref instanceCount).ToString("D6")}";
 
     static private PoolConfig PoolConfigOrDefaults(PoolConfig? fromConfig)
     {
@@ -184,14 +185,13 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         return poolConf;
     }
 
-    static private int instanceCount = 0;
-
     private RabbitConnection CreateConnection(ConnectionFactory factory, IList<AmqpTcpEndpoint>? endpoints, ILoggerFactory loggerFactory)
     {
-        logger.LogInformation($"Created RabbitConnection #{instanceCount++}");
         IConnection? connection;
         try
         {
+            factory.ClientProvidedName = getName();
+            logger.LogInformation($"Created RabbitConnection #{instanceCount}");
             if(endpoints == null)
             {
                 connection = factory.CreateConnection();

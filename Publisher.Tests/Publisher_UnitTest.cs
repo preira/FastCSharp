@@ -1,5 +1,5 @@
 using Xunit;
-using FastCSharp.SDK.Publisher;
+using FastCSharp.Publisher;
 
 namespace Publisher.Tests;
 
@@ -17,31 +17,49 @@ class RemoteControl<T>
         return true;
     }
 }
-class TestPublisher : AbstractPublisherHandler<string>
+class TestPublisher : IDisposable
 {
-    RemoteControl<string> rc;
+    List<Handler<string>>? Handlers { get; set; }
+    readonly RemoteControl<string> rc;
     public TestPublisher(RemoteControl<string> remote) : base()
     {
         rc = remote;
     }
 
-    protected override void Dispose(bool disposing)
+    protected void Dispose(bool disposing)
     {
         rc.HasBeenDisposed = true;
     }
 
     public async Task<bool> Publish(string? message)
     {
-        foreach (var handler in handlers)
+        if(Handlers != null)
         {
-            message = await handler(message);
+            foreach (var handler in Handlers)
+            {
+                message = await handler(message);
+            }
         }
         return rc.PublishFunction(message);
+    }
+
+    public void AddMsgHandler(Handler<string> handler)
+    {
+        if(Handlers == null)
+        {
+            Handlers = new List<Handler<string>>();
+        }
+        Handlers.Add(handler);
     }
 
     public void NOp()
     {
         rc.IsNopCalled = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
     }
 }
 
