@@ -8,6 +8,12 @@ using Microsoft.Extensions.Options;
 
 namespace FastCSharp.RabbitPublisher.Impl;
 
+/// <summary>
+/// RabbitPublisher represents a publisher that can publish messages to a RabbitMQ broker.
+/// The RabbitPublisher is not thread safe, so it is recommended to create a new instance
+/// for each thread.
+/// </summary>
+/// <typeparam name="T">The Type of the message object to send.</typeparam>
 public class RabbitPublisher<T> : IRabbitPublisher<T>
 {
     private string? routingKey;
@@ -89,7 +95,6 @@ public class RabbitPublisher<T> : IRabbitPublisher<T>
     /// <returns>A Boolean future.</returns>
     public async Task<bool> Publish(T? message)
     {
-
         return await Publish(
             async () => {
                 if(handlers != null)

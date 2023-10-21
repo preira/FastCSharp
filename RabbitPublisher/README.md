@@ -145,18 +145,18 @@ using FastCSharp.RabbitPublisher.Injection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-RabbitOptions options = new();
-builder.Configuration.GetSection(RabbitOptions.SectionName).Bind(options.Value);
+RabbitPublisherConfig config = new();
+builder.Configuration.GetSection(RabbitOptions.SectionName).Bind(config);
 
 ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
 
-var connectionPool = new RabbitConnectionPool(options.Value, loggerFactory);
+var connectionPool = new RabbitConnectionPool(config, loggerFactory);
 
 
 var app = builder.Build();
 
 app.MapGet("/", async (string message) => {
-    IRabbitPublisher<string> publisher = new RabbitPublisher<string>(connectionPool, loggerFactory, options);
+    IRabbitPublisher<string> publisher = new RabbitPublisher<string>(connectionPool, loggerFactory, config);
     return await publisher.ForExchange("DIRECT_EXCHANGE").Publish(message);
 });
 
