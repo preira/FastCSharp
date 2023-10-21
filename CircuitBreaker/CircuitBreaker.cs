@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 namespace FastCSharp.CircuitBreaker;
 
 [Serializable]
-public class CircuitException : System.Exception
+public class CircuitException : Exception
 {
     public CircuitException() : base()
     {
@@ -18,7 +18,7 @@ public class CircuitException : System.Exception
     {
         // intentionally empty
     }
-    public CircuitException(string? message, System.Exception? inner) : base(message, inner)
+    public CircuitException(string? message, Exception? inner) : base(message, inner)
     {
         // intentionally empty
     }
@@ -26,7 +26,7 @@ public class CircuitException : System.Exception
 
 
 [Serializable]
-public class OpenCircuitException: System.Exception
+public class OpenCircuitException: Exception
 {
     public OpenCircuitException() : base()
     {
@@ -41,7 +41,7 @@ public class OpenCircuitException: System.Exception
     {
         // intentionally empty
     }
-    public OpenCircuitException(string? message, System.Exception? inner) : base(message, inner)
+    public OpenCircuitException(string? message, Exception? inner) : base(message, inner)
     {
         // intentionally empty
     }
@@ -111,6 +111,8 @@ public abstract class AbstractBreaker : Breaker
     /// of the callback call or a OpenCircuitException if the circuit is open.</returns>
     public abstract TResult Wrap<TResult>(Func<TResult> callback);
 
+    public abstract Task<TResult> WrapAsync<TResult>(Func<Task<TResult>> callback);
+
     /// <summary>
     /// Simplified version of Wrap<TResult> for methods returning void.
     /// </summary>
@@ -151,7 +153,35 @@ public class CircuitBreaker : AbstractBreaker
                 Strategy.RegisterSucess();
                 return result;
             }
-            catch (System.Exception e)
+            catch (Exception e)
+            {
+                if (e is CircuitException)
+                {
+                    Strategy.RegisterFailure();
+                }
+                else
+                {
+                    Strategy.RegisterUncontrolledFailure();
+                }
+                throw;
+            }
+        }
+    }
+    public override async Task<TResult> WrapAsync<TResult>(Func<Task<TResult>> callback)
+    {
+        if (IsOpen)
+        {
+            throw new OpenCircuitException();
+        }
+        else /* either closing or closed */
+        {
+            try
+            {
+                var result = await callback();
+                Strategy.RegisterSucess();
+                return result;
+            }
+            catch (Exception e)
             {
                 if (e is CircuitException)
                 {
@@ -198,7 +228,42 @@ public class BlockingCircuitBreaker : AbstractBreaker
                 Strategy.RegisterSucess();
                 return result;
             }
-            catch (System.Exception e)
+            catch (Exception e)
+            {
+                if (e is CircuitException)
+                {
+                    Strategy.RegisterFailure();
+                }
+                else
+                {
+                    Strategy.RegisterUncontrolledFailure();
+                }
+                throw;
+            }
+        }
+    }
+
+    public override async Task<TResult> WrapAsync<TResult>(Func<Task<TResult>> callback)
+    {
+        if (IsOpen)
+        {
+            // Since Sleep truncates the interval value at milliseconds, we need to round up
+            // to make sure the elapse time is greater than the remaing interval.
+            // Otherwise it will interfere with tests.
+            var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
+            var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
+            Thread.Sleep(millisecondsTimeout);
+            throw new OpenCircuitException();
+        }
+        else /* either closing or closed */
+        {
+            try
+            {
+                var result = await callback();
+                Strategy.RegisterSucess();
+                return result;
+            }
+            catch (Exception e)
             {
                 if (e is CircuitException)
                 {
@@ -214,7 +279,8 @@ public class BlockingCircuitBreaker : AbstractBreaker
     }
 }
 
-// create a circuit breaker that is Event driven, based on the AbstractBreaker class. It should be able to be used as a decorator for any method that returns a value or void.
+// create a circuit breaker that is Event driven, based on the AbstractBreaker class. 
+// It should be able to be used as a decorator for any method that returns a value or void.
 public class EventDrivenCircuitBreaker : CircuitBreaker
 {
     private TimeSpan _duration;
@@ -238,7 +304,6 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
     {
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Sonar Code Smell", "CS4014:Because this call is not awaited, execution of the current method continues before the call is completed.", Justification = "Recover has a different cycle than the caller.")]
     public override bool Open(TimeSpan duration)
     {
         _duration = duration;

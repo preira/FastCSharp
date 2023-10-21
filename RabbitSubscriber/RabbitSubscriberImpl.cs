@@ -163,7 +163,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     {
         return async (model, ea) =>
         {
-            logger.LogInformation(" [Receiving]");
+            logger.LogTrace(" [Receiving]");
             try
             {
                 var body = ea.Body.ToArray();
@@ -194,7 +194,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 channel.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: true);
                 throw;
             }
-            logger.LogInformation(" [waiting]");
+            logger.LogTrace(" [waiting]");
         };
     }
 

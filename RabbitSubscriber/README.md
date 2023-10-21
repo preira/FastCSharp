@@ -5,43 +5,27 @@ It is a wrapper around the [RabbitMQ.Client](https://www.nuget.org/packages/Rabb
 ## Usage  
 All you need to do is create a new subscriber to an existing queue and register a callback.  
 
-### Program.cs
-```csharp
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using FastCSharp.RabbitSubscriber;
+### Minimal Example (Check out BasicSubscriber project at FastCSharp.TestRabbitImpl for more complex project examples)
 
-IConfiguration configuration = new ConfigurationBuilder()
-    .AddJsonFile("rabbitsettings.json", true, true)
-    .Build();
-ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-
-
-var exchange = new RabbitSubscriberFactory(configuration, loggerFactory);
-using var subscriber = exchange.NewSubscriber<Message>("TASK_QUEUE");
-subscriber.Register(async (message) =>
-{
-    Console.WriteLine($"Received {message?.Text}");
-    return await Task.Run<bool>(()=>true);
-});
-
-Console.WriteLine(" Press [enter] to exit.");
-Console.ReadLine();
-
-
-public class Message
-{
-    public Message()
-    {
-    }
-
-    public string? Text { get; set; }
-}
+Create a new minimal console project.
+```Console
+dotnet new console -o BasicSubscriber
+cd .\BasicSubscriber\
+dotnet add package FastCSharp.RabbitSubscriber
+dotnet add package Microsoft.Extensions.Configuration.Json
+dotnet add package Microsoft.Extensions.Logging.Console
 ```
 
+Open the `BasicSubscriber.csproj` file and add the following configuration.  
+```xml
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+```
 
-### rabbitsettings.json config file sample
-
+Create a json file named `appsettings.json` and add the following configuration.  
 ```json
 {
     "RabbitSubscriberConfig" : 
@@ -59,37 +43,90 @@ public class Message
                 "Name":"test.direct.q",
                 "PrefecthCount":1,
                 "PrefecthSize":0
-            },
-            "TOPIC_QUEUE.1"    : 
-            {
-                "Name":"test.topic.q.1",
-                "PrefecthCount":1,
-                "PrefecthSize":0
-            },
-            "TOPIC_QUEUE.2"    : 
-            {
-                "Name":"test.topic.q.1",
-                "PrefecthCount":1,
-                "PrefecthSize":0
-            },
-            "FANOUT_QUEUE.1"    : 
-            {
-                "Name":"test.fanout.q.1",
-                "PrefecthCount":1,
-                "PrefecthSize":0
-            },
-            "FANOUT_QUEUE.2"    : 
-            {
-                "Name":"test.fanout.q.2",
-                "PrefecthCount":1,
-                "PrefecthSize":0
             }
         }
     }
 }
 ```
 
+Go to the Rabbit Management UI and create a new queue named `test.direct.q`. You may bind it to the `amq.direct` exchange if you want to publish messages with a Publisher.
+
+Open the `Program.cs` file and replace the code with the one below.  
+```csharp   
+using FastCSharp.RabbitSubscriber;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger("Program");
+IConfiguration defaultConfiguration = new ConfigurationBuilder()
+    .AddJsonFile("rabbitsettings.CLUSTER.json", true, true)
+    .Build();
+
+var subscriberFactory = new RabbitSubscriberFactory(defaultConfiguration, loggerFactory);
+using var directSubscriber = subscriberFactory.NewSubscriber<string>("DIRECT_QUEUE");
+directSubscriber.Register(async (message) =>
+{
+    logger.LogInformation($"Received {message}");
+    return await Task.FromResult(true);
+});
+
+logger.LogInformation(" Press [enter] to exit.");
+Console.ReadLine();
+```
+All set. Run the project:  
+```Console
+dotnet run
+```
+
+Now you can go to the Rabbit Management UI and publish a message to the `test.direct.q` queue. Remember to enclose the message in double quotes (e.g. `"Hello World"`).
+
+
 ## Adding a Circuit Breaker
+
+Add the following packages to the project:
+```Console
+dotnet add package FastCSharp.CircuitBreaker
+```
+
+Open the `Program.cs` file and replace the code with the one below.  
+```csharp
+using FastCSharp.CircuitBreaker;
+using FastCSharp.RabbitSubscriber;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger("Program");
+IConfiguration defaultConfiguration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", true, true)
+    .Build();
+
+var circuit = new EventDrivenCircuitBreaker(
+    new ConsecutiveFailuresBreakerStrategy(
+        5, 
+        new FixedBackoff(new TimeSpan(0, 0, 0, 0, 5))));
+
+var subscriberFactory = new RabbitSubscriberFactory(defaultConfiguration, loggerFactory);
+using var directSubscriber = subscriberFactory.NewSubscriber<string>("DIRECT_QUEUE");
+
+circuit.OnOpen += (sender) => directSubscriber.UnSubscribe();
+circuit.OnReset += (sender) => directSubscriber.Reset();
+
+directSubscriber.Register(async (message) =>
+{
+    return await circuit.Wrap(async () =>
+    {
+        logger.LogInformation($"Received {message}");
+        return await Task.FromResult(true);
+    });
+});
+
+logger.LogInformation(" Press [enter] to exit.");
+Console.ReadLine();
+```
+
+### Breaking down subscriber flux control 
 
 The subscriber can be stopped by calling:
 ```csharp 
