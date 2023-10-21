@@ -5,7 +5,7 @@ namespace Circuit_Breaker.Tests;
 
 public static class Util
 {
-    static TimeSpan increment = new TimeSpan(0, 0, 0, 0, 0, 100);
+    static TimeSpan increment = new TimeSpan(1000); // 1000 x 100 nano = 100 micro 
     public readonly static TimeSpan _millisec_backoff = new TimeSpan(0, 0, 0, 0, 5);
     public static bool ExecuteThrowNotImplementedException(AbstractBreaker circuit, bool Success)
     {
@@ -200,7 +200,7 @@ public class CircuitBreaker_UnitTest
 public class BlockingCircuitBreaker_Tests
 {
 
-    static TimeSpan increment = new TimeSpan(0, 0, 0, 0, 0, 100);
+    static TimeSpan increment = new TimeSpan(1000); // 1000 x 100 nano = 100 micro
     [Fact]
     public void CreateNonNullCircuit()
     {
