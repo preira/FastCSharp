@@ -79,18 +79,62 @@ where K : class, IDisposable
         available = new ();
         inUse = new ();
 
-
         if (initialize)
         {
-            for (int i = 0; i < minSize; i++)
-            {
-                available.Enqueue(CreateIndividual());
-            }
-            Interlocked.Exchange(ref count, minSize);
+            _ = DefferedInitialization(minSize);
         }
         // TODO: Revise to comply with stats history also TBD
         if (registerStats) stats = new PoolStats(TimeSpan.FromHours(1), Count);
     }
+
+    private async Task DefferedInitialization(int minSize)
+    {
+        for (int i = 0; i < minSize; i++)
+        {
+            if (!AddIndividual()) break;
+            await Task.Yield();
+        }
+    }
+
+    private bool AddIndividual()
+    {
+        try
+        {
+            // Individuals can be created in parallel and put into used only after.
+            // This is to avoid the need to lock the pool when creating new individuals.
+            // If minimal size of the pool has been reached we can dispose the individual.
+            // It is inneficient but it only happens at pool start up and it allows the pool to be used earlier.
+            var individual = CreateIndividual();
+
+            Monitor.Enter(_lock);
+
+            if (Count >= MinSize)
+            {
+                individual.DisposeValue(true);
+                return false;
+            }
+
+            available.Enqueue(individual);
+            Interlocked.Increment(ref count);
+
+            stats?.UpdateSize(Count, DateTime.Now.Truncate(stats.Period));
+
+            Monitor.Pulse(_lock);
+            return true;
+        }
+        catch (Exception ex)
+        {
+// TODO : need to log this            
+            // logger.LogCritical(ex, "Error creating individual.");
+            Console.WriteLine(ex);
+            return false;
+        }
+        finally
+        {
+            Monitor.Exit(_lock);
+        }
+    }
+
 
     public T Borrow(object caller, double timeout = -1)
     {
@@ -386,6 +430,7 @@ public class PoolStats : IPoolStats
     ConcurrentDictionary<DateTime, int> poolTimeoutCount;
     int lastSize;
     TimeSpan period;
+    public TimeSpan Period { get => period; }
     public DateTime PeriodStart { get; private set;}
 
     public PoolStats(TimeSpan period, int size = 0)
@@ -409,7 +454,7 @@ public class PoolStats : IPoolStats
         UpdateSize(size, PeriodStart);
     }
 
-    private bool UpdateSize(int size, DateTime key)
+    public bool UpdateSize(int size, DateTime key)
     {
         if (lastSize == size) return false;
  

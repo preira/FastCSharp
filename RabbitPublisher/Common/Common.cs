@@ -217,14 +217,23 @@ public class RabbitConnectionPool : IRabbitConnectionPool
                     error += $"\tendpoint {++i}: {e}\n"
                 );
             }
-            var pw = factory?.Password;
-            string? staredPw = null;
+            var usr = factory?.UserName;
+            string? staredUsr = usr != null ? $"{usr[..1]}******{usr[^2..]}" : null;
 
-            if (pw!=null)
+            var pw = factory?.Password;
+            string? staredPw = pw != null ? $"{pw[..1]}******{pw[^2..]}" : null;
+
+            error += $"\n> This may be due to incorrect authentication, or the server may be unreacheable.";
+            error += $"\n> Please check your user ('{staredUsr}') and password ('{staredPw}').";
+
+            if (endpoints != null)
             {
-                staredPw = $"{pw[..1]}******{pw[^2..]}";
+                error += $"\n> Also check your hostnames:";
+                endpoints?.ToList().ForEach(e =>
+                    error += $"\n\t'{e?.HostName}':'{e?.Port}'"
+                );
             }
-            error += $"\nThis may be due to incorrect authentication. Please check your user ('{factory?.UserName}') and password ('{staredPw}').";
+            error += "\n";
             logger.LogError("[CONFIG ERROR] {message}\n{error}\n", ex.Message, error);
 
             throw new Exception(error, ex);

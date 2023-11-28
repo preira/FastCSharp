@@ -479,3 +479,14 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# backup files from editors and tools
+*~
+*.bak
+*.backup
+*.bck
+*.swp
+*.tmp
+*.temp
+*.tmproj
+*.log
