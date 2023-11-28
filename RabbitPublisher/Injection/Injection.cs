@@ -44,9 +44,13 @@ public static class FrameworkServiceExtension
     {
         // we must make that there is only one connection pool per application
         if (services.All(s => s.ServiceType != typeof(IRabbitConnectionPool)))
+        {
             services.AddSingleton<IRabbitConnectionPool, InjectableRabbitConnectionPool>();
-    }
 
+            // Force initialization of the connection pool
+            var pool = services.BuildServiceProvider().GetRequiredService<IRabbitConnectionPool>();
+        }
+    }
     private static void AddRabbitPublisher<TMessage>(IServiceCollection services)
     {
         services.AddScoped<IRabbitPublisher<TMessage>, RabbitPublisher<TMessage>>();

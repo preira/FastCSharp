@@ -1,6 +1,4 @@
-using FastCSharp.Publisher;
 using FastCSharp.RabbitPublisher.Common;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace FastCSharp.RabbitPublisher.Injection;
