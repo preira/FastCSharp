@@ -8,7 +8,7 @@ public delegate  Task<M?> Handler<M>(M? message);
 /// The interface to use to publish objects.
 /// </summary>
 /// <typeparam name="T">The type of the objects to be published.</typeparam>
-public interface IRabbitPublisher<T>: IDisposable
+public interface IPublisher<T>: IDisposable
 { 
     /// <summary>
     /// Publishes the object passed as argument.
@@ -29,10 +29,10 @@ public interface IRabbitPublisher<T>: IDisposable
     /// <returns>A Boolean future indicating if the message was published or not.</returns>
     Task<bool> Publish(IEnumerable<T> messages);
 
-    public IRabbitPublisher<T> ForExchange(string exchange);
+    public IPublisher<T> ForExchange(string exchange);
 
-    public IRabbitPublisher<T> ForQueue(string queue);
+    public IPublisher<T> ForQueue(string queue);
 
-    public IRabbitPublisher<T> ForRouting(string key);
+    public IPublisher<T> ForRouting(string key);
 }
 
