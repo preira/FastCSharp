@@ -14,7 +14,7 @@ namespace FastCSharp.RabbitPublisher.Impl;
 /// for each thread.
 /// </summary>
 /// <typeparam name="T">The Type of the message object to send.</typeparam>
-public class RabbitPublisher<T> : IRabbitPublisher<T>
+public class RabbitPublisher<T> : IPublisher<T>
 {
     private string? routingKey;
     private string? queue;
@@ -52,7 +52,7 @@ public class RabbitPublisher<T> : IRabbitPublisher<T>
         pool = connectionPool;
     }
 
-    public IRabbitPublisher<T> ForExchange(string destination)
+    public IPublisher<T> ForExchange(string destination)
     {
         Exchange = Config?.Exchanges?[destination];
         if (Exchange == null || string.IsNullOrWhiteSpace(Exchange.Name))
@@ -67,7 +67,7 @@ public class RabbitPublisher<T> : IRabbitPublisher<T>
         return this;
     }
 
-    public IRabbitPublisher<T> ForQueue(string q)
+    public IPublisher<T> ForQueue(string q)
     {
         queue = Exchange?.Queues?[q];
         if (queue == null)
@@ -77,7 +77,7 @@ public class RabbitPublisher<T> : IRabbitPublisher<T>
         return this;
     }
 
-    public IRabbitPublisher<T> ForRouting(string key)
+    public IPublisher<T> ForRouting(string key)
     {
         if(Exchange?.RoutingKeys?.Contains(key) ?? false)
         {
