@@ -8,37 +8,10 @@ using Microsoft.Extensions.Logging;
 
 namespace FastCSharp.RabbitSubscriber.Impl;
 
-/// <summary>
-/// RabbitMQ Queue Configuration.
-/// </summary>
-public class RabbitQueueConfig
-{
-    /// <summary>
-    /// The name of the queue.
-    /// </summary>
-    public string? Name { get; set; }
-    /// <summary>
-    /// The maximum number of messages that the server will deliver, 0 if unlimited.
-    /// </summary>
-    public ushort? PrefetchCount { get; set; }
-    /// <summary>
-    /// Specifies a prefetch window in octets.
-    /// </summary>
-    /// <value></value>
-    /// <remarks>
-    /// The server will send a message in advance if it is equal to or smaller in size than 
-    /// the available prefetch size (and also falls into other prefetch limits).
-    /// May be set to zero, meaning "no specific limit", although other prefetch limits may still apply.
-    /// The prefetch-size is ignored if the no-ack option is set.
-    /// </remarks>
-    /// <seealso href="https://www.rabbitmq.com/consumer-prefetch.html"/>
-    public uint? PrefetchSize { get; set; }
-}
-
 public class RabbitSubscriber<T> : AbstractSubscriber<T>
 {
     readonly private IConnectionFactory connectionFactory;
-    readonly private RabbitQueueConfig q;
+    readonly private QueueConfig q;
     private readonly IList<AmqpTcpEndpoint>? endpoints;
     private IConnection connection;
     private IModel channel;
@@ -53,7 +26,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     }
     public RabbitSubscriber(
             IConnectionFactory connectionFactory,
-            RabbitQueueConfig queue,
+            QueueConfig queue,
             ILoggerFactory loggerFactory,
             IList<AmqpTcpEndpoint>? hosts
         ) : base()

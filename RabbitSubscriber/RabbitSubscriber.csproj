@@ -4,7 +4,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp.RabbitSubscriber</PackageId>
+    <PackageId>FastCSharp6.RabbitSubscriber</PackageId>
     <version>1.0.0</version>
 
     <Author>João Pereira</Author>

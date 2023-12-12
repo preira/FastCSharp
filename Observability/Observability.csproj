@@ -4,31 +4,30 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp6.Subscriber</PackageId>
-    <version>1.0.0</version>
+    <PackageId>FastCSharp6.Observability</PackageId>
+    <version>0.0.2</version>
 
-    <Author>João Pereira</Author>
+    <Authors>João Pereira</Authors>
 
-    <Description>Package containing Message Queue Subscriber SDK.</Description>
-    <PackageTags>FastCSharp SDK Subscriber MessageQueue</PackageTags>
+    <Description>Package containing functions to implement observability into FastCSharp libraries.</Description>
+    <PackageTags>FastCSharp Observability Functions</PackageTags>
 
    <Copyright>
       <![CDATA[Copyright © FastCSharp 2023]]>
     </Copyright>
 
-    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Subscriber</ProjectUrl>
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Observability</ProjectUrl>
 
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    
+
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="LICENSE" Pack="true" PackagePath=""/>
+    <None Include="LICENSE" Pack="true" PackagePath="" />
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
-
 </Project>

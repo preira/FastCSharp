@@ -4,8 +4,8 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp.Pool</PackageId>
-    <version>1.0.2</version>
+    <PackageId>FastCSharp6.Pool</PackageId>
+    <version>1.1.2</version>
 
     <Author>João Pereira</Author>
 
@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Observability\Observability.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 

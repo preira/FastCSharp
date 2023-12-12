@@ -51,5 +51,25 @@ public class RabbitConfig
 
 }
 
+/// <summary>
+/// Generic AddOns Configuration.
+/// </summary> <summary>
+/// 
+/// </summary>
+public class AddOnsConfig
+{
+    /// <summary>
+    /// The type of AddOn to use.
+    /// </summary>
+    /// <value></value>
+    public string? Type { get; set; }
+
+    /// <summary>
+    /// The configuration section to use.
+    /// </summary>
+    /// <value></value>
+    public string? ConfigSection { get; set; }
+}
+
 
 

@@ -4,7 +4,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp.RabbitCommon</PackageId>
+    <PackageId>FastCSharp6.RabbitCommon</PackageId>
     <version>1.0.3</version>
 
     <Author>João Pereira</Author>
@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pool\Pool.csproj" />
+    <ProjectReference Include="..\Observability\Observability.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,7 +4,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp.Common</PackageId>
+    <PackageId>FastCSharp6.Common</PackageId>
     <version>0.2.0</version>
 
     <Authors>João Pereira</Authors>

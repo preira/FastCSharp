@@ -5,6 +5,7 @@ using FastCSharp.RabbitPublisher.Common;
 using RabbitMQ.Client.Exceptions;
 using FastCSharp.RabbitCommon;
 using Microsoft.Extensions.Options;
+using FastCSharp.Observability;
 
 namespace FastCSharp.RabbitPublisher.Impl;
 
@@ -137,7 +138,7 @@ public class RabbitPublisher<T> : IPublisher<T>
                     ulong? sequenceNumber = channel.NextPublishSeqNo(this);
                     channel.BasicPublish(this, null, jsonUtf8Bytes);
 
-                    logger.LogDebug("{\"Exchange\"=\"{exchange}\", \"SequenceNumber\"=\"{seqNr}\"}",
+                    logger.LogTrace("{\"Exchange\"=\"{exchange}\", \"SequenceNumber\"=\"{seqNr}\"}",
                                     Exchange?.Name, sequenceNumber);
 
                 }
@@ -192,5 +193,32 @@ public class RabbitPublisher<T> : IPublisher<T>
     public void Dispose()
     {
         Dispose(true);
+    }
+
+    public async Task<IHealthReport> ReportHealthStatus()
+    {
+        string name = GetType().Name;
+        HealthReport report;
+        using (var connection = pool.Connection(this))
+        {
+
+            if (connection == null)
+            {
+                report = new(name, HealthStatus.Unhealthy, $"{name} could not get a connection from the pool.");
+            }
+            else if (connection.IsOpen)
+            {
+                report = new(name, HealthStatus.Healthy);
+            }
+            else
+            {
+                report = new(name, HealthStatus.Unhealthy, $"{name} could not connect to the broker.");
+            }
+
+        }
+
+        report.AddDependency(await pool.ReportHealthStatus());
+        
+        return report;
     }
 }

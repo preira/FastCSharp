@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using FastCSharp.Date;
+using FastCSharp.Observability;
 
 namespace FastCSharp.Pool;
 
@@ -11,7 +12,7 @@ where T : class, IDisposable
     bool Return(Individual<T> individual);
 }
 
-public interface IPool<T>
+public interface IPool<T> : IHealthReporter
 {
     /// <summary>
     /// Borrows an individual of type <c>T</c> from the pool. 
@@ -34,6 +35,7 @@ public interface IPool<T>
     /// <param name="timeout">A timeout of -1 signals to wait for the default timeout (this is the default value)</param>
     /// <returns></returns>
     T Borrow(object caller, double timeout = -1);
+
 }
 
 public delegate T Create<T>();
@@ -306,6 +308,24 @@ where K : class, IDisposable
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
+    }
+
+    public Task<IHealthReport> ReportHealthStatus()
+    {
+        return Task.Run(
+            () => {
+
+                int currentlyAvailable = available.Count();
+                int currentlyInUse = inUse.Count();
+                string name = GetType().Name;
+                HealthStatus status = HealthStatus.Healthy;
+
+                if (currentlyInUse >= MaxSize)
+                {
+                    status = HealthStatus.Saturated;
+                }
+                return (IHealthReport) new HealthReport(name, status, $"Pool size is {Count} and has {currentlyAvailable} available individuals and can grow by {MaxSize - currentlyInUse} individuals.");
+            });
     }
 }
 

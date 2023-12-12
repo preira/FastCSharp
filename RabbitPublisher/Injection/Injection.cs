@@ -53,6 +53,6 @@ public static class FrameworkServiceExtension
     }
     private static void AddRabbitPublisher<TMessage>(IServiceCollection services)
     {
-        services.AddScoped<IRabbitPublisher<TMessage>, RabbitPublisher<TMessage>>();
+        services.AddScoped<IPublisher<TMessage>, RabbitPublisher<TMessage>>();
     }
 }
