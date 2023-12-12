@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pool\Pool.csproj" />
+    <ProjectReference Include="..\Observability\Observability.csproj" />
   </ItemGroup>
 
 </Project>

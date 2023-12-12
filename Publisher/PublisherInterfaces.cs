@@ -1,4 +1,4 @@
-﻿using FastCSharp.Pool;
+﻿using FastCSharp.Observability;
 
 namespace FastCSharp.Publisher;
 
@@ -8,7 +8,7 @@ public delegate  Task<M?> Handler<M>(M? message);
 /// The interface to use to publish objects.
 /// </summary>
 /// <typeparam name="T">The type of the objects to be published.</typeparam>
-public interface IPublisher<T>: IDisposable
+public interface IPublisher<T>: IDisposable, IHealthReporter
 { 
     /// <summary>
     /// Publishes the object passed as argument.
@@ -34,5 +34,7 @@ public interface IPublisher<T>: IDisposable
     public IPublisher<T> ForQueue(string queue);
 
     public IPublisher<T> ForRouting(string key);
+
 }
+
 

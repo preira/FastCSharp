@@ -42,26 +42,26 @@ public class RabbitSubscriber_UnitTest
     Dictionary<string, string?> configQueue = new Dictionary<string, string?>
     {
         ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:Name"] = "queue.name",
-        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefecthCount"] = "1",
-        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefecthSize"] = "0",
+        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefetchCount"] = "1",
+        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefetchSize"] = "0",
     };
     Dictionary<string, string?> configBadQueue = new Dictionary<string, string?>
     {
-        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefecthCount"] = "1",
-        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefecthSize"] = "0",
+        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefetchCount"] = "1",
+        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefetchSize"] = "0",
     };
     Dictionary<string, string?> configBadQueue2 = new Dictionary<string, string?>
     {
         ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:Name"] = String.Empty,
-        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefecthCount"] = "1",
-        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefecthSize"] = "0",
+        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefetchCount"] = "1",
+        ["RabbitSubscriberConfig:Queues:QUEUE_TOKEN:PrefetchSize"] = "0",
     };
     Dictionary<string, string?> configTaskQueue = new Dictionary<string, string?>
     {
 
         ["RabbitSubscriberConfig:Queues:TASK_QUEUE:Name"] = "test.direct.q",
-        ["RabbitSubscriberConfig:Queues:TASK_QUEUE:PrefecthCount"] = "1",
-        ["RabbitSubscriberConfig:Queues:TASK_QUEUE:PrefecthSize"] = "0",
+        ["RabbitSubscriberConfig:Queues:TASK_QUEUE:PrefetchCount"] = "1",
+        ["RabbitSubscriberConfig:Queues:TASK_QUEUE:PrefetchSize"] = "0",
 
     };
 
@@ -159,7 +159,7 @@ public class RabbitSubscriber_UnitTest
     public void RabbitSubscriberFactory_NewSubscriber()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -201,7 +201,7 @@ public class RabbitSubscriber_UnitTest
     public void RabbitSubscriber_Register()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -228,7 +228,7 @@ public class RabbitSubscriber_UnitTest
     public async void RabbitSubscriber_TestConsumer()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -266,7 +266,7 @@ public class RabbitSubscriber_UnitTest
     public void RabbitSubscriber_TestConsumerJsonDeserializationFails()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -324,7 +324,7 @@ public class RabbitSubscriber_UnitTest
     public void Test_ResetClosedConnection()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -352,7 +352,7 @@ public class RabbitSubscriber_UnitTest
     public void Test_ResetOpenConnection()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -385,7 +385,7 @@ public class RabbitSubscriber_UnitTest
     public void Test_ResetAndRegisterConsumerWithNullCallback()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -406,7 +406,7 @@ public class RabbitSubscriber_UnitTest
     public void Test_ResetOK()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -429,7 +429,7 @@ public class RabbitSubscriber_UnitTest
     public void Test_UnSubscribe()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,
@@ -456,7 +456,7 @@ public class RabbitSubscriber_UnitTest
     public void Test_CloseChannel()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
-        var queue = new RabbitQueueConfig()
+        var queue = new QueueConfig()
         {
             Name = "queue.name",
             PrefetchCount = 1,

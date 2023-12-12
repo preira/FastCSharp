@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using FastCSharp.Pool;
 using System.Collections.Concurrent;
+using FastCSharp.Observability;
 
 namespace FastCSharp.RabbitPublisher.Common;
 
@@ -117,7 +118,7 @@ internal static class Util
     }
 }
 
-public interface IRabbitConnectionPool : IDisposable
+public interface IRabbitConnectionPool : IDisposable, IHealthReporter
 {
     IRabbitConnection Connection(object owner);
 
@@ -248,5 +249,10 @@ public class RabbitConnectionPool : IRabbitConnectionPool
     public void Dispose()
     {
         pool.Dispose();
+    }
+
+    public Task<IHealthReport> ReportHealthStatus()
+    {
+        return pool.ReportHealthStatus();
     }
 }

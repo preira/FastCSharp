@@ -41,8 +41,8 @@ Create a json file named `appsettings.json` and add the following configuration.
             "DIRECT_QUEUE"    : 
             {
                 "Name":"test.direct.q",
-                "PrefecthCount":1,
-                "PrefecthSize":0
+                "PrefetchCount":1,
+                "PrefetchSize":0
             }
         }
     }

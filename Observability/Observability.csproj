@@ -4,19 +4,19 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
-    <PackageId>FastCSharp.Pool</PackageId>
-    <version>1.1.2</version>
+    <PackageId>FastCSharp.Observability</PackageId>
+    <version>0.0.2</version>
 
-    <Author>João Pereira</Author>
+    <Authors>João Pereira</Authors>
 
-    <Description>Package containing Message Queue Publisher SDK.</Description>
-    <PackageTags>FastCSharp Pool SDK</PackageTags>
+    <Description>Package containing functions to implement observability into FastCSharp libraries.</Description>
+    <PackageTags>FastCSharp Observability Functions</PackageTags>
 
    <Copyright>
       <![CDATA[Copyright © FastCSharp 2023]]>
     </Copyright>
 
-    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Pool</ProjectUrl>
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/Observability</ProjectUrl>
 
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -30,10 +30,4 @@
     <None Include="LICENSE" Pack="true" PackagePath="" />
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Observability\Observability.csproj" />
-    <ProjectReference Include="..\Common\Common.csproj" />
-  </ItemGroup>
-
 </Project>

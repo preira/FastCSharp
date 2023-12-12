@@ -27,7 +27,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RabbitSubscriber\RabbitSubscriber.csproj" />
-    <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\RabbitCommon\RabbitCommon.csproj" />
   </ItemGroup>
 
