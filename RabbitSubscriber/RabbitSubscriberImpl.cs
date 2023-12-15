@@ -119,7 +119,15 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     /// </summary>
     public override void UnSubscribe()
     {
-        channel.BasicCancel(ConsumerTag);
+        try
+        {
+            // this throws an null pointer exception if the consumer has never registered before.
+            channel.BasicCancel(ConsumerTag);
+        }
+        catch (NullReferenceException)
+        {
+            logger.LogWarning("Consumer was never registered. Ignoring.");
+        }
     }
 
     /// <summary>

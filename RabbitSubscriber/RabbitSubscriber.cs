@@ -106,7 +106,7 @@ public class RabbitSubscriberFactory : ISubscriberFactory
         if ((config.HostName == null || config.Port == 0) && config.Hosts == null)
         {
             throw new IncorrectInitializationException(
-                $"Message Queue was configuration configured with Hostname:'{config.HostName}', Port:'{config.Port}', enpoints: '{JsonSerializer.Serialize(config.Hosts)}'.");
+                $"Message Queue was configured with Hostname:'{config.HostName}', Port:'{config.Port}', enpoints: '{JsonSerializer.Serialize(config.Hosts)}'.");
         }
 
 
@@ -126,7 +126,7 @@ public class RabbitSubscriberFactory : ISubscriberFactory
 
         if (config.Queues.Count == 0)
         {
-            throw new IncorrectInitializationException($"Message Queue was configuration configured with no queues.");
+            throw new IncorrectInitializationException($"Message Queue was configured with no queues.");
         }
 
         return connectionFactory;
