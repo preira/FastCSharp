@@ -36,7 +36,7 @@ public abstract class BreakerStrategy
 /// The backoff duration is given by the backoff strategy.
 /// If an uncontrolled failure happens it may immediately open the circuit.
 /// </summary>
-public class ConsecutiveFailuresBreakerStrategy : BreakerStrategy
+public class FailuresThresholdBreakerStrategy : BreakerStrategy
 {
     private const string ExceptionMessage = "This Strategy has no associated Circuit.";
     readonly long threshold;
@@ -51,13 +51,13 @@ public class ConsecutiveFailuresBreakerStrategy : BreakerStrategy
     /// </summary>
     /// <param name="failureThreshold">The threshold for the number of failures.</param>
     /// <param name="backoffStrategy">The backoff strategy to calculate the backoff duration.</param>
-    /// <param name="isShouldImmediately">If set to true, a distinction will be made between uncontrolled exceptions and CircuitExceptions.
+    /// <param name="isShouldCloseImmediately">If set to true, a distinction will be made between uncontrolled exceptions and CircuitExceptions.
     /// The default is false.</param>
-    public ConsecutiveFailuresBreakerStrategy(long failureThreshold, IBackoffStrategy backoffStrategy, Boolean isShouldImmediately = false)
+    public FailuresThresholdBreakerStrategy(long failureThreshold, IBackoffStrategy backoffStrategy, Boolean isShouldCloseImmediately = false)
     {
         threshold = failureThreshold;
         backoff = backoffStrategy;
-        isCloseImmediately = isShouldImmediately;
+        isCloseImmediately = isShouldCloseImmediately;
         ResetCounter();
     }
 

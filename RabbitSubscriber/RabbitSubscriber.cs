@@ -54,11 +54,7 @@ public class QueueConfig
     /// <seealso href="https://www.rabbitmq.com/consumer-prefetch.html"/>
     public ushort? PrefetchSize { get; set; }
 
-    /// <summary>
-    /// If set, the message subscriber should be wrapped with a circuit breaker.
-    /// </summary>
-    /// <value></value>
-    public AddOnsConfig? AddOns { get; set; }
+    public IConfigurationSection? Options { get; set; }
 }
 
 /// <summary>
@@ -106,7 +102,7 @@ public class RabbitSubscriberFactory : ISubscriberFactory
         if ((config.HostName == null || config.Port == 0) && config.Hosts == null)
         {
             throw new IncorrectInitializationException(
-                $"Message Queue was configuration configured with Hostname:'{config.HostName}', Port:'{config.Port}', enpoints: '{JsonSerializer.Serialize(config.Hosts)}'.");
+                $"Message Queue was configured with Hostname:'{config.HostName}', Port:'{config.Port}', enpoints: '{JsonSerializer.Serialize(config.Hosts)}'.");
         }
 
 
@@ -126,7 +122,7 @@ public class RabbitSubscriberFactory : ISubscriberFactory
 
         if (config.Queues.Count == 0)
         {
-            throw new IncorrectInitializationException($"Message Queue was configuration configured with no queues.");
+            throw new IncorrectInitializationException($"Message Queue was configured with no queues.");
         }
 
         return connectionFactory;

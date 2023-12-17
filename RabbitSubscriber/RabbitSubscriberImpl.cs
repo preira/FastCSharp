@@ -5,13 +5,14 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace FastCSharp.RabbitSubscriber.Impl;
 
 public class RabbitSubscriber<T> : AbstractSubscriber<T>
 {
     readonly private IConnectionFactory connectionFactory;
-    readonly private QueueConfig q;
+    private QueueConfig QConfig { get;}
     private readonly IList<AmqpTcpEndpoint>? endpoints;
     private IConnection connection;
     private IModel channel;
@@ -24,6 +25,9 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     {
         get => _consumerTag;
     }
+
+    public override IConfigurationSection? Options { get; }
+
     public RabbitSubscriber(
             IConnectionFactory connectionFactory,
             QueueConfig queue,
@@ -33,7 +37,8 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     {
         endpoints = hosts;
         this.connectionFactory = connectionFactory;
-        q = queue;
+        QConfig = queue;
+        Options = QConfig.Options;
 
         logger = loggerFactory.CreateLogger<RabbitSubscriber<T>>();
 
@@ -87,10 +92,10 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     {
 
         // don't declare, just check if exists
-        channel.QueueDeclarePassive(queue: q.Name);
+        channel.QueueDeclarePassive(queue: QConfig.Name);
 
         // BasicQos configuration setting from config read.
-        channel.BasicQos(q.PrefetchSize ?? 0, q.PrefetchCount ?? 0, global: false);
+        channel.BasicQos(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
 
         var consumer = new EventingBasicConsumer(channel);
 
@@ -100,12 +105,12 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         }
         consumer.Received += GetListener(_callback);
 
-        channel.BasicConsume(queue: q.Name,
+        channel.BasicConsume(queue: QConfig.Name,
                             autoAck: false,
                             consumer: consumer,
                             consumerTag: ConsumerTag);
 
-        logger.LogInformation("Waiting for messages from queue {messageOrigin}.", q.Name);
+        logger.LogInformation("Waiting for messages from queue {messageOrigin}.", QConfig.Name);
     }
 
     protected override void _Register(OnMessageCallback<T> callback)
@@ -119,7 +124,15 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     /// </summary>
     public override void UnSubscribe()
     {
-        channel.BasicCancel(ConsumerTag);
+        try
+        {
+            // this throws an null pointer exception if the consumer has never registered before.
+            channel.BasicCancel(ConsumerTag);
+        }
+        catch (NullReferenceException)
+        {
+            logger.LogWarning("Consumer was never registered. Ignoring.");
+        }
     }
 
     /// <summary>

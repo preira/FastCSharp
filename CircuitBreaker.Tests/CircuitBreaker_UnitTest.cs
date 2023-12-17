@@ -41,7 +41,7 @@ public class CircuitBreaker_UnitTest
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         circuit.Wrap(() => { /*no need to implement*/ });
@@ -53,7 +53,7 @@ public class CircuitBreaker_UnitTest
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.NotNull(circuit);
@@ -69,7 +69,7 @@ public class CircuitBreaker_UnitTest
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         var Success = false;
@@ -82,7 +82,7 @@ public class CircuitBreaker_UnitTest
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -105,7 +105,7 @@ public class CircuitBreaker_UnitTest
         TimeSpan timeout = new TimeSpan(0, 0, 10);
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(timeout), true)
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout), true)
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -121,7 +121,7 @@ public class CircuitBreaker_UnitTest
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -143,7 +143,7 @@ public class CircuitBreaker_UnitTest
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -172,7 +172,7 @@ public class CircuitBreaker_UnitTest
     {
         var circuit =
             new CircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -206,7 +206,7 @@ public class BlockingCircuitBreaker_Tests
     {
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         circuit.Wrap(() => { /*no need to implement*/ });
@@ -218,7 +218,7 @@ public class BlockingCircuitBreaker_Tests
     {
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         var Success = false;
@@ -231,7 +231,7 @@ public class BlockingCircuitBreaker_Tests
     {
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -253,7 +253,7 @@ public class BlockingCircuitBreaker_Tests
         TimeSpan timeout = new TimeSpan(0, 0, 10);
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(timeout), true)
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout), true)
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -269,7 +269,7 @@ public class BlockingCircuitBreaker_Tests
     {
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -291,7 +291,7 @@ public class BlockingCircuitBreaker_Tests
         DateTime startTime = DateTime.Now;
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -320,7 +320,7 @@ public class BlockingCircuitBreaker_Tests
         DateTime startTime = DateTime.Now;
         var circuit =
             new BlockingCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -356,7 +356,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         circuit.Wrap(() => { /*no need to implement*/ });
@@ -368,7 +368,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.NotNull(circuit);
@@ -384,7 +384,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         var closing = false;
@@ -399,7 +399,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         bool[] closed = { false, false, false };
@@ -418,7 +418,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         var opened = false;
@@ -434,7 +434,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         var opened = false;
@@ -457,7 +457,7 @@ public class EventDrivenCircuitBreaker_UnitTest
         var circuit =
             new EventDrivenCircuitBreaker(
                 // huge timeout to control recovery through CancelBackoff
-                new ConsecutiveFailuresBreakerStrategy(2, new FixedBackoff(_backoff))
+                new FailuresThresholdBreakerStrategy(2, new FixedBackoff(_backoff))
             );
 
         var opened = false;
@@ -534,7 +534,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         var Success = false;
@@ -547,7 +547,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -570,7 +570,7 @@ public class EventDrivenCircuitBreaker_UnitTest
         TimeSpan timeout = new TimeSpan(0, 0, 0, 0, 2);
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(timeout), true)
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout), true)
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -586,7 +586,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         var opened = false;
@@ -630,7 +630,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -653,7 +653,7 @@ public class EventDrivenCircuitBreaker_UnitTest
         TimeSpan timeout = new TimeSpan(0, 0, 0, 0, 20);
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(timeout))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -682,7 +682,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -711,7 +711,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
         Assert.True(circuit.Open(new TimeSpan(0, 0, 0, 0, 1)), "Circuit should open.");
         Assert.False(circuit.Open(new TimeSpan(0, 0, 0, 0, 1)), "Circuit should already be open.");
@@ -722,7 +722,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     {
         var circuit =
             new EventDrivenCircuitBreaker(
-                new ConsecutiveFailuresBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
         Assert.False(circuit.CancelBackoff(), "Should not have canceled backoff.");
 

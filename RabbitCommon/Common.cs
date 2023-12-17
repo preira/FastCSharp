@@ -48,28 +48,4 @@ public class RabbitConfig
     /// <seealso href="https://www.rabbitmq.com/heartbeats.html"/>
     /// <seealso href="https://www.rabbitmq.com/networking.html#tcp-keepalive"/>
     public TimeSpan? Heartbeat { get; set; }
-
 }
-
-/// <summary>
-/// Generic AddOns Configuration.
-/// </summary> <summary>
-/// 
-/// </summary>
-public class AddOnsConfig
-{
-    /// <summary>
-    /// The type of AddOn to use.
-    /// </summary>
-    /// <value></value>
-    public string? Type { get; set; }
-
-    /// <summary>
-    /// The configuration section to use.
-    /// </summary>
-    /// <value></value>
-    public string? ConfigSection { get; set; }
-}
-
-
-

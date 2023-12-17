@@ -138,8 +138,8 @@ public class RabbitPublisher<T> : IPublisher<T>
                     ulong? sequenceNumber = channel.NextPublishSeqNo(this);
                     channel.BasicPublish(this, null, jsonUtf8Bytes);
 
-                    logger.LogTrace("{\"Exchange\"=\"{exchange}\", \"SequenceNumber\"=\"{seqNr}\"}",
-                                    Exchange?.Name, sequenceNumber);
+                    logger.LogTrace("Exchange='{exchange}', SequenceNumber='{seqNr}'",
+                                    Exchange?.Name ?? "", sequenceNumber);
 
                 }
             }
