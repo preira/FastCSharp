@@ -1,4 +1,6 @@
-﻿namespace FastCSharp.Subscriber;
+﻿using Microsoft.Extensions.Configuration;
+
+namespace FastCSharp.Subscriber;
 
 public delegate Task<bool> OnMessageCallback<in T>(T? message);
 public delegate T? Handler<T>(T? message);
@@ -78,18 +80,7 @@ public interface ISubscriber<T> : IDisposable
     /// </summary>
     public void UnSubscribe();
 
-}
-
-public interface IEventSubscriber<T> : ISubscriber<T>
-{
-    public void Unregister();
-
-    public void AttemptRecovery();
-}
-
-public interface IWorker<in T>
-{
-    public Boolean OnMessageCallback(T? message);
+    public IConfigurationSection? Options { get;}
 }
 
 /// <summary>

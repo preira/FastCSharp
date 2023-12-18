@@ -113,6 +113,8 @@ public abstract class AbstractBreaker : Breaker
 
     public abstract Task<TResult> WrapAsync<TResult>(Func<Task<TResult>> callback);
 
+    public abstract Func<TInput, Task<TResult>> WrapAsync<TResult, TInput>(Func<TInput, Task<TResult>> callback);
+
     /// <summary>
     /// Simplified version of Wrap<TResult> for methods returning void.
     /// </summary>
@@ -195,6 +197,38 @@ public class CircuitBreaker : AbstractBreaker
             }
         }
     }
+
+    public override Func<TInput, Task<TResult>> WrapAsync<TResult, TInput>(Func<TInput, Task<TResult>> callback)
+    {
+        return async (TInput input) =>
+        {
+            if (IsOpen)
+            {
+                throw new OpenCircuitException();
+            }
+            else /* either closing or closed */
+            {
+                try
+                {
+                    var result = await callback(input);
+                    Strategy.RegisterSucess();
+                    return result;
+                }
+                catch (Exception e)
+                {
+                    if (e is CircuitException)
+                    {
+                        Strategy.RegisterFailure();
+                    }
+                    else
+                    {
+                        Strategy.RegisterUncontrolledFailure();
+                    }
+                    throw;
+                }
+            }
+        };
+    }
 }
 
 /// <summary>
@@ -204,6 +238,7 @@ public class CircuitBreaker : AbstractBreaker
 /// </summary>
 public class BlockingCircuitBreaker : AbstractBreaker
 {
+    public const string TypeName = "BlockingCircuitBreaker";
     public BlockingCircuitBreaker(BreakerStrategy strategy) : base(strategy)
     {
     }
@@ -277,12 +312,51 @@ public class BlockingCircuitBreaker : AbstractBreaker
             }
         }
     }
+    
+    public override Func<TInput, Task<TResult>> WrapAsync<TResult, TInput>(Func<TInput, Task<TResult>> callback)
+    {
+        return async (TInput input) =>
+        {
+            if (IsOpen)
+            {
+                // Since Sleep truncates the interval value at milliseconds, we need to round up
+                // to make sure the elapse time is greater than the remaing interval.
+                // Otherwise it will interfere with tests.
+                var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
+                var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
+                Thread.Sleep(millisecondsTimeout);
+                throw new OpenCircuitException();
+            }
+            else /* either closing or closed */
+            {
+                try
+                {
+                    var result = await callback(input);
+                    Strategy.RegisterSucess();
+                    return result;
+                }
+                catch (Exception e)
+                {
+                    if (e is CircuitException)
+                    {
+                        Strategy.RegisterFailure();
+                    }
+                    else
+                    {
+                        Strategy.RegisterUncontrolledFailure();
+                    }
+                    throw;
+                }
+            }
+        };
+    }
 }
 
 // create a circuit breaker that is Event driven, based on the AbstractBreaker class. 
 // It should be able to be used as a decorator for any method that returns a value or void.
 public class EventDrivenCircuitBreaker : CircuitBreaker
 {
+    public const string TypeName = "EventDrivenCircuitBreaker";
     private TimeSpan _duration;
     private CancellationTokenSource? cancellationTokenSource;
 

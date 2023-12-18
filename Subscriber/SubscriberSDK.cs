@@ -1,10 +1,13 @@
 ﻿using FastCSharp.Subscriber;
+using Microsoft.Extensions.Configuration;
 
 namespace FastCSharp.SDK.Subscriber;
 
 public abstract class AbstractSubscriber<T>: ISubscriber<T>
 {
     readonly List<Handler<T>> handlers;
+
+    public abstract IConfigurationSection? Options { get; }
 
     protected AbstractSubscriber()
     {

@@ -142,7 +142,7 @@ public class ConsecutiveFailuresBreaker_UnitTests
     {
         IBackoffStrategy backoff = new FixedBackoff(timeout);
         BreakerStrategy strategy
-            = new ConsecutiveFailuresBreakerStrategy(attemptsThreshold, backoff);
+            = new FailuresThresholdBreakerStrategy(attemptsThreshold, backoff);
 
         TestBreaker breaker = new TestBreaker(strategy);
         int i = 0;
@@ -166,7 +166,7 @@ public class ConsecutiveFailuresBreaker_UnitTests
     {
         IBackoffStrategy backoff = new FixedBackoff(timeout);
         BreakerStrategy startegy
-            = new ConsecutiveFailuresBreakerStrategy(attemptsThreshold, backoff, true);
+            = new FailuresThresholdBreakerStrategy(attemptsThreshold, backoff, true);
         return startegy;
     }
 }

@@ -54,11 +54,7 @@ public class QueueConfig
     /// <seealso href="https://www.rabbitmq.com/consumer-prefetch.html"/>
     public ushort? PrefetchSize { get; set; }
 
-    /// <summary>
-    /// If set, the message subscriber should be wrapped with a circuit breaker.
-    /// </summary>
-    /// <value></value>
-    public AddOnsConfig? AddOns { get; set; }
+    public IConfigurationSection? Options { get; set; }
 }
 
 /// <summary>
