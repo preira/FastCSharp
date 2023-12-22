@@ -5,7 +5,7 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.Subscriber</PackageId>
-    <version>2.0.0</version>
+    <version>2.2.0</version>
 
     <Author>João Pereira</Author>
 
@@ -21,7 +21,7 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -29,6 +29,10 @@
   <ItemGroup>
     <None Include="LICENSE" Pack="true" PackagePath=""/>
     <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Observability\Observability.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,6 +7,7 @@ public enum HealthStatus
     Healthy,
     Degraded,
     Unhealthy,
+    Inexistent,
     Saturated
 }
 
@@ -28,6 +29,18 @@ public interface IHealthReport
     public string ToString();
 
     public string Summarize();
+}
+
+public class EmptyHealthReporter : IHealthReporter
+{
+    public string Name { get; }
+    public string Message { get; }
+    public EmptyHealthReporter(string name, string message)
+    {
+        this.Name = name;
+        this.Message = message;
+    }
+    public Task<IHealthReport> ReportHealthStatus() => Task.FromResult((IHealthReport) new HealthReport(Name, HealthStatus.Inexistent, Message));
 }
 
 public class HealthReport : IHealthReport

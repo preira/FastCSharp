@@ -1,4 +1,5 @@
 using FastCSharp.Exceptions;
+using FastCSharp.Observability;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -17,21 +18,86 @@ namespace FastCSharp.CircuitBreaker;
 /// </remarks> 
 public class CircuitBreakerFactory
 {
-    public static Func<TInput, Task<TResult>> NewAsyncBreaker<TInput, TResult>(
-        ILoggerFactory loggerFactory,
-        IConfigurationSection? config, 
-        Func<TInput, Task<TResult>> onMessage, 
-        Action<object>? onOpen = null, 
-        Action<object>? onReset = null)
+    public static CircuitBreakerBuilder<TInput, TResult> CreateBuilder<TInput, TResult>()
     {
-        var logger = loggerFactory.CreateLogger<CircuitBreakerFactory>();
+        return new CircuitBreakerBuilder<TInput, TResult>();
+    }
+}
+
+public class CircuitBreakerBuilder<TInput, TResult>
+{
+    private ILogger logger = LoggerFactory.Create(builder => ConsoleLoggerExtensions.AddConsole(builder)).CreateLogger(typeof(CircuitBreakerBuilder<TInput, TResult>));
+    private IConfigurationSection? config;
+    private Func<TInput, Task<TResult>>? originalCircuit;
+    private Action<object>? onOpen;
+    private Action<object>? onReset;
+
+    public IHealthReporter HealthReporter { get; private set; } = new EmptyHealthReporter("CircuitBreaker", "Not configured");
+
+    private bool isBuilt = false;
+    private Func<TInput, Task<TResult>>? wrappedCircuit;
+    public Func<TInput, Task<TResult>> WrappedCircuit {
+        get {
+            if(!isBuilt) 
+            {
+                Build();
+                isBuilt = true;
+            }
+            return wrappedCircuit ?? originalCircuit ?? throw new Exception("Unable to build Circuitbreaker. This is a fatal unexpected exception.");
+        }
+    }
+
+    public CircuitBreakerBuilder<TInput, TResult> Set(ILoggerFactory loggerFactory)
+    {
+        logger = loggerFactory.CreateLogger<CircuitBreakerFactory>();
+        return this;
+    }
+
+    public CircuitBreakerBuilder<TInput, TResult> Set(IConfigurationSection? config)
+    {
+        this.config = config;
+        return this;
+    }
+
+    public CircuitBreakerBuilder<TInput, TResult> Set(Func<TInput, Task<TResult>>? circuit)
+    {
+        this.originalCircuit = circuit;
+        return this;
+    }
+
+    public CircuitBreakerBuilder<TInput, TResult> OnOpen(Action<object>? onOpen)
+    {
+        this.onOpen = onOpen;
+        return this;
+    }
+
+    public CircuitBreakerBuilder<TInput, TResult> OnClose(Action<object>? onReset)
+    {
+        this.onReset = onReset;
+        return this;
+    }
+
+    public void Build()
+    {
+        if (wrappedCircuit == null)
+        {
+            if (originalCircuit == null)
+            {
+                throw new IncorrectInitializationException("Build method was called too early and there is no circuit to wrap with this CircuitBreaker.");
+            }
+
+            if (config == null)
+            {
+                throw new IncorrectInitializationException("Build method was called too early and configuration was not yet set for this CircuitBreaker.");
+            }
+ 
         var breakerSection = config?.GetSection(CircuitBreakerConfig.SectionName);
         var breakerConfig = breakerSection?.Get<CircuitBreakerConfig>();
         if (breakerConfig == null)
         {
             // no configuration means no circuit breaker
-            logger.LogWarning("No circuit breaker configuration found. Circuit breaker disabled.");
-            return onMessage;
+                logger.LogWarning("No circuit breaker configuration found. Circuit breaker disabled. Check you configuration settings if this is unintended.");
+                return;
         }
         var breakerStrategy = NewBreakerStrategy(breakerSection, NewBackoffStrategy(breakerSection));
 
@@ -56,8 +122,11 @@ public class CircuitBreakerFactory
                 break;
         }
 
-        return circuitBreaker.WrapAsync(onMessage);
+            HealthReporter = circuitBreaker;
+            wrappedCircuit = circuitBreaker.WrapAsync(originalCircuit);
     }
+    }
+
 
     private static BreakerStrategy NewBreakerStrategy(IConfigurationSection? configSection, IBackoffStrategy backoffStrategy)
     {

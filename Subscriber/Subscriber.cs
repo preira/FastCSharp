@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using FastCSharp.Observability;
+using Microsoft.Extensions.Configuration;
 
 namespace FastCSharp.Subscriber;
 
@@ -39,7 +40,7 @@ public delegate T? Handler<T>(T? message);
 /// </code>
 /// 
 /// </example>
-public interface ISubscriber<T> : IDisposable
+public interface ISubscriber<T> : IDisposable, IHealthReporter
 {
     /// <summary>
     /// Registers the callback function as a message listenner.

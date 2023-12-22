@@ -6,6 +6,7 @@ using RabbitMQ.Client.Events;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using FastCSharp.Observability;
 
 namespace FastCSharp.RabbitSubscriber.Impl;
 
@@ -164,7 +165,6 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 {
                     channel.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
                 }
-
             }
             catch (JsonException e)
             {
@@ -196,6 +196,19 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             }
             disposedValue = true;
         }
+    }
+
+    public override async Task<IHealthReport> ReportHealthStatus()
+    {
+        return await Task.Run(() => 
+        {
+            var status = connection.IsOpen ? HealthStatus.Healthy : HealthStatus.Unhealthy;
+            var report = new HealthReport(GetType().Name, status)
+            {
+                Description = $"RabbitMQ Connection Status: {status}"
+            };
+            return report;
+        });
     }
 }
 

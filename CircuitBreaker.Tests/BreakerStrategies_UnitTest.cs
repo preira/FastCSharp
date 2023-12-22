@@ -46,7 +46,7 @@ class TestBreaker : Breaker
 public class ConsecutiveFailuresBreaker_UnitTests
 {
 
-    static TimeSpan timeout = new TimeSpan(0, 0, 0, 0, 0, 100);
+    static TimeSpan timeout = new TimeSpan(1000); // 1000 x 100 nanos = 100 microseconds
     static readonly long attemptsThreshold = 2;
 
     [Fact]

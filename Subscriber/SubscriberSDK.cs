@@ -1,4 +1,5 @@
-﻿using FastCSharp.Subscriber;
+﻿using FastCSharp.Observability;
+using FastCSharp.Subscriber;
 using Microsoft.Extensions.Configuration;
 
 namespace FastCSharp.SDK.Subscriber;
@@ -80,4 +81,6 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
     /// This will stop the subscriber from receiving messages.
     /// </summary>
     public abstract void UnSubscribe();
+
+    public abstract Task<IHealthReport> ReportHealthStatus();
 }    

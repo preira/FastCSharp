@@ -1,6 +1,8 @@
 using Xunit;
 using FastCSharp.SDK.Subscriber;
 using FastCSharp.Subscriber;
+using Microsoft.Extensions.Configuration;
+using FastCSharp.Observability;
 
 namespace Subscriber.Tests;
 
@@ -11,6 +13,9 @@ class TestSubscriber : AbstractSubscriber<string>
     }
 
     private OnMessageCallback<string>? _callback;
+
+    public override IConfigurationSection? Options { get; }
+
     public async Task Call()
     {
         if(_callback != null)
@@ -29,6 +34,11 @@ class TestSubscriber : AbstractSubscriber<string>
     public override void UnSubscribe()
     {
         return;
+    }
+
+    public override Task<IHealthReport> ReportHealthStatus()
+    {
+        throw new NotImplementedException();
     }
 }
 

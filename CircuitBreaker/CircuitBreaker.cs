@@ -1,4 +1,5 @@
 using System.Runtime.Serialization;
+using FastCSharp.Observability;
 
 namespace FastCSharp.CircuitBreaker;
 
@@ -55,7 +56,7 @@ public enum CircuitStatus
     HALF_CLOSED,
 }
 
-public abstract class AbstractBreaker : Breaker
+public abstract class AbstractBreaker : Breaker, IHealthReporter
 {
     protected CircuitStatus Status { get; set; }
     protected DateTime lastOpenTimestamp;
@@ -125,6 +126,19 @@ public abstract class AbstractBreaker : Breaker
         {
             callback();
             return true;
+        });
+    }
+
+    public async Task<IHealthReport> ReportHealthStatus()
+    {
+        return await Task.Run(() => 
+        {
+            var status = IsOpen ? HealthStatus.Unhealthy : HealthStatus.Healthy;
+            var report = new HealthReport(GetType().Name, status)
+            {
+                Description = $"Circuit is {(IsOpen ? "open" : "closed")}"
+            };
+            return report;
         });
     }
 }
