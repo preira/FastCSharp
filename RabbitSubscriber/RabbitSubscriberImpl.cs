@@ -13,10 +13,10 @@ namespace FastCSharp.RabbitSubscriber.Impl;
 public class RabbitSubscriber<T> : AbstractSubscriber<T>
 {
     readonly private IConnectionFactory connectionFactory;
-    private QueueConfig QConfig { get;}
+    private QueueConfig QConfig { get; }
     private readonly IList<AmqpTcpEndpoint>? endpoints;
-    private IConnection connection;
-    private IModel channel;
+    private IConnection? connection;
+    private IModel? channel;
 
     readonly private ILogger<RabbitSubscriber<T>> logger;
     private OnMessageCallback<T>? _callback;
@@ -28,6 +28,28 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     }
 
     public override IConfigurationSection? Options { get; }
+
+    /// <inheritdoc/>
+    public override bool IsHealthy { 
+        get 
+        {
+            var isConnected = connection != null && connection.IsOpen;
+            var hasChannel = isConnected && channel != null && channel.IsOpen;
+            if (!hasChannel)
+            {
+                return false;
+            }
+            try
+            {
+                var queueDeclareOk = channel?.QueueDeclarePassive(queue: QConfig.Name);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
 
     public RabbitSubscriber(
             IConnectionFactory connectionFactory,
@@ -43,46 +65,56 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
 
         logger = loggerFactory.CreateLogger<RabbitSubscriber<T>>();
 
-        if(endpoints == null)
-        {
-            connection = connectionFactory.CreateConnection();
-        }
-        else
-        {
-            connection = connectionFactory.CreateConnection(endpoints);
-        }
-        channel = connection.CreateModel();
-
         _consumerTag = Guid.NewGuid().ToString();
     }
 
+    /// <inheritdoc/>
     public void ResetConnection()
     {
-        if(!connection.IsOpen)
+        // Not sure it is necessary to lock here.
+        lock(this)
         {
-            connection.Close();
-            channel.Dispose();
-            connection.Dispose();
-            if(endpoints == null)
+            bool isConnected = false;
+
+            while (!isConnected)
             {
-                connection = connectionFactory.CreateConnection();
+                try
+                {
+                    if(connection == null || !connection.IsOpen)
+                    {
+                        channel?.Dispose();
+                        connection?.Dispose();
+
+                        if(endpoints == null)
+                        {
+                            connection = connectionFactory.CreateConnection();
+                        }
+                        else
+                        {
+                            connection = connectionFactory.CreateConnection(endpoints);
+                        }
+                        channel = connection.CreateModel();
+                    }
+                    else if(channel == null || channel.IsClosed)
+                    {
+                        channel?.Dispose();
+                        channel = connection.CreateModel();
+                    }
+
+                    isConnected = connection.IsOpen && channel.IsOpen;
+                }
+                catch (Exception e)
+                {
+                    logger.LogError("Error connecting to Rabbit MQ. Retrying in 5 seconds.\nError: {message}", e.Message);
+                    // TODO: should be configurable.
+                    Task.Delay(5000).Wait();
+                }
             }
-            else
-            {
-                connection = connectionFactory.CreateConnection(endpoints);
-            }
-            channel = connection.CreateModel();
         }
-        else if(channel.IsClosed)
-        {
-            channel.Dispose();
-            channel = connection.CreateModel();
-        }
+
     }
 
-    /// <summary>
-    /// Use reset to re-register the consumer.
-    /// </summary>
+    /// <inheritdoc/>
     public override void Reset()
     {
         ResetConnection();
@@ -91,12 +123,33 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
 
     private void RegisterConsumer()
     {
+        bool isRegistered = false;
 
-        // don't declare, just check if exists
-        channel.QueueDeclarePassive(queue: QConfig.Name);
+        while (!isRegistered)
+        {
+            try
+            {
+                if (channel == null || channel.IsClosed)
+                {
+                    ResetConnection();
+                }
+                // don't declare, just check if exists
+                channel?.QueueDeclarePassive(queue: QConfig.Name);
 
-        // BasicQos configuration setting from config read.
-        channel.BasicQos(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
+                // BasicQos configuration setting from config read.
+                channel?.BasicQos(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
+                isRegistered = true;
+            }
+            catch (Exception e)
+            {
+                logger.LogError("Error registering consumer. Retrying in 5 seconds.");
+                logger.LogError("Error: {message}", e.Message);
+                // TODO: should be configurable.
+                Task.Delay(5000).Wait();
+                ResetConnection();
+            }
+        }
+
 
         var consumer = new EventingBasicConsumer(channel);
 
@@ -106,6 +159,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         }
         consumer.Received += GetListener(_callback);
 
+        // If consumer already exists, it will be replaced. All inflight messages will be redelivered because "autoAck: false".
         channel.BasicConsume(queue: QConfig.Name,
                             autoAck: false,
                             consumer: consumer,
@@ -120,15 +174,13 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         RegisterConsumer();
     }
 
-    /// <summary>
-    /// Use unsubscribe to stop receiving messages.
-    /// </summary>
+    /// <inheritdoc/>
     public override void UnSubscribe()
     {
         try
         {
             // this throws an null pointer exception if the consumer has never registered before.
-            channel.BasicCancel(ConsumerTag);
+            channel?.BasicCancel(ConsumerTag);
         }
         catch (NullReferenceException)
         {
@@ -143,7 +195,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     public void CloseChannel()
     {
         // For Reply Codes, refer to https://www.rfc-editor.org/rfc/rfc2821#page-42
-        channel.Close(421, "Consumer temporarily unavailable.");
+        channel?.Close(421, "Consumer temporarily unavailable.");
     }
 
     public EventHandler<BasicDeliverEventArgs> GetListener(OnMessageCallback<T> callback)
@@ -159,11 +211,11 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 var success = await callback(message);
                 if (success)
                 {
-                    channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+                    channel?.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
                 }
                 else
                 {
-                    channel.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
+                    channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
                 }
             }
             catch (JsonException e)
@@ -171,13 +223,13 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 // Deserialization exception is a final exception and removes the message from the queue.
                 logger.LogError("Discarding unparseable message with id: {messageId}", ea?.BasicProperties.MessageId);
                 logger.LogError("Error: {message}", e.Message);
-                channel.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: false);
+                channel?.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: false);
             }
             catch (System.Exception e)
             {
                 logger.LogError("Discarding unparseable message with id: {messageId}", ea?.BasicProperties?.MessageId);
                 logger.LogError("Error: {message}", e.Message);
-                channel.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: true);
+                channel?.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: true);
                 throw;
             }
             logger.LogTrace(" [waiting]");
@@ -198,16 +250,19 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         }
     }
 
+    /// <inheritdoc/>
     public override async Task<IHealthReport> ReportHealthStatus()
     {
-        return await Task.Run(() => 
+        return await Task.Run(() =>
         {
-            var status = connection.IsOpen ? HealthStatus.Healthy : HealthStatus.Unhealthy;
+            var status = IsHealthy ? HealthStatus.Healthy : HealthStatus.Unhealthy;
+            
             var report = new HealthReport(GetType().Name, status)
             {
                 Description = $"RabbitMQ Connection Status: {status}"
             };
             return report;
+
         });
     }
 }

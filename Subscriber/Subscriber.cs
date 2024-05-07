@@ -81,6 +81,11 @@ public interface ISubscriber<T> : IDisposable, IHealthReporter
     /// </summary>
     public void UnSubscribe();
 
+    /// <summary>
+    /// Returns true if the subscriber is healthy and able to receive messages.
+    /// </summary>
+    public bool IsHealthy { get; }
+
     public IConfigurationSection? Options { get;}
 }
 

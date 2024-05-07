@@ -8,7 +8,11 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
 {
     readonly List<Handler<T>> handlers;
 
+    /// <inheritdoc/>
     public abstract IConfigurationSection? Options { get; }
+
+    /// <inheritdoc/>
+    public abstract bool IsHealthy { get; } 
 
     protected AbstractSubscriber()
     {

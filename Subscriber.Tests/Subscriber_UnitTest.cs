@@ -16,6 +16,8 @@ class TestSubscriber : AbstractSubscriber<string>
 
     public override IConfigurationSection? Options { get; }
 
+    public override bool IsHealthy => throw new NotImplementedException();
+
     public async Task Call()
     {
         if(_callback != null)
