@@ -225,6 +225,13 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 logger.LogError("Error: {message}", e.Message);
                 channel?.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: false);
             }
+            catch (UnauthorizedAccessException e)
+            {
+                // Unauthorized exception is a final exception and removes the message from the queue hopefully to a DLQ.
+                logger.LogError("Unacking unauthorized message with id '{messageId}' with requeue set to false. Hope you have DLQ set.", ea?.BasicProperties.MessageId);
+                logger.LogError("Error: {message}", e.Message);
+                channel?.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: false);
+            }
             catch (System.Exception e)
             {
                 logger.LogError("Discarding unparseable message with id: {messageId}", ea?.BasicProperties?.MessageId);
