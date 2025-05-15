@@ -8,6 +8,7 @@
     <version>1.5.0</version>
 
     <Author>João Pereira</Author>
+    <AssemblyName>FastCSharp.RabbitPublisher</AssemblyName>
 
     <Description>Package containing RabbitMQ simplified Publisher.</Description>
     <PackageTags>FastCSharp RabbitMQ Publisher</PackageTags>

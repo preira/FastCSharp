@@ -8,6 +8,7 @@
     <version>2.3.0</version>
 
     <Author>João Pereira</Author>
+    <AssemblyName>FastCSharp.Subscriber</AssemblyName>
 
     <Description>Package containing Message Queue Subscriber SDK.</Description>
     <PackageTags>FastCSharp SDK Subscriber MessageQueue</PackageTags>

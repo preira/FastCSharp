@@ -8,6 +8,7 @@
     <version>0.3.0</version>
 
     <Authors>João Pereira</Authors>
+    <AssemblyName>FastCSharp.Obervability</AssemblyName>
 
     <Description>Package containing functions to implement observability into FastCSharp libraries.</Description>
     <PackageTags>FastCSharp Observability Functions</PackageTags>

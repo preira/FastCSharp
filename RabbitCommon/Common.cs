@@ -48,4 +48,6 @@ public class RabbitConfig
     /// <seealso href="https://www.rabbitmq.com/heartbeats.html"/>
     /// <seealso href="https://www.rabbitmq.com/networking.html#tcp-keepalive"/>
     public TimeSpan? Heartbeat { get; set; }
+    public TimeSpan? NetworkRecoveryInterval { get; set; }
+    public bool AutomaticRecoveryEnabled { get; set; } = false;
 }

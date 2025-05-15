@@ -5,9 +5,10 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.RabbitSubscriber</PackageId>
-    <version>2.3.0</version>
+    <version>2.4.0</version>
 
     <Author>João Pereira</Author>
+    <AssemblyName>FastCSharp.RabbitSubscriber</AssemblyName>
 
     <Description>Package containing RabbitMQ simplified Subscriber.</Description>
     <PackageTags>FastCSharp RabbitMQ Subscriber</PackageTags>

@@ -105,10 +105,11 @@ public class RabbitSubscriberFactory : ISubscriberFactory
                 $"Message Queue was configured with Hostname:'{config.HostName}', Port:'{config.Port}', enpoints: '{JsonSerializer.Serialize(config.Hosts)}'.");
         }
 
-
         connectionFactory = new ConnectionFactory
         {
-            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitMQSubscriber"
+            ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitMQSubscriber",
+            NetworkRecoveryInterval = config.NetworkRecoveryInterval ?? TimeSpan.FromSeconds(10),
+            AutomaticRecoveryEnabled = config.AutomaticRecoveryEnabled
         };
 
         if (config.HostName != null) connectionFactory.HostName = config.HostName;

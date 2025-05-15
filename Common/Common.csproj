@@ -8,6 +8,7 @@
     <version>0.3.0</version>
 
     <Authors>João Pereira</Authors>
+    <AssemblyName>FastCSharp.Common</AssemblyName>
 
     <Description>Package containing functions common to FastCSharp libraries.</Description>
     <PackageTags>FastCSharp Common Functions</PackageTags>

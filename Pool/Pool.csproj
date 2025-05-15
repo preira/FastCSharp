@@ -8,6 +8,7 @@
     <version>1.3.0</version>
 
     <Author>João Pereira</Author>
+    <AssemblyName>FastCSharp.Pool</AssemblyName>
 
     <Description>Package containing Message Queue Publisher SDK.</Description>
     <PackageTags>FastCSharp Pool SDK</PackageTags>

@@ -93,7 +93,16 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                         {
                             connection = connectionFactory.CreateConnection(endpoints);
                         }
+                        connection.ConnectionShutdown += (sender, args) =>
+                        {
+                            logger.LogWarning("RabbitMQ connection shutdown: {0}. FastCSharp Client will try to recover.", args.ReplyText);
+                        };
+                        
                         channel = connection.CreateModel();
+                        channel.ModelShutdown += (sender, args) =>
+                        {
+                            logger.LogWarning("RabbitMQ channel shutdown: {0}. FastCSharp Client will try to recover.", args.ReplyText);
+                        };
                     }
                     else if(channel == null || channel.IsClosed)
                     {
@@ -102,6 +111,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                     }
 
                     isConnected = connection.IsOpen && channel.IsOpen;
+                    Task.Delay(1).Wait();
                 }
                 catch (Exception e)
                 {
@@ -202,9 +212,10 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     {
         return async (model, ea) =>
         {
-            logger.LogTrace(" [Receiving]");
             try
             {
+                logger.LogTrace(" [Receiving]");
+
                 var body = ea.Body.ToArray();
                 var message = JsonSerializer.Deserialize<T>(body);
 
@@ -239,7 +250,10 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 channel?.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: true);
                 throw;
             }
-            logger.LogTrace(" [waiting]");
+            finally
+            {   
+                logger.LogTrace(" [waiting]");
+            }
         };
     }
 

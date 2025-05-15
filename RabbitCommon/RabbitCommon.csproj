@@ -8,6 +8,7 @@
     <version>1.2.0</version>
 
     <Author>João Pereira</Author>
+    <AssemblyName>FastCSharp.RabbitCommon</AssemblyName>
 
     <Description>Package shared assets for RabbitPublisher and RabbitSubscriber.</Description>
     <PackageTags>FastCSharp RabbitMQ Publisher Subscriber</PackageTags>

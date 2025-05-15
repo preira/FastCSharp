@@ -8,6 +8,7 @@
     <version>2.1.0</version>
 
     <Authors>João Pereira</Authors>
+    <AssemblyName>FastCSharp.CircuitBreaker</AssemblyName>
 
     <Description>Flexible Circuit Breaker implementation that can be configured with a Breaker Strategy and a Backoff Strategy.</Description>
     <PackageTags>FastCSharp CircuitBreaker BreakerStrategy BackoffStrategy</PackageTags>
