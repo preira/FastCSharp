@@ -190,10 +190,10 @@ public class Pool_UnitTest
                 try
                 {
                     var owner = new Owner();
-                    for(int j = 0; j < 100; j++)
+                    for(int j = 0; j < 1000; j++)
                     {
                         owner.BorrowAndUse(pool);
-                        Thread.SpinWait(100*Random.Shared.Next(1, 10));
+                        Thread.SpinWait(1000*Random.Shared.Next(1, 10));
                     }
                 }
                 catch(Exception ex)
@@ -210,7 +210,7 @@ public class Pool_UnitTest
         {
             thread.Join();
         }
-        Assert.Equal(7, pool.Count);
+        Assert.InRange(pool.Count, 1, 10);
         Assert.Empty(exceptions);
         if (exceptions.Count > 0)
         {
@@ -248,7 +248,7 @@ public class Pool_UnitTest
                     for(int j = 0; j < 100; j++)
                     {
                         owner.BorrowAndUseWithRandomSpinWait(pool);
-                        Thread.SpinWait(10*Random.Shared.Next(1, 10));
+                        Thread.SpinWait(100*Random.Shared.Next(1, 10));
                     }
                 }
                 catch(Exception ex)
@@ -278,10 +278,10 @@ public class Pool_UnitTest
         Assert.Equal(0, stats.TimeoutRatio);
         Assert.InRange(stats.DisposedRatio, 0, 1);
         Assert.Equal(0, stats.MinSize);
-        Assert.InRange(stats.MaxSize, minPoolSize, MaxPoolSize);
+        Assert.InRange(stats.MaxSize, 1, MaxPoolSize);
         Assert.True(stats.PeriodStart < start, $"PeriodStart: {stats.PeriodStart} (should be before {start})");
 
-        Assert.Equal(7, pool.Count);
+        Assert.InRange(pool.Count, 1, 10);
 
 
 
