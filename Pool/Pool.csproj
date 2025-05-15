@@ -5,7 +5,7 @@
     <Company>FastCSharp</Company>
     <Product>FastCSharp</Product>
     <PackageId>FastCSharp.Pool</PackageId>
-    <version>1.3.0</version>
+    <version>1.3.1</version>
 
     <Author>João Pereira</Author>
     <AssemblyName>FastCSharp.Pool</AssemblyName>
