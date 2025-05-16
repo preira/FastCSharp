@@ -1,12 +1,10 @@
 
 using System.Collections.Concurrent;
-using System.Text.Json;
-using FastCSharp.Date;
 using FastCSharp.Observability;
 
 namespace FastCSharp.Pool;
 
-public delegate T Create<T>();
+public delegate T Create<out T>();
 
 public class Pool<T, K>  : IReturnable<K>, IPool<T>, IDisposable
 where T : Individual<K>, IDisposable

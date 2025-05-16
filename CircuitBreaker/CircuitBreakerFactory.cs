@@ -16,7 +16,7 @@ namespace FastCSharp.CircuitBreaker;
 /// For example it has a factory method that takes IConfigurationSection, OnMessage, OnOpen and OnReset and returns a Breaker.
 /// The factory method will read the configuration and create the appropriate BreakerStrategy and BackoffStrategy.
 /// </remarks> 
-public class CircuitBreakerFactory
+public static class CircuitBreakerFactory
 {
     public static CircuitBreakerBuilder<TInput, TResult> CreateBuilder<TInput, TResult>()
     {
@@ -43,13 +43,13 @@ public class CircuitBreakerBuilder<TInput, TResult>
                 Build();
                 isBuilt = true;
             }
-            return wrappedCircuit ?? originalCircuit ?? throw new Exception("Unable to build Circuitbreaker. This is a fatal unexpected exception.");
+            return wrappedCircuit ?? originalCircuit ?? throw new ArgumentNullException("Unable to build Circuitbreaker. This is a fatal unexpected exception.");
         }
     }
 
     public CircuitBreakerBuilder<TInput, TResult> Set(ILoggerFactory loggerFactory)
     {
-        logger = loggerFactory.CreateLogger<CircuitBreakerFactory>();
+        logger = loggerFactory.CreateLogger<CircuitBreakerBuilder<TInput, TResult>>();
         return this;
     }
 
@@ -91,7 +91,7 @@ public class CircuitBreakerBuilder<TInput, TResult>
                 throw new IncorrectInitializationException("Build method was called too early and configuration was not yet set for this CircuitBreaker.");
             }
  
-        var breakerSection = config?.GetSection(CircuitBreakerConfig.SectionName);
+        var breakerSection = config.GetSection(CircuitBreakerConfig.SectionName);
         var breakerConfig = breakerSection?.Get<CircuitBreakerConfig>();
         if (breakerConfig == null)
         {
@@ -133,7 +133,7 @@ public class CircuitBreakerBuilder<TInput, TResult>
         var strategySection = configSection?.GetSection(BreakerStrategyConfig.SectionName);
         var config = strategySection?.Get<BreakerStrategyConfig>();
 
-        if (config == null || config.Type == null)
+        if (config == null || config.Type == null || strategySection == null)
         {
             throw new IncorrectInitializationException("BreakerStrategy configuration not found or incorrect.");
         }
@@ -141,7 +141,7 @@ public class CircuitBreakerBuilder<TInput, TResult>
         switch (config.Type)
         {
             case FailureThresholdStrategyConfig.SectionName:
-                var eventBreakerConfig = strategySection?.Get<FailureThresholdStrategyConfig>();
+                var eventBreakerConfig = strategySection.Get<FailureThresholdStrategyConfig>();
                 if (eventBreakerConfig?.Threshold == null)
                 {
                     throw new IncorrectInitializationException($"BreakerStrategy is incorrect for the type {config.Type}.");
@@ -157,14 +157,14 @@ public class CircuitBreakerBuilder<TInput, TResult>
         var strategySection = configSection?.GetSection(BackoffStrategyConfig.SectionName);
         var config = strategySection?.Get<BackoffStrategyConfig>();
 
-        if (config == null || config.Type == null)
+        if (config == null || config.Type == null || strategySection == null)
         {
             throw new IncorrectInitializationException("BackoffStrategy configuration not found or incorrect.");
         }
         switch (config.Type)
         {
             case FixedBackoffConfig.SectionName:
-                var fixedBackoffConfig = strategySection?.Get<FixedBackoffConfig>();
+                var fixedBackoffConfig = strategySection.Get<FixedBackoffConfig>();
                 if (fixedBackoffConfig?.Duration == null)
                 {
                     throw new IncorrectInitializationException($"BackoffStrategy is incorrect for the type {config.Type}.");
@@ -172,7 +172,7 @@ public class CircuitBreakerBuilder<TInput, TResult>
                 TimeSpan duration = (TimeSpan)fixedBackoffConfig.Duration;
                 return new FixedBackoff(duration);
             case IncrementalBackoffConfig.SectionName:
-                var incrConf = strategySection?.Get<IncrementalBackoffConfig>();
+                var incrConf = strategySection.Get<IncrementalBackoffConfig>();
                 if (incrConf?.Increment == null || incrConf.MaxIncrements == null || incrConf.MinBackoff == null)
                 {
                     throw new IncorrectInitializationException($"BackoffStrategy is incorrect for the type {config.Type}.");

@@ -1,4 +1,3 @@
-
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -20,6 +19,7 @@ public class PoolStatsPeriod : IPoolStats
     // (12 + 31 + 24 + 60 + 60) x (12 x ( 8 bytes (DateTime) + 4 bytes (int)) 
     //      = 187 x 12 x 12 = 2244 objects x 12 bytes = 26.928 bytes
 
+    private object _lock = new ();
     private readonly ConcurrentDictionary<DateTime, int> poolHitCount;
     private readonly ConcurrentDictionary<DateTime, int> poolNewCount;
     private readonly ConcurrentDictionary<DateTime, int> poolErrorCount;
@@ -70,7 +70,7 @@ public class PoolStatsPeriod : IPoolStats
 
     private void IncrementWithLock(ConcurrentDictionary<DateTime, int> dictionary, DateTime key, int size = -1, Action? postAction = null)
     {
-        lock (this)
+        lock (_lock)
         {
             dictionary.AddOrUpdate(key, 1, (k, v) => v + 1);
 
@@ -79,10 +79,9 @@ public class PoolStatsPeriod : IPoolStats
             if (postAction!=null) postAction();
         }
     }
-
     public void PoolRequest(bool isHit, int size, DateTime key)
     {
-        lock (this)
+        lock (_lock)
         {
             poolRequestCount.AddOrUpdate(key, 1, (k, v) => v + 1);
             if (isHit)
@@ -113,7 +112,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 return poolRequestCount.Sum(e => e.Value);
             }
@@ -124,7 +123,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double hitCount = poolHitCount.Sum(e => e.Value);
                 double requestCount = poolRequestCount.Sum(e => e.Value);
@@ -138,7 +137,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double returnCount = poolReturnCount.Sum(e => e.Value);
                 double requestCount = poolRequestCount.Sum(e => e.Value);
@@ -152,7 +151,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double errorCount = poolErrorCount.Sum(e => e.Value);
                 double requestCount = poolRequestCount.Sum(e => e.Value);
@@ -166,7 +165,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double purgeCount = poolPurgeCount.Sum(e => e.Value);
                 double requestCount = poolRequestCount.Sum(e => e.Value);
@@ -180,7 +179,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double waitCount = poolWaitCount.Sum(e => e.Value);
                 double requestCount = poolRequestCount.Sum(e => e.Value);
@@ -194,7 +193,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double timeoutCount = poolTimeoutCount.Sum(e => e.Value);
                 double requestCount = poolRequestCount.Sum(e => e.Value);
@@ -208,7 +207,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double disposedCount = poolDisposedCount.Sum(e => e.Value);
                 double requestCount = poolRequestCount.Sum(e => e.Value);
@@ -222,7 +221,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double sizeChangeEventsCount = poolSizeChangeEvents.Sum(e => e.Value);
                 double requestCount = poolRequestCount.Sum(e => e.Value);
@@ -236,7 +235,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 double sizeChangeEventsCount = poolSizeChangeEvents.Sum(e => e.Value);
                 var period = poolSizeChangeEvents.Max(e => e.Key) - poolSizeChangeEvents.Min(e => e.Key);
@@ -251,7 +250,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 return poolMaxSize.Max(e => e.Value);
             }
@@ -262,7 +261,7 @@ public class PoolStatsPeriod : IPoolStats
     {
         get
         {
-            lock (this)
+            lock (_lock)
             {
                 return poolMinSize.Min(e => e.Value);
             }
@@ -287,7 +286,7 @@ public class PoolStatsPeriod : IPoolStats
            { "poolTimeoutCount", poolTimeoutCount }
        };
 
-        lock (this)
+        lock (_lock)
         {
             return JsonSerializer.SerializeToDocument(obj);
         }

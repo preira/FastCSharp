@@ -49,7 +49,7 @@ public class EmptyHealthReporter : IHealthReporter
 
 public class HealthReport : IHealthReport
 {
-    private Dictionary<string, IHealthReport> dependencies = new();
+    private readonly Dictionary<string, IHealthReport> dependencies = new();
     public ImmutableDictionary<string, IHealthReport> Dependencies => dependencies.ToImmutableDictionary(x => x.Key, x => x.Value);
 
     public string Name { get; set; }

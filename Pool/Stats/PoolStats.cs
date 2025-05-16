@@ -1,8 +1,6 @@
 
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
-using FastCSharp.Date;
 
 namespace FastCSharp.Pool;
 
@@ -11,6 +9,7 @@ namespace FastCSharp.Pool;
 /// </summary>
 public class PoolStats 
 {
+    private object _lock = new ();
     private readonly PoolStatsPeriod alltimeStats;
     private readonly ConcurrentDictionary<DateTime, PoolStatsPeriod> yearStats;
     private readonly ConcurrentDictionary<DateTime, PoolStatsPeriod> monthStats;
@@ -73,7 +72,7 @@ public class PoolStats
 
     private PoolStatsPeriod GetAndRotate(ConcurrentDictionary<DateTime, PoolStatsPeriod> statsPeriods, DateTime key, Func<DateTime, DateTime> Truncate)
     {
-        lock (this)
+        lock (_lock)
         {
             if (statsPeriods.TryGetValue(key, out var period))
             {
@@ -92,7 +91,7 @@ public class PoolStats
 
     private PoolStatsPeriod Get(ConcurrentDictionary<DateTime, PoolStatsPeriod> statsPeriods, DateTime key, Func<DateTime, DateTime> Truncate)
     {
-        lock (this)
+        lock (_lock)
         {
             if (statsPeriods.TryGetValue(key, out var period))
             {
@@ -278,7 +277,7 @@ public class PoolStats
             { "alltime", alltimeStats }
        };
 
-        lock (this)
+        lock (_lock)
         {
             return JsonSerializer.SerializeToDocument(obj);
         }

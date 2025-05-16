@@ -63,7 +63,7 @@ public abstract class AbstractBreaker : Breaker, IHealthReporter
     protected DateTime closeTimestamp;
     protected AbstractBreaker(BreakerStrategy strategy) : base(strategy)
     {
-        Close();
+        Status = CircuitStatus.CLOSED;
     }
 
     public override bool Open(TimeSpan duration)
@@ -454,6 +454,8 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
         }
 
         Closing();
+        cancellationTokenSource.Dispose();
+        cancellationTokenSource = null;
     }
 
 }

@@ -1,4 +1,3 @@
-using System.Dynamic;
 using FastCSharp.Date;
 
 namespace FastCSharp.Pool;
@@ -77,7 +76,7 @@ public class CurrentTimeFrames
     /// <returns></returns>
     public static DateTime TruncateMonth(DateTime dateTime)
     {
-        return new(dateTime.Year, dateTime.Month, 1);
+        return new(dateTime.Year, dateTime.Month, 1, 0, 0, 0, dateTime.Kind);
     }
 
     /// <summary>
@@ -87,7 +86,7 @@ public class CurrentTimeFrames
     /// <returns></returns>
     public static DateTime TruncateYear(DateTime dateTime)
     {
-        return new(dateTime.Year, 1, 1);
+        return new(dateTime.Year, 1, 1, 0, 0, 0, dateTime.Kind);
     }
 
 

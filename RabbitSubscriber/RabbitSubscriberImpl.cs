@@ -12,6 +12,7 @@ namespace FastCSharp.RabbitSubscriber.Impl;
 
 public class RabbitSubscriber<T> : AbstractSubscriber<T>
 {
+    private object _lock = new ();
     readonly private IConnectionFactory connectionFactory;
     private QueueConfig QConfig { get; }
     private readonly IList<AmqpTcpEndpoint>? endpoints;
@@ -72,7 +73,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     public void ResetConnection()
     {
         // Not sure it is necessary to lock here.
-        lock(this)
+        lock (_lock)
         {
             bool isConnected = false;
 

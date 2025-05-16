@@ -2,7 +2,7 @@ using FastCSharp.Observability;
 
 namespace FastCSharp.Pool;
 
-public interface IPool<T> : IHealthReporter
+public interface IPool<out T> : IHealthReporter
 {
     /// <summary>
     /// Borrows an individual of type <c>T</c> from the pool. 

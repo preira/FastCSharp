@@ -139,7 +139,7 @@ public class CircuitBreaker_UnitTest
     }
 
     [Fact]
-    public void ControlledFailureRecovery()
+    public async Task ControlledFailureRecovery()
     {
         var circuit =
             new CircuitBreaker(
@@ -160,7 +160,7 @@ public class CircuitBreaker_UnitTest
 
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
-        Thread.Sleep(Util._millisec_backoff);
+        await Task.Delay(Util._millisec_backoff);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -168,7 +168,7 @@ public class CircuitBreaker_UnitTest
     }
 
     [Fact]
-    public void UnControlledFailureRecovery()
+    public async Task UnControlledFailureRecovery()
     {
         var circuit =
             new CircuitBreaker(
@@ -190,7 +190,8 @@ public class CircuitBreaker_UnitTest
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
 
-        Thread.Sleep(Util._millisec_backoff);
+        await Task.Delay(Util._millisec_backoff);
+
         Success = false;
         circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute after timeout!");
@@ -286,7 +287,7 @@ public class BlockingCircuitBreaker_Tests
     }
 
     [Fact]
-    public void ControlledFailureRecovery()
+    public async Task ControlledFailureRecovery()
     {
         DateTime startTime = DateTime.Now;
         var circuit =
@@ -306,7 +307,8 @@ public class BlockingCircuitBreaker_Tests
         Assert.True(circuit.IsOpen, "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Thread.Sleep(Util._millisec_backoff);
+        await Task.Delay(Util._millisec_backoff);
+
         Success = false;
         circuit.Wrap(() => Success = true);
         TimeSpan elapsedTime = DateTime.Now - startTime;
@@ -648,7 +650,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     }
 
     [Fact]
-    public void ControlledFailureRecovery()
+    public async Task ControlledFailureRecovery()
     {
         TimeSpan timeout = new TimeSpan(0, 0, 0, 0, 20);
         var circuit =
@@ -670,7 +672,8 @@ public class EventDrivenCircuitBreaker_UnitTest
 
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
-        Thread.Sleep(timeout);
+
+        await Task.Delay(timeout);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -678,7 +681,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     }
 
     [Fact]
-    public void UnControlledFailureRecovery()
+    public async Task UnControlledFailureRecovery()
     {
         var circuit =
             new EventDrivenCircuitBreaker(
@@ -700,7 +703,8 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
 
-        Thread.Sleep(Util._millisec_backoff);
+        await Task.Delay(Util._millisec_backoff);
+
         Success = false;
         circuit.Wrap(() => Success = true);
         Assert.True(Success, "Function dind't execute after timeout!");
