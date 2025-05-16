@@ -7,6 +7,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using FastCSharp.Observability;
+using RabbitMQ.Client.Exceptions;
 
 namespace FastCSharp.RabbitSubscriber.Impl;
 
@@ -170,11 +171,26 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         }
         consumer.Received += GetListener(_callback);
 
-        // If consumer already exists, it will be replaced. All inflight messages will be redelivered because "autoAck: false".
-        channel.BasicConsume(queue: QConfig.Name,
-                            autoAck: false,
-                            consumer: consumer,
-                            consumerTag: ConsumerTag);
+        // If consumer already exists, it will throw an error. Channel will be closed and recreated.
+        try
+        {
+            channel.BasicConsume(queue: QConfig.Name,
+                                autoAck: false,
+                                consumer: consumer,
+                                consumerTag: ConsumerTag);
+        }
+        catch (OperationInterruptedException e)
+        {
+            logger.LogWarning(e, "Consumer already registered. Closing channel and recreating. " + 
+                "This has happened probably because there was a connection interruption that has been restablished.");
+            channel!.Dispose();
+            channel = connection!.CreateModel();
+            channel.BasicQos(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
+            channel.BasicConsume(queue: QConfig.Name,
+                                autoAck: false,
+                                consumer: consumer,
+                                consumerTag: ConsumerTag);
+        }
 
         logger.LogInformation("Waiting for messages from queue {messageOrigin}.", QConfig.Name);
     }

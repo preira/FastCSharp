@@ -43,7 +43,7 @@ public class CircuitBreakerBuilder<TInput, TResult>
                 Build();
                 isBuilt = true;
             }
-            return wrappedCircuit ?? originalCircuit ?? throw new ArgumentNullException("Unable to build Circuitbreaker. This is a fatal unexpected exception.");
+            return wrappedCircuit ?? originalCircuit ?? throw new ArgumentNullException(nameof(originalCircuit), "Unable to build Circuitbreaker. This is a fatal unexpected exception.");
         }
     }
 

@@ -103,12 +103,11 @@ where K : class, IDisposable
         }
     }
 
-
     public T Borrow(object caller, double timeout = -1)
     {
         if (disposed) throw new ObjectDisposedException(GetType().FullName);
 
-        // -1 signals to use defautl
+        // -1 signals to use default
         timeout = timeout > -1 ? timeout : DefaultTimeout;
         try
         {
@@ -118,48 +117,17 @@ where K : class, IDisposable
             while (available.IsEmpty && Count >= MaxSize)
             {
                 var remaining = timeLimit - DateTime.Now;
-                if (remaining <= TimeSpan.Zero) 
-                {
-                    stats?.PoolTimeout();
-                    if (stats?.TimeoutRatio > 0.5) PurgeInUse();
-                    throw new TimeoutException($"Could not get a {typeof(T)} from the pool within the {timeout} ms timeout.");
-                }
-                
+                CheckPoolTimeout(timeout, remaining <= TimeSpan.Zero);
+
                 stats?.PoolWait();
                 bool timedout = Monitor.Wait(_lock, remaining);
-                
+
                 if (!available.IsEmpty || Count < MaxSize) break;
 
-                if (timedout)
-                {
-                    stats?.PoolTimeout();
-                    if (stats?.TimeoutRatio > 0.5) PurgeInUse();
-                    throw new TimeoutException($"Could not get a {typeof(T)} from the pool within the {timeout} ms timeout.");
-                }
+                CheckPoolTimeout(timeout, timedout);
             }
 
-            Individual<K>? individual;
-
-            var isHit = available.TryDequeue(out individual);
-            
-            if (!isHit && Count < MaxSize)
-            {
-                Interlocked.Increment(ref count);
-                individual = CreateIndividual();
-            }
-
-            if (individual != null)
-            {
-                stats?.PoolRequest(isHit, Count);
-            
-                PutInUse(caller, individual);
-            }
-            else
-            {
-                stats?.PoolError();
-                throw new Exception("If you are reading this, something is wrong with the pool implementation.");
-            }
-
+            Individual<K>? individual = GetIndividual(caller);
 
             Monitor.Pulse(_lock);
             return (T)individual;
@@ -167,6 +135,43 @@ where K : class, IDisposable
         finally
         {
             Monitor.Exit(_lock);
+        }
+    }
+
+    private Individual<K> GetIndividual(object caller)
+    {
+        Individual<K>? individual;
+
+        var isHit = available.TryDequeue(out individual);
+
+        if (!isHit && Count < MaxSize)
+        {
+            Interlocked.Increment(ref count);
+            individual = CreateIndividual();
+        }
+
+        if (individual != null)
+        {
+            stats?.PoolRequest(isHit, Count);
+
+            PutInUse(caller, individual);
+        }
+        else
+        {
+            stats?.PoolError();
+            throw new Exception("If you are reading this, something is wrong with the pool implementation.");
+        }
+
+        return individual;
+    }
+
+    private void CheckPoolTimeout(double timeout, bool timedout)
+    {
+        if (timedout)
+        {
+            stats?.PoolTimeout();
+            if (stats?.TimeoutRatio > 0.5) PurgeInUse();
+            throw new TimeoutException($"Could not get a {typeof(T)} from the pool within the {timeout} ms timeout.");
         }
     }
 

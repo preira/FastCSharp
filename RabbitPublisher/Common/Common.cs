@@ -46,7 +46,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
         defaultTimeout = 1000;
     }
 
-    public IRabbitChannel Channel(object owner, string exchangeName, string? queue, string? routingKey = null)
+    public IRabbitChannel Channel(object owner, string exchangeName, string? queue, string? routingKey)
     {
         if(disposed) throw new ObjectDisposedException(GetType().FullName);
 
@@ -55,6 +55,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 
         if(!poolExists)
         {
+            logger.LogDebug($"Creating new channel pool for exchange '{exchangeName}' and queue '{queue}'.");
             // TODO: pass min, max, initialize defaultTimeout and gather stats from configuration
             // if it doesn't exist create a new pool after verifying the exchange and routing key
             pool = new Pool<RabbitChannel, IModel>(

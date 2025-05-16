@@ -53,12 +53,12 @@ public class RabbitPublisher<T> : IPublisher<T>
         pool = connectionPool;
     }
 
-    public IPublisher<T> ForExchange(string destination)
+    public IPublisher<T> ForExchange(string exchange)
     {
-        Exchange = Config?.Exchanges?[destination];
+        Exchange = Config?.Exchanges?[exchange];
         if (Exchange == null || string.IsNullOrWhiteSpace(Exchange.Name))
         {
-            throw new ArgumentException($"Could not find the exchange for '{destination}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
+            throw new ArgumentException($"Could not find the exchange for '{exchange}' in the section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
         }
 
         // reset previous configuration
@@ -68,12 +68,12 @@ public class RabbitPublisher<T> : IPublisher<T>
         return this;
     }
 
-    public IPublisher<T> ForQueue(string q)
+    public IPublisher<T> ForQueue(string queue)
     {
-        queue = Exchange?.Queues?[q];
-        if (queue == null)
+        this.queue = Exchange?.Queues?[queue];
+        if (this.queue == null)
         {
-            throw new ArgumentException($"Could not find the queue for '{q}' in the Queues of section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
+            throw new ArgumentException($"Could not find the queue for '{queue}' in the Queues of section {nameof(RabbitPublisherConfig)}. Please check your configuration.");
         }
         return this;
     }
@@ -112,26 +112,26 @@ public class RabbitPublisher<T> : IPublisher<T>
     /// Will publish the whole list of messages passed as argument and await for confirmation at the
     /// end of the batch.
     /// </summary>
-    /// <param name="msgs">The list of messages to publish.</param>
+    /// <param name="messages">The list of messages to publish.</param>
     /// <returns>A Boolean future that indicates if the whole batch has been published
     /// or if a problem occured.</returns>
-    public async Task<bool> Publish(IEnumerable<T> msgs)
+    public async Task<bool> Publish(IEnumerable<T> messages)
     {
-        var messages = new List<T?>();
+        var msgList = new List<T?>();
         return await Publish(
             async () => {
-                foreach (var message in msgs)
+                foreach (var message in messages)
                 {
                     var msg = message;
                     if (handlers != null)
                         foreach (var handler in handlers) msg = await handler(msg);
                     
-                    messages.Add(msg);
+                    msgList.Add(msg);
                 }
                 
             },
             (IRabbitChannel channel) => {
-                foreach (var message in messages)
+                foreach (var message in msgList)
                 {
                     byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(message);
 

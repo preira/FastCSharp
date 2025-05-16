@@ -454,8 +454,6 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
         }
 
         Closing();
-        cancellationTokenSource.Dispose();
-        cancellationTokenSource = null;
     }
 
 }

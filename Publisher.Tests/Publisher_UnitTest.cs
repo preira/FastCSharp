@@ -91,6 +91,8 @@ public class Publisher_UnitTest
         using(var publisher = new TestPublisher(rc))
         {
             publisher.NOp();
+            Assert.False(rc.HasBeenDisposed);
+            Assert.True(rc.IsNopCalled);
         }
     }
 
