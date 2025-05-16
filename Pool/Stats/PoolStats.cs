@@ -9,7 +9,7 @@ namespace FastCSharp.Pool;
 /// </summary>
 public class PoolStats 
 {
-    private object _lock = new ();
+    public readonly object _lock = new ();
     private readonly PoolStatsPeriod alltimeStats;
     private readonly ConcurrentDictionary<DateTime, PoolStatsPeriod> yearStats;
     private readonly ConcurrentDictionary<DateTime, PoolStatsPeriod> monthStats;

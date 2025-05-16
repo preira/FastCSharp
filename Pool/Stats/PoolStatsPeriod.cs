@@ -19,7 +19,7 @@ public class PoolStatsPeriod : IPoolStats
     // (12 + 31 + 24 + 60 + 60) x (12 x ( 8 bytes (DateTime) + 4 bytes (int)) 
     //      = 187 x 12 x 12 = 2244 objects x 12 bytes = 26.928 bytes
 
-    private object _lock = new ();
+    public readonly object _lock = new ();
     private readonly ConcurrentDictionary<DateTime, int> poolHitCount;
     private readonly ConcurrentDictionary<DateTime, int> poolNewCount;
     private readonly ConcurrentDictionary<DateTime, int> poolErrorCount;

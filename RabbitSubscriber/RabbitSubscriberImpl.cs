@@ -13,7 +13,7 @@ namespace FastCSharp.RabbitSubscriber.Impl;
 
 public class RabbitSubscriber<T> : AbstractSubscriber<T>
 {
-    private object _lock = new ();
+    public readonly object _lock = new ();
     readonly private IConnectionFactory connectionFactory;
     private QueueConfig QConfig { get; }
     private readonly IList<AmqpTcpEndpoint>? endpoints;
