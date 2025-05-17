@@ -143,7 +143,12 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             {
                 if (channel == null || channel.IsClosed)
                 {
+                    logger.LogTrace("Reseting connection befor registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
                     ResetConnection();
+                }
+                else
+                {
+                    logger.LogTrace("Connection and channel is operational for registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
                 }
                 // don't declare, just check if exists
                 channel?.QueueDeclarePassive(queue: QConfig.Name);
@@ -174,6 +179,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         // If consumer already exists, it will throw an error. Channel will be closed and recreated.
         try
         {
+            logger.LogTrace("Subscribing consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
             channel.BasicConsume(queue: QConfig.Name,
                                 autoAck: false,
                                 consumer: consumer,
@@ -206,6 +212,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     {
         try
         {
+            logger.LogTrace("Unsubscribing consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
             // this throws an null pointer exception if the consumer has never registered before.
             channel?.BasicCancel(ConsumerTag);
         }
@@ -221,6 +228,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     /// </summary>
     public void CloseChannel()
     {
+        logger.LogTrace("Close channel initiated by consumer '{Tag}' for queue '{Queue}'.", ConsumerTag, QConfig.Name);
         // For Reply Codes, refer to https://www.rfc-editor.org/rfc/rfc2821#page-42
         channel?.Close(421, "Consumer temporarily unavailable.");
     }
@@ -231,7 +239,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         {
             try
             {
-                logger.LogTrace(" [Receiving]");
+                logger.LogTrace(" [Receiving-Thread:{ThreadID}] Message with delivery tag: {Tag}", Environment.CurrentManagedThreadId, ea.DeliveryTag);
 
                 var body = ea.Body.ToArray();
                 var message = JsonSerializer.Deserialize<T>(body);
@@ -239,32 +247,34 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 var success = await callback(message);
                 if (success)
                 {
+                    logger.LogTrace(" [Acknwolledging] Message with delivery tag: {Tag}", ea.DeliveryTag);
                     channel?.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
                 }
                 else
                 {
+                    logger.LogTrace(" [Rejecting and requeing] Message with delivery tag: {Tag}", ea.DeliveryTag);
                     channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
                 }
             }
             catch (JsonException e)
             {
                 // Deserialization exception is a final exception and removes the message from the queue.
-                logger.LogError("Discarding unparseable message with id: {messageId}", ea?.BasicProperties.MessageId);
+                logger.LogError("Discarding unparseable message with id: {messageId} and tag: {Tag}", ea.BasicProperties.MessageId, ea.DeliveryTag);
                 logger.LogError("Error: {message}", e.Message);
-                channel?.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: false);
+                channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (UnauthorizedAccessException e)
             {
                 // Unauthorized exception is a final exception and removes the message from the queue hopefully to a DLQ.
-                logger.LogError("Unacking unauthorized message with id '{messageId}' with requeue set to false. Hope you have DLQ set.", ea?.BasicProperties.MessageId);
+                logger.LogError("Unacking unauthorized message with tag '{Tag}' with requeue set to false. Hope you have DLQ set.", ea.DeliveryTag);
                 logger.LogError("Error: {message}", e.Message);
-                channel?.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: false);
+                channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (System.Exception e)
             {
-                logger.LogError("Discarding unparseable message with id: {messageId}", ea?.BasicProperties?.MessageId);
+                logger.LogError("Discarding unparseable message with tag: {Tag}", ea.DeliveryTag);
                 logger.LogError("Error: {message}", e.Message);
-                channel?.BasicNack(deliveryTag: ea?.DeliveryTag ?? 0, multiple: false, requeue: true);
+                channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
                 throw;
             }
             finally
