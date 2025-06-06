@@ -68,8 +68,8 @@ builder.Services.AddRabbitPublisher<string>(builder.Configuration);
 var app = builder.Build();
 
 
-app.MapGet("/", async (string message, IRabbitPublisher<string> publisher) => {
-    return await publisher.ForExchange("DIRECT_EXCHANGE").Publish(message);
+app.MapGet("/", async (string message, IAsyncRabbitPublisher<string> publisher) => {
+    return await publisher.ForExchange("DIRECT_EXCHANGE").PublishAsync(message);
 });
 
 app.Run();
@@ -156,8 +156,8 @@ var connectionPool = new RabbitConnectionPool(config, loggerFactory);
 var app = builder.Build();
 
 app.MapGet("/", async (string message) => {
-    IRabbitPublisher<string> publisher = new RabbitPublisher<string>(connectionPool, loggerFactory, config);
-    return await publisher.ForExchange("DIRECT_EXCHANGE").Publish(message);
+    IAsyncRabbitPublisher<string> publisher = new AsyncRabbitPublisher<string>(connectionPool, loggerFactory, config);
+    return await publisher.ForExchange("DIRECT_EXCHANGE").PublishAsync(message);
 });
 
 app.Run();
