@@ -2,50 +2,6 @@ using System.Collections.Immutable;
 using System.Text;
 
 namespace FastCSharp.Observability;
-public enum HealthStatus
-{
-    Healthy,
-    Degraded,
-    Unhealthy,
-    Inexistent,
-    Saturated
-}
-
-public interface IHealthReporter
-{
-    /// <summary>
-    /// Obtains a health report for the resource.
-    /// </summary>
-    /// <returns>IHealthReport with the state of the resource.</returns>
-    public Task<IHealthReport> ReportHealthStatus();
-}
-
-public interface IHealthReport
-{
-    public ImmutableDictionary<string, IHealthReport> Dependencies { get; }
-
-    public string Name { get; }
-
-    public HealthStatus Status { get; }
-
-    public string? Description { get; }
-
-    public string ToString();
-
-    public string Summarize();
-}
-
-public class EmptyHealthReporter : IHealthReporter
-{
-    public string Name { get; }
-    public string Message { get; }
-    public EmptyHealthReporter(string name, string message)
-    {
-        this.Name = name;
-        this.Message = message;
-    }
-    public Task<IHealthReport> ReportHealthStatus() => Task.FromResult((IHealthReport) new HealthReport(Name, HealthStatus.Inexistent, Message));
-}
 
 public class HealthReport : IHealthReport
 {

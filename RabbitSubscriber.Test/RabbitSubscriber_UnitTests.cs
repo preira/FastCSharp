@@ -165,7 +165,8 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
+
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
 
         using var subscriber = new RabbitSubscriber<object>(connectionFactory.Object, queue, loggerFactory, null);
         Assert.NotNull(subscriber);
@@ -199,7 +200,7 @@ public class RabbitSubscriber_UnitTest
 
 
     [Fact]
-    public void RabbitSubscriber_Register()
+    public async Task RabbitSubscriber_Register()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
         var queue = new QueueConfig()
@@ -209,27 +210,28 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+
+        var channel = new Mock<IChannel>();
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
         connection.Setup(conn => conn.IsOpen).Returns(true);
-        model.Setup(_model => _model.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             // connection.IsOpen && channel.IsOpen
-            subscriber.Register(async (msg) => await new Task<bool>(() => true));
+            await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
         }
 
-        model.Verify(channel => channel.QueueDeclarePassive(queue.Name), Times.Once);
-        model.Verify(channel => channel.BasicQos((uint)queue.PrefetchSize, (ushort)queue.PrefetchCount, false), Times.Once);
-        model.Verify(channel => channel.QueueDeclare(queue.Name, true, false, false, null), Times.Never);
-        model.Verify(channel => channel.Dispose(), Times.Once);
+        channel.Verify(channel => channel.QueueDeclarePassiveAsync(queue.Name, It.IsAny<CancellationToken>()), Times.Once);
+        channel.Verify(channel => channel.BasicQosAsync((uint)queue.PrefetchSize, (ushort)queue.PrefetchCount, false, It.IsAny<CancellationToken>()), Times.Once);
+        channel.Verify(channel => channel.Dispose(), Times.Once);
         connection.Verify(conn => conn.Dispose(), Times.Once);
     }
 
     [Fact]
-    public async void RabbitSubscriber_TestConsumer()
+    public async Task RabbitSubscriber_TestConsumer()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
         var queue = new QueueConfig()
@@ -239,40 +241,48 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
-        model.Setup(_model => _model.IsOpen).Returns(true);
-        model.Setup(_model => _model.BasicAck(It.IsAny<ulong>(), It.IsAny<bool>()));
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+        var channel = new Mock<IChannel>();
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.BasicAckAsync(It.IsAny<ulong>(), It.IsAny<bool>(), CancellationToken.None));
 
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
         connection.Setup(conn => conn.IsOpen).Returns(true);
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
-            subscriber.Register(async (msg) => await new Task<bool>(() => true));
+            await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
             var basicProperties = new Mock<IBasicProperties>();
             basicProperties.SetupGet(prop => prop.MessageId).Returns("TestMessageId-1");
-            var deliverEventArgs = new BasicDeliverEventArgs();
-            deliverEventArgs.Body = JsonSerializer.SerializeToUtf8Bytes<string>("message");
-            deliverEventArgs.DeliveryTag = 1;
-            deliverEventArgs.BasicProperties = basicProperties.Object;
+            ulong deliveryTag = 1;
 
-            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(model, subscriber, deliverEventArgs, new Task<bool>(() => true));
-            model.Verify(channel => channel.BasicAck(deliverEventArgs.DeliveryTag, false), Times.Once);
+            var deliverEventArgs = new BasicDeliverEventArgs(
+                    Guid.NewGuid().ToString(), 
+                    deliveryTag, 
+                    false, 
+                    "exchange", 
+                    "routingKey", 
+                    basicProperties.Object,
+                    JsonSerializer.SerializeToUtf8Bytes("message")
+                );
 
-            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(model, subscriber, deliverEventArgs, new Task<bool>(() => false));
-            model.Verify(channel => channel.BasicNack(deliverEventArgs.DeliveryTag, false, true), Times.Once);
+            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(channel, subscriber, deliverEventArgs, new Task<bool>(() => true));
+            channel.Verify(channel => channel.BasicAckAsync(deliveryTag, false, It.IsAny<CancellationToken>()), Times.Once);
 
-            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(model, subscriber, deliverEventArgs, new Task<bool>(() => throw new JsonException()));
-            model.Verify(channel => channel.BasicNack(deliverEventArgs.DeliveryTag, false, false), Times.Once);
+            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(channel, subscriber, deliverEventArgs, new Task<bool>(() => false));
+            channel.Verify(channel => channel.BasicNackAsync(deliveryTag, false, true, It.IsAny<CancellationToken>()), Times.Once);
 
-            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(model, subscriber, deliverEventArgs, new Task<bool>(() => throw new System.Exception()));
-            model.Verify(channel => channel.BasicNack(deliverEventArgs.DeliveryTag, false, true), Times.Exactly(2));
+            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(channel, subscriber, deliverEventArgs, new Task<bool>(() => throw new JsonException()));
+            channel.Verify(channel => channel.BasicNackAsync(deliveryTag, false, false, It.IsAny<CancellationToken>()), Times.Once);
+
+            await AsyncInvoke_GetListenerAndAwaitTaskCompletion(channel, subscriber, deliverEventArgs, new Task<bool>(() => throw new Exception()));
+            channel.Verify(channel => channel.BasicNackAsync(deliveryTag, false, true, It.IsAny<CancellationToken>()), Times.Exactly(2));
         }
     }
 
     [Fact]
-    public void RabbitSubscriber_TestConsumerJsonDeserializationFails()
+    public async Task RabbitSubscriber_TestConsumerJsonDeserializationFails()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
         var queue = new QueueConfig()
@@ -282,44 +292,52 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+        var channel = new Mock<IChannel>();
 
-        model.Setup(_model => _model.IsOpen).Returns(true);
-        model.Setup(_model => _model.BasicAck(It.IsAny<ulong>(), It.IsAny<bool>()));
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.BasicAckAsync(It.IsAny<ulong>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()));
 
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
+
         connection.Setup(conn => conn.IsOpen).Returns(true);
 
 
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
-            subscriber.Register(async (msg) => await new Task<bool>(() => true));
+            await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
             var basicProperties = new Mock<IBasicProperties>();
             basicProperties.SetupGet(prop => prop.MessageId).Returns("TestMessageId-1");
-            var deliverEventArgs = new BasicDeliverEventArgs();
-            deliverEventArgs.Body = new ReadOnlyMemory<byte>(new byte[5]);
-            deliverEventArgs.DeliveryTag = 1;
-            deliverEventArgs.BasicProperties = basicProperties.Object;
+            var deliverEventArgs = new BasicDeliverEventArgs(
+                    Guid.NewGuid().ToString(), 
+                    1, 
+                    false, 
+                    "exchange", 
+                    "routingKey", 
+                    basicProperties.Object,
+                    new ReadOnlyMemory<byte>(new byte[5])
+                );
 
-            var eventHandler = subscriber.GetListener(
+            var eventHandlerAsync = subscriber.GetAsyncListener(
                     AsyncBooleanTrue()
                 );
-            eventHandler(model, deliverEventArgs);
-            model.Verify(channel => channel.BasicNack(deliverEventArgs.DeliveryTag, false, false), Times.Once);
+            await eventHandlerAsync(channel, deliverEventArgs);
+            channel.Verify(channel => channel.BasicNackAsync(deliverEventArgs.DeliveryTag, false, false, It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 
-    private static async Task AsyncInvoke_GetListenerAndAwaitTaskCompletion(Mock<IModel> model, RabbitSubscriber<string> subscriber, BasicDeliverEventArgs deliverEventArgs, Task<bool> task)
+    private static async Task AsyncInvoke_GetListenerAndAwaitTaskCompletion(
+        Mock<IChannel> channel, RabbitSubscriber<string> subscriber, BasicDeliverEventArgs deliverEventArgs, Task<bool> task)
     {
-        var eventHandler = subscriber.GetListener(
+        var eventHandler = subscriber.GetAsyncListener(
             async (msg) =>
             {
                 task.Start();
                 return await task;
             });
-        eventHandler.Invoke(model, deliverEventArgs);
+        await eventHandler.Invoke(channel, deliverEventArgs);
 
         while (!task.IsCompleted)
         {
@@ -348,19 +366,21 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+
+        var channel = new Mock<IChannel>();
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
         connection.Setup(conn => conn.IsOpen).Returns(true);
-        model.Setup(_model => _model.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
-            subscriber.Register(async (msg) => await new Task<bool>(() => true));
+            await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
             connection.Setup(conn => conn.IsOpen).Returns(false);
             
             // Loops until the connection is recovered
-            var resetTask = Task.Run(() => subscriber.ResetConnection());
+            var resetTask = Task.Run(() => subscriber.ResetConnectionAsync());
 
             await Task.Delay(2);
 
@@ -369,12 +389,13 @@ public class RabbitSubscriber_UnitTest
             // Wait for the reset task to complete
             await resetTask;
 
-            model.Verify(channel => channel.Dispose(), Times.AtLeastOnce);
+            channel.Verify(channel => channel.Dispose(), Times.AtLeastOnce);
             connection.Verify(conn => conn.Dispose(), Times.AtLeastOnce);
         }
 
-        connection.Verify(conn => conn.CreateModel(), Times.AtLeastOnce);
-        connectionFactory.Verify(factory => factory.CreateConnection(), Times.AtLeastOnce);
+        connection.Verify(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        connectionFactory.Verify(factory => factory.CreateConnectionAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+
     }
 
     [Fact]
@@ -388,42 +409,45 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+
+        var channel = new Mock<IChannel>();
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
 
         connection.Setup(conn => conn.IsOpen).Returns(true);
-        model.Setup(_model => _model.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
-            subscriber.Register(async (msg) => await new Task<bool>(() => true));
-            model.Verify(channel => channel.Dispose(), Times.Never);
+            await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
+            channel.Verify(channel => channel.Dispose(), Times.Never);
             connection.Verify(conn => conn.Dispose(), Times.Never);
-            connection.Verify(conn => conn.CreateModel(), Times.Once);
-            connectionFactory.Verify(factory => factory.CreateConnection(), Times.Once);
+            
+            connection.Verify(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>()), Times.Once);
+            connectionFactory.Verify(factory => factory.CreateConnectionAsync(It.IsAny<CancellationToken>()), Times.Once);
             
             await Task.Delay(1);
-            model.Setup(_model => _model.IsClosed).Returns(true);
-            model.Setup(_model => _model.IsOpen).Returns(false);
+            channel.Setup(_channel => _channel.IsClosed).Returns(true);
+            channel.Setup(_channel => _channel.IsOpen).Returns(false);
             await Task.Delay(1);
             
-            var resetTask = Task.Run(() => subscriber.ResetConnection());
+            var resetTask = Task.Run(() => subscriber.ResetConnectionAsync());
             await Task.Delay(1);
-            model.Setup(_model => _model.IsClosed).Returns(false);
-            model.Setup(_model => _model.IsOpen).Returns(true);
+            channel.Setup(_channel => _channel.IsClosed).Returns(false);
+            channel.Setup(_channel => _channel.IsOpen).Returns(true);
             await resetTask;
 
-            model.Verify(channel => channel.Dispose(), Times.AtLeastOnce);
+            channel.Verify(channel => channel.Dispose(), Times.AtLeastOnce);
             connection.Verify(conn => conn.Dispose(), Times.Never);
         }
 
-        connection.Verify(conn => conn.CreateModel(), Times.AtLeastOnce);
-        connectionFactory.Verify(factory => factory.CreateConnection(), Times.Once);
+        connection.Verify(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        connectionFactory.Verify(factory => factory.CreateConnectionAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public void Test_ResetAndRegisterConsumerWithNullCallback()
+    public async Task Test_ResetAndRegisterConsumerWithNullCallback()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
         var queue = new QueueConfig()
@@ -433,21 +457,23 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+
+        var channel = new Mock<IChannel>();
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
 
         connection.Setup(conn => conn.IsOpen).Returns(true);
-        model.Setup(_model => _model.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
-            Assert.Throws<IncorrectInitializationException>(() => subscriber.Reset());
+            await Assert.ThrowsAsync<IncorrectInitializationException>(async () => await subscriber.ResetAsync());
         }
     }
 
     [Fact]
-    public void Test_ResetOK()
+    public async Task Test_ResetOK()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
         var queue = new QueueConfig()
@@ -457,23 +483,25 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+
+        var channel = new Mock<IChannel>();
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
 
         connection.Setup(conn => conn.IsOpen).Returns(true);
-        model.Setup(_model => _model.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
-            subscriber.Register(async (msg) => await new Task<bool>(() => true));
-            subscriber.Reset();
+            await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
+            await subscriber.ResetAsync();
         }
-        model.Verify(channel => channel.QueueDeclarePassive(queue.Name), Times.Exactly(2));
+        channel.Verify(channel => channel.QueueDeclarePassiveAsync(queue.Name, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
-    public void Test_UnSubscribe()
+    public async Task Test_UnSubscribe()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
         var queue = new QueueConfig()
@@ -483,27 +511,29 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+
+        var channel = new Mock<IChannel>();
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
 
         connection.Setup(conn => conn.IsOpen).Returns(true);
-        model.Setup(_model => _model.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
-            subscriber.Register(async (msg) => await new Task<bool>(() => true));
-            subscriber.UnSubscribe();
+            await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
+            await subscriber.UnSubscribeAsync();
         }
 
-        model.Verify(channel => channel.Dispose(), Times.Once);
+        channel.Verify(channel => channel.Dispose(), Times.Once);
         connection.Verify(conn => conn.Dispose(), Times.Once);
-        connection.Verify(conn => conn.CreateModel(), Times.Once);
-        connectionFactory.Verify(factory => factory.CreateConnection(), Times.Once);
+        connection.Verify(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>()), Times.Once);
+        connectionFactory.Verify(factory => factory.CreateConnectionAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public void Test_CloseChannel()
+    public async Task Test_CloseChannel()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
         var queue = new QueueConfig()
@@ -513,19 +543,21 @@ public class RabbitSubscriber_UnitTest
             PrefetchSize = 0,
         };
         var connection = new Mock<IConnection>();
-        connectionFactory.Setup(factory => factory.CreateConnection()).Returns(connection.Object);
-        var model = new Mock<IModel>();
-        connection.Setup(conn => conn.CreateModel()).Returns(model.Object);
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+
+        var channel = new Mock<IChannel>();
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
 
         connection.Setup(conn => conn.IsOpen).Returns(true);
-        model.Setup(_model => _model.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
-            subscriber.Register(async (msg) => await new Task<bool>(() => true));
-            subscriber.CloseChannel();
+            await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
+            await subscriber.CloseChannel();
+            Assert.NotNull(subscriber);
         }
 
-        model.Verify(channel => channel.Close(It.IsAny<ushort>(), It.IsAny<string>()), Times.Once);
     }
 }

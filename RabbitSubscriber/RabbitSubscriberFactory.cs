@@ -10,54 +10,6 @@ using System.Text.Json;
 namespace FastCSharp.RabbitSubscriber;
 
 /// <summary>
-/// RabbitMQ Subscriber Configuration
-/// </summary>
-public class RabbitSubscriberConfig : RabbitConfig
-{
-    /// <summary>
-    /// Maximum number of channels allowed on the connection. Default is 1.
-    /// </summary>
-    /// <seealso href="https://www.rabbitmq.com/connections.html#channels"/>
-    /// <seealso href="https://www.rabbitmq.com/channels.html"/>
-    /// <seealso href="https://www.rabbitmq.com/consumer-prefetch.html"/>
-    public int? ChannelMax { get; internal set; }
-
-    public virtual Dictionary<string, QueueConfig> Queues { get; internal set; } = new();
-
-}
-
-/// <summary>
-/// RabbitMQ Queue Configuration.
-/// </summary>
-public class QueueConfig
-{
-    /// <summary>
-    /// The name of the queue.
-    /// </summary>
-    public string? Name { get; set; }
-
-    /// <summary>
-    /// The maximum number of messages that the server will deliver, 0 if unlimited.
-    /// </summary>
-    public ushort? PrefetchCount { get; set; }
-
-    /// <summary>
-    /// Specifies a prefetch window in octets.
-    /// </summary>
-    /// <value></value>
-    /// <remarks>
-    /// The server will send a message in advance if it is equal to or smaller in size than 
-    /// the available prefetch size (and also falls into other prefetch limits).
-    /// May be set to zero, meaning "no specific limit", although other prefetch limits may still apply.
-    /// The prefetch-size is ignored if the no-ack option is set.
-    /// </remarks>
-    /// <seealso href="https://www.rabbitmq.com/consumer-prefetch.html"/>
-    public ushort? PrefetchSize { get; set; }
-
-    public IConfigurationSection? Options { get; set; }
-}
-
-/// <summary>
 /// RabbitMQ Subscriber Factory. Provides a subscriber for a given queue.
 /// </summary>
 public class RabbitSubscriberFactory : ISubscriberFactory

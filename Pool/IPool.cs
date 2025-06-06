@@ -2,7 +2,7 @@ using FastCSharp.Observability;
 
 namespace FastCSharp.Pool;
 
-public interface IPool<out T> : IHealthReporter
+public interface IAsyncPool<T> : IHealthReporter
 {
     /// <summary>
     /// Borrows an individual of type <c>T</c> from the pool. 
@@ -24,6 +24,6 @@ public interface IPool<out T> : IHealthReporter
     /// <param name="caller"></param>
     /// <param name="timeout">A timeout of -1 signals to wait for the default timeout (this is the default value)</param>
     /// <returns></returns>
-    T Borrow(object caller, double timeout = -1);
+    Task<T> BorrowAsync(object caller, double timeout = -1);
 
 }

@@ -17,7 +17,7 @@ namespace FastCSharp.Pool;
 /// 
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class Individual<T> : IDisposable
+public class Individual<T> : IAsyncDisposable
 where T : class, IDisposable
 {
 
@@ -61,10 +61,22 @@ where T : class, IDisposable
             value?.Dispose();
         }
     }
-    
-    public void Dispose()
+    // public void Dispose()
+    // {
+    //     bool? isPoolExists = false; 
+    //     Task.Run(async () => isPoolExists = ReturnAddress != null ? await ReturnAddress.Return(this) : false).RunSynchronously();
+
+    //     if (isPoolExists == false)
+    //     {
+    //         // There is no more pool holding this individual.
+    //         DisposeValue(true);
+    //     }
+    // }
+
+    public async ValueTask DisposeAsync()
     {
-        var isPoolExists = ReturnAddress?.Return(this);
+        bool isPoolExists = ReturnAddress != null && await ReturnAddress.ReturnAsync(this);
+
         if (isPoolExists == false)
         {
             // There is no more pool holding this individual.

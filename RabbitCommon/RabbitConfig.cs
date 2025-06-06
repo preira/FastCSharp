@@ -3,15 +3,6 @@ using RabbitMQ.Client;
 
 namespace FastCSharp.RabbitCommon;
 
-public interface IRabbitConnection : IDisposable
-{
-    bool IsOpen { get; }
-    // bool DisposeChannel_Depracated(RabbitChannel channel);
-    IRabbitChannel Channel(object owner, string exchangeName, string? queue, string? routingKey);
-    // bool ResetConnection(bool dispose = true);
-    void Close();
-}
-
 /// <summary>
 /// RabbitMQ Subscriber Configuration
 /// </summary>

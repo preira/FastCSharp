@@ -1,3 +1,5 @@
+# TODO: implement PoolAsync
+
 # TODO: PoolStats
     // TODO: Add PoolStats history to allow transitioning from a larger stats period and mantain the history
     // TODO: Consider having history for the last minutes in seconds ganularity, last hour in minutes, 
@@ -6,7 +8,7 @@
     // (12 + 31 + 24 + 60 + 60) x (12 x ( 8 bytes (DateTime) + 4 bytes (int)) 
     //      = 187 x 12 x 12 = 2244 objects x 12 bytes = 26.928 bytes
 
-- [ ] object must have current determinant, minute, hour, day, month, year
+- [x] object must have current determinant, minute, hour, day, month, year
 
 allTimeStats = new Dictionary<int, PoolStats>(); // where key is the year
 yearStats = new PoolStats();

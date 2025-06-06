@@ -48,7 +48,7 @@ public interface ISubscriber<T> : IDisposable, IHealthReporter
     /// </summary>
     /// <param name="callback">the function to register as message listenner.</param>
     /// <returns></returns>
-    public ISubscriber<T> Register(OnMessageCallback<T> callback);
+    public Task<ISubscriber<T>> RegisterAsync(OnMessageCallback<T> callback);
 
     /// <summary>
     /// Registers handler function to handle message before deelivering to the callback
@@ -69,7 +69,7 @@ public interface ISubscriber<T> : IDisposable, IHealthReporter
     /// This method is useful when the connection to the message broker is lost and the
     /// subscriber is not able to recover the connection.
     /// </summary>
-    public void Reset();
+    public Task ResetAsync();
 
     /// <summary>
     /// Unsubscribes the consumer from the message queue. This will stop the subscriber from
@@ -79,7 +79,7 @@ public interface ISubscriber<T> : IDisposable, IHealthReporter
     /// the Reset method. This is useful to implement a pause/resume functionality such as a
     /// backoff mechanism.
     /// </summary>
-    public void UnSubscribe();
+    public Task UnSubscribeAsync();
 
     /// <summary>
     /// Returns true if the subscriber is healthy and able to receive messages.
@@ -87,25 +87,4 @@ public interface ISubscriber<T> : IDisposable, IHealthReporter
     public bool IsHealthy { get; }
 
     public IConfigurationSection? Options { get;}
-}
-
-/// <summary>
-/// Serves as independent interface for publishing messages. Usually, implementation uses a
-/// Message Queue. In that case, subscriber will connect to the message queue broker and each 
-/// Subscriber will connect to a specific queue.
-/// See the Subscriber implementation for further configuration options.
-/// </summary>
-public interface ISubscriberFactory
-{
-    /// <summary>
-    /// Returns a new subscriber that will be listenning to the message origin for the 
-    /// current implementation and according to its configuration.
-    /// After obtaining the new ISubscriber, you should register the callback to process the message along 
-    /// with any Handlers you wish to add.
-    /// </summary>
-    /// <param name="messageOrigin">The message origin from which messges will be retrieved. For a 
-    /// Message Queue system this is tipically the queue indentifier that correlates to the queue config in the Subscriber configuration.</param>
-    /// <typeparam name="T">The message object type.</typeparam>
-    /// <returns>Returns a ISubscriber independent interface.</returns>
-    abstract public ISubscriber<T> NewSubscriber<T>(string messageOrigin);
 }

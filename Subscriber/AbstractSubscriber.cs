@@ -39,9 +39,9 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
     /// </summary>
     /// <param name="callback">The callback to process the message.</param>
     /// <returns></returns>
-    public ISubscriber<T> Register(OnMessageCallback<T> callback)
+    public async Task<ISubscriber<T>> RegisterAsync(OnMessageCallback<T> callback)
     {
-        _Register( (message)=> 
+        await _RegisterAsync( (message)=> 
             {
 
                 foreach (var handler in handlers)
@@ -59,7 +59,7 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
     /// the message Type.
     /// </summary>
     /// <param name="callback">The callback to process the message.</param>    
-    protected abstract void _Register(OnMessageCallback<T> callback);
+    protected abstract Task _RegisterAsync(OnMessageCallback<T> callback);
 
 
     /// <summary>
@@ -78,13 +78,13 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
     /// The subscriber should implement this method to reset the subscriber to its initial state.
     /// This will register a new consumer and, if needed, a new connection and channel.
     /// </summary>
-    public abstract void Reset();
+    public abstract Task ResetAsync();
 
     /// <summary>
     /// The subscriber should implement this method to unsubscribe the consumer from the message queue.
     /// This will stop the subscriber from receiving messages.
     /// </summary>
-    public abstract void UnSubscribe();
+    public abstract Task UnSubscribeAsync();
 
-    public abstract Task<IHealthReport> ReportHealthStatus();
+    public abstract Task<IHealthReport> ReportHealthStatusAsync();
 }    

@@ -7,11 +7,12 @@ public class Pool_UnitTest
 {
 
     [Fact]
-    public void CreateNewPool()
+    public async Task CreateNewPool()
     {
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -22,16 +23,17 @@ public class Pool_UnitTest
             1, 10
             );
 
-        var item = pool.Borrow(this);
+        var item = await pool.BorrowAsync(this);
         Assert.Equal(0, item.Value(this));
     }
 
     [Fact]
-    public void CallPoolFromOneOwnerAndUseByDifferentOwnerFails()
+    public async Task CallPoolFromOneOwnerAndUseByDifferentOwnerFails()
     {
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -42,17 +44,18 @@ public class Pool_UnitTest
             1, 10
             );
 
-        var item = new Owner().Borrow(pool);
+        var item = await new Owner().BorrowAsync(pool);
         Assert.Throws<InvalidOperationException>(() => new Owner().Use(item));
     }
 
     [Fact]
-    public void CallPoolAndDeclareStalledItem()
+    public async Task CallPoolAndDeclareStalledItem()
     {
 
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -63,20 +66,23 @@ public class Pool_UnitTest
             1, 10
             );
 
-        var item = new Owner().Borrow(pool);
+        var item = await new Owner().BorrowAsync(pool);
         item.SetStalled();
-        item.Dispose();
+
+        await item.DisposeAsync();
+
         var owner = new Owner();
-        item = owner.Borrow(pool);
+        item = await owner.BorrowAsync(pool);
         Assert.Equal(count-1, item.Value(owner));
     }
 
     [Fact]
-    public void DisposeItemAndTryToUse()
+    public async Task DisposeItemAndTryToUse()
     {
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -88,17 +94,18 @@ public class Pool_UnitTest
             );
 
         var owner = new Owner();
-        var item = owner.Borrow(pool);
+        var item = await owner.BorrowAsync(pool);
         item.DisposeValue();
         Assert.Throws<ObjectDisposedException>(() => owner.Use(item));
     }
 
     [Fact]
-    public void ReturnsItemAndTryToUseAndRetrieveSameFromPool()
+    public async Task ReturnsItemAndTryToUseAndRetrieveSameFromPool()
     {
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -111,19 +118,22 @@ public class Pool_UnitTest
 
         var owner = new Owner();
         // not using using here, so we can explicitly dispose it
-        var item = owner.Borrow(pool);
+        var item = await owner.BorrowAsync(pool);
         int value = item.Value(owner); // it is locked to this owner
-        item.Dispose(); // returns to pool
-        using var item2 = owner.Borrow(pool);
+        await item.DisposeAsync(); // returns to pool
+
+        await using var item2 = await owner.BorrowAsync(pool);
+
         Assert.Equal(value, item2.Value(owner));
     }
 
     [Fact]
-    public void DisposeItemAndTryToUseAndRetrieveSameFromPool()
+    public async Task DisposeItemAndTryToUseAndRetrieveSameFromPool()
     {
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -136,19 +146,20 @@ public class Pool_UnitTest
 
         var owner = new Owner();
         // not using using here, so we can explicitly dispose it
-        var item = owner.Borrow(pool);
+        var item = await owner.BorrowAsync(pool);
         int value = item.Value(owner); // it is locked to this owner
         item.DisposeValue(); // Disposes the value without returning to pool
-        using var item2 = owner.Borrow(pool);
+        await using var item2 = await owner.BorrowAsync(pool);
         Assert.NotEqual(value, item2.Value(owner));
     }
 
     [Fact]
-    public void CallPoolMultipleTimes()
+    public async Task CallPoolMultipleTimes()
     {
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -161,7 +172,7 @@ public class Pool_UnitTest
 
         for(int i = 0; i < 100; i++)
         {
-            using var item = pool.Borrow(this, 10000);
+            await using var item = await pool.BorrowAsync(this, 10000);
             Assert.InRange(item.Value(this), 0, 10);
         }
         Assert.InRange(pool.Count, 1, 10);
@@ -172,8 +183,9 @@ public class Pool_UnitTest
     {
         int count = 0;
         ConcurrentStack<Exception> exceptions = new ();
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -186,13 +198,13 @@ public class Pool_UnitTest
         Thread[] threads = new Thread[10];
         for(int i = 0; i < threads.Length; i++)
         {
-            threads[i] = new Thread(() => {
+            threads[i] = new Thread(async () => {
                 try
                 {
                     var owner = new Owner();
                     for(int j = 0; j < 1000; j++)
                     {
-                        owner.BorrowAndUse(pool);
+                        await owner.BorrowAndUseAsync(pool);
                         Thread.SpinWait(1000*Random.Shared.Next(1, 10));
                     }
                 }
@@ -226,8 +238,9 @@ public class Pool_UnitTest
         int MaxPoolSize = 10;
         int threadCount = 12;
         ConcurrentStack<Exception> exceptions = new ();
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -241,13 +254,13 @@ public class Pool_UnitTest
         Thread[] threads = new Thread[threadCount];
         for(int i = 0; i < threads.Length; i++)
         {
-            threads[i] = new Thread(() => {
+            threads[i] = new Thread(async () => {
                 try
                 {
                     var owner = new Owner();
                     for(int j = 0; j < 100; j++)
                     {
-                        owner.BorrowAndUseWithRandomSpinWait(pool);
+                        await owner.BorrowAndUseWithRandomSpinWaitAsync(pool);
                         Thread.SpinWait(100*Random.Shared.Next(1, 10));
                     }
                 }
@@ -293,11 +306,12 @@ public class Pool_UnitTest
     }
     
     [Fact]
-    public void MakeUseOfPoolSize()
+    public async Task MakeUseOfPoolSize()
     {
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -312,7 +326,7 @@ public class Pool_UnitTest
         // Count = 5
         for(int i = 0; i < 5; i++)
         {
-            var item = pool.Borrow(this, 10);
+            var item = await pool.BorrowAsync(this, 10);
             items.Enqueue(item);
             Assert.InRange(item.Value(this), 0, 5);
         }
@@ -321,7 +335,7 @@ public class Pool_UnitTest
         // Count = Count + 5
         for(int i = 0; i < 5; i++)
         {
-            var item = pool.Borrow(this, 10);
+            var item = await pool.BorrowAsync(this, 10);
             items.Enqueue(item);
             Assert.InRange(item.Value(this), 5, 10);
         }
@@ -330,21 +344,21 @@ public class Pool_UnitTest
         // Count = Count(10) [available = 5; inUse = 5]
         for(int i = 0; i < 5; i++)
         {
-            items.Dequeue().Dispose();
+            await items.Dequeue().DisposeAsync();
         }
         Assert.Equal(10, pool.Count);
 
         // Count = Count - 3(7) [available = 6 (80%); inUse = 1]
         for(int i = 0; i < 4; i++)
         {
-            items.Dequeue().Dispose();
+            await items.Dequeue().DisposeAsync();
         }
         Assert.Equal(7, pool.Count);
 
         // Count = Count + 1(8) [available = 0; inUse = 8]
         for(int i = 0; i < 7; i++)
         {
-            var item = pool.Borrow(this, 10);
+            var item = await pool.BorrowAsync(this, 10);
             items.Enqueue(item);
         }
         Assert.Equal(8, pool.Count);
@@ -352,28 +366,29 @@ public class Pool_UnitTest
         // Count = Count + 2(10) [available = 0; inUse = 10]
         for(int i = 0; i < 2; i++)
         {
-            var item = pool.Borrow(this, 1);
+            var item = await pool.BorrowAsync(this, 1);
             items.Enqueue(item);
         }
         Assert.Equal(10, pool.Count);
         Assert.Equal(10, items.Count);
 
-        Assert.Throws<TimeoutException>(() => pool.Borrow(this, 1));
+        await Assert.ThrowsAsync<TimeoutException>(async () => await pool.BorrowAsync(this, 1));
 
         // Count = 7 [available = 7; inUse = 0]
         foreach(var item in items)
         {
-            item.Dispose();
+            await item.DisposeAsync();
         }
         Assert.Equal(7, pool.Count);
     }
     
     [Fact]
-    public void CallPoolMultipleTimesAndOwners()
+    public async Task CallPoolMultipleTimesAndOwners()
     {
         int count = 0;
-        var pool = new Pool<Item, Int>(
-            () => {
+        var pool = new AsyncPool<Item, Int>(
+            async () => {
+                await Task.Yield();
                 return new Item(
                     new Int
                     {
@@ -386,7 +401,7 @@ public class Pool_UnitTest
 
         for(int i = 0; i < 100; i++)
         {
-            new Owner().BorrowAndUse(pool);
+            await new Owner().BorrowAndUseAsync(pool);
         }
         Assert.InRange(pool.Count, 1, 10);
     }
@@ -426,20 +441,20 @@ class Int : IDisposable
 
 class Owner
 {
-    public void BorrowAndUse(IPool<Item> pool)
+    public async Task BorrowAndUseAsync(IAsyncPool<Item> pool)
     {
-        using var item = pool.Borrow(this);
+        await using var item = await pool.BorrowAsync(this);
         item.Value(this);
     }
-    public void BorrowAndUseWithRandomSpinWait(IPool<Item> pool)
+    public async Task BorrowAndUseWithRandomSpinWaitAsync(IAsyncPool<Item> pool)
     {
-        using var item = pool.Borrow(this);
+        await using var item = await pool.BorrowAsync(this);
         Thread.SpinWait(10*Random.Shared.Next(1, 10));
         item.Value(this);
     }
-    public Item Borrow(IPool<Item> pool)
+    public async Task<Item> BorrowAsync(IAsyncPool<Item> pool)
     {
-        var item = pool.Borrow(this);
+        var item = await pool.BorrowAsync(this);
         return item;
     }
     public void Use(Item item)

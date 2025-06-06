@@ -26,19 +26,23 @@ class TestSubscriber : AbstractSubscriber<string>
         }
     }
 
-    protected override void _Register(OnMessageCallback<string> callback) => _callback = callback;
-
-    public override void Reset()
+    protected override Task _RegisterAsync(OnMessageCallback<string> callback)
     {
-        return;
+        _callback = callback;
+        return Task.CompletedTask;
+    }  
+
+    public override Task ResetAsync()
+    {
+        return Task.CompletedTask;
     }
 
-    public override void UnSubscribe()
+    public override Task UnSubscribeAsync()
     {
-        return;
+        return Task.CompletedTask;
     }
 
-    public override Task<IHealthReport> ReportHealthStatus()
+    public override Task<IHealthReport> ReportHealthStatusAsync()
     {
         throw new NotImplementedException();
     }
@@ -52,7 +56,7 @@ public class Subscriber_UnitTest
         bool success = false;
         using var testImplementation = new TestSubscriber();
 
-        testImplementation.Register(
+        await testImplementation.RegisterAsync(
             async (msg) =>
             {
                 var task = new Task<bool>(() => success = true);
@@ -73,7 +77,7 @@ public class Subscriber_UnitTest
         testImplementation.AddMsgHandler(s => { isHandlerOk = true; return s; });
         Assert.False(isHandlerOk, "Shouldn't have executed handler yet.");
 
-        testImplementation.Register(
+        await testImplementation.RegisterAsync(
             async (msg) =>
             {
                 var task = new Task<bool>(() => success = true);
@@ -96,10 +100,10 @@ public class Subscriber_UnitTest
         testImplementation.AddMsgHandler(s => { isHandler1Ok = true; return s; });
         testImplementation.AddMsgHandler(s => { isHandler2Ok = true; return s; });
         // Reset and unsubscribe to do nothing here. Just to test that the handlers are called for coverage.
-        testImplementation.Reset();
-        testImplementation.UnSubscribe();
+        await testImplementation.ResetAsync();
+        await testImplementation.UnSubscribeAsync();
 
-        testImplementation.Register(
+        await testImplementation.RegisterAsync(
             async (msg) =>
             {
                 var task = new Task<bool>(() => success = true);

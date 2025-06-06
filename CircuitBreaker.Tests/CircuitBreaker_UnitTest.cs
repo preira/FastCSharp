@@ -432,7 +432,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     }
 
     [Fact]
-    public void AttemptRecovery_Test()
+    public async Task AttemptRecovery_Test()
     {
         var circuit =
             new EventDrivenCircuitBreaker(
@@ -447,12 +447,12 @@ public class EventDrivenCircuitBreaker_UnitTest
 
         circuit.Open(new TimeSpan(0));
         Assert.True(opened);
-        Task.Delay(1).Wait();
+        await Task.Delay(1);
         Assert.True(reseted);
     }
 
     [Fact]
-    public void AttemptRecovery_FailBeforeRecovering_Test()
+    public async Task AttemptRecovery_FailBeforeRecovering_Test()
     {
         var _backoff = new TimeSpan(1, 0, 0, 0, 5);
         var minimalDelay = new TimeSpan(0, 0, 0, 0, 3);
@@ -507,18 +507,18 @@ public class EventDrivenCircuitBreaker_UnitTest
         AssertAttemptRecoveries(attemptRecoveries, new bool[] { false, false, false });
 
         circuit.CancelBackoff();
-        Task.Delay(minimalDelay).Wait();
+        await Task.Delay(minimalDelay);
         Assert.True(opened);
         AssertAttemptRecoveries(attemptRecoveries, new bool[] { true, false, false });
 
         circuit.CancelBackoff();
-        Task.Delay(minimalDelay).Wait();
+        await Task.Delay(minimalDelay);
         Assert.True(opened);
         AssertAttemptRecoveries(attemptRecoveries, new bool[] { true, true, false });
 
         // Finally succeeds
         circuit.CancelBackoff();
-        Task.Delay(minimalDelay).Wait();
+        await Task.Delay(minimalDelay);
         AssertAttemptRecoveries(attemptRecoveries, new bool[] { true, true, true });
 
         Assert.True(circuit.IsClosed);
@@ -600,7 +600,7 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.False(opened);
         Assert.False(reseted);
 
-        circuit.Open(new TimeSpan(0, 0, 0, 0, 1));
+        circuit.Open(new TimeSpan(0, 0, 0, 0, 2));
         Assert.True(opened);
         Assert.False(reseted);
 
@@ -614,7 +614,7 @@ public class EventDrivenCircuitBreaker_UnitTest
         circuit.OnOpen -= onOpenListener;
         circuit.OnReset -= onResetListener;
 
-        circuit.Open(new TimeSpan(0, 0, 0, 0, 1));
+        circuit.Open(new TimeSpan(0, 0, 0, 0, 3));
         Assert.False(opened);
         Assert.False(reseted);
 

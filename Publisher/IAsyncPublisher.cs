@@ -8,7 +8,7 @@ public delegate  Task<M?> Handler<M>(M? message);
 /// The interface to use to publish objects.
 /// </summary>
 /// <typeparam name="T">The type of the objects to be published.</typeparam>
-public interface IPublisher<T>: IDisposable, IHealthReporter
+public interface IAsyncPublisher<T>: IDisposable, IHealthReporter
 { 
     /// <summary>
     /// Publishes the object passed as argument.
@@ -17,7 +17,7 @@ public interface IPublisher<T>: IDisposable, IHealthReporter
     /// </summary>
     /// <param name="message">The object to publish.</param>
     /// <returns>A Boolean future indicating if the message was published or not.</returns>
-    Task<bool> Publish(T? message);
+    Task<bool> PublishAsync(T? message);
 
     /// <summary>
     /// Publishes the object's list passed as argument.
@@ -27,13 +27,13 @@ public interface IPublisher<T>: IDisposable, IHealthReporter
     /// </summary>
     /// <param name="message">The object to publish.</param>
     /// <returns>A Boolean future indicating if the message was published or not.</returns>
-    Task<bool> Publish(IEnumerable<T> messages);
+    Task<bool> PublishAsync(IEnumerable<T> messages);
 
-    public IPublisher<T> ForExchange(string exchange);
+    public IAsyncPublisher<T> ForExchange(string exchange);
 
-    public IPublisher<T> ForQueue(string queue);
+    public IAsyncPublisher<T> ForQueue(string queue);
 
-    public IPublisher<T> ForRouting(string key);
+    public IAsyncPublisher<T> ForRouting(string key);
 
 }
 

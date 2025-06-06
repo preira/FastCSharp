@@ -769,7 +769,7 @@
         <mxCell id="F3aWBZH4PFQuodZXhs9D-17" value="Channel" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="850" y="440" width="175" height="104" as="geometry" />
         </mxCell>
-        <mxCell id="F3aWBZH4PFQuodZXhs9D-18" value="+ channel: IModel" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="F3aWBZH4PFQuodZXhs9D-17">
+        <mxCell id="F3aWBZH4PFQuodZXhs9D-18" value="+ channel: IChannel" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="F3aWBZH4PFQuodZXhs9D-17">
           <mxGeometry y="26" width="175" height="26" as="geometry" />
         </mxCell>
         <mxCell id="F3aWBZH4PFQuodZXhs9D-19" value="+ field: type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="F3aWBZH4PFQuodZXhs9D-17">

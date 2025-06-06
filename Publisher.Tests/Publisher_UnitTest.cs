@@ -66,7 +66,7 @@ class TestPublisher : IDisposable
 public class Publisher_UnitTest
 {
     [Fact]
-    public async void AddedMessageHandlerShouldBeInvoked()
+    public async Task AddedMessageHandlerShouldBeInvoked()
     {
         var rc = new RemoteControl<string>
         {
@@ -97,7 +97,7 @@ public class Publisher_UnitTest
     }
 
     [Fact]
-    public async void AddedMessageHandlersShouldBeInvoked()
+    public async Task AddedMessageHandlersShouldBeInvoked()
     {
         var rc = new RemoteControl<string>
         {
@@ -117,7 +117,7 @@ public class Publisher_UnitTest
     }
 
     [Fact]
-    public async void AddedMessageHandlerShouldAffectTheMessage()
+    public async Task AddedMessageHandlerShouldAffectTheMessage()
     {
         var token = "There are other planets orbiting the Sun.";
         var result = token;
@@ -135,7 +135,7 @@ public class Publisher_UnitTest
     }
 
     [Fact]
-    public async void AddedMessageHandlersShouldAffectTheMessageByAddedOrder()
+    public async Task AddedMessageHandlersShouldAffectTheMessageByAddedOrder()
     {
         var token = "The Sun is in a Galaxy.";
         var result = token;

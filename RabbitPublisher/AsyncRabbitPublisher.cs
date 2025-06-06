@@ -15,7 +15,7 @@ namespace FastCSharp.RabbitPublisher.Impl;
 /// for each thread.
 /// </summary>
 /// <typeparam name="T">The Type of the message object to send.</typeparam>
-public class RabbitPublisher<T> : IPublisher<T>
+public class AsyncRabbitPublisher<T> : IAsyncPublisher<T>
 {
     private string? routingKey;
     private string? queue;
@@ -27,33 +27,33 @@ public class RabbitPublisher<T> : IPublisher<T>
     private readonly ILogger logger;
     private bool disposed = false;
 
-    public RabbitPublisher(
+    public AsyncRabbitPublisher(
         IRabbitConnectionPool connectionPool,
         ILoggerFactory ILoggerFactory,
         IOptions<RabbitPublisherConfig> config, 
         IList<Handler<T>>? handlers = null)
     :base()
     {
-        logger = ILoggerFactory.CreateLogger<RabbitPublisher<T>>();
+        logger = ILoggerFactory.CreateLogger<AsyncRabbitPublisher<T>>();
         Config = config.Value;
         confirmTimeout = config.Value.Timeout;
         pool = connectionPool;
         this.handlers = handlers;
     }
 
-    public RabbitPublisher(
+    public AsyncRabbitPublisher(
         IRabbitConnectionPool connectionPool,
         ILoggerFactory ILoggerFactory,
         RabbitPublisherConfig config)
     :base()
     {
-        logger = ILoggerFactory.CreateLogger<RabbitPublisher<T>>();
+        logger = ILoggerFactory.CreateLogger<AsyncRabbitPublisher<T>>();
         Config = config;
         confirmTimeout = config.Timeout;
         pool = connectionPool;
     }
 
-    public IPublisher<T> ForExchange(string exchange)
+    public IAsyncPublisher<T> ForExchange(string exchange)
     {
         Exchange = Config?.Exchanges?[exchange];
         if (Exchange == null || string.IsNullOrWhiteSpace(Exchange.Name))
@@ -68,7 +68,7 @@ public class RabbitPublisher<T> : IPublisher<T>
         return this;
     }
 
-    public IPublisher<T> ForQueue(string queue)
+    public IAsyncPublisher<T> ForQueue(string queue)
     {
         this.queue = Exchange?.Queues?[queue];
         if (this.queue == null)
@@ -78,7 +78,7 @@ public class RabbitPublisher<T> : IPublisher<T>
         return this;
     }
 
-    public IPublisher<T> ForRouting(string key)
+    public IAsyncPublisher<T> ForRouting(string key)
     {
         if(Exchange?.RoutingKeys?.Contains(key) ?? false)
         {
@@ -94,16 +94,25 @@ public class RabbitPublisher<T> : IPublisher<T>
     /// </summary>
     /// <param name="message">The object to publish.</param>
     /// <returns>A Boolean future.</returns>
-    public async Task<bool> Publish(T? message)
+    public async Task<bool> PublishAsync(T? message)
     {
-        return await Publish(
+        return await PublishAsync(
             async () => {
                 if(handlers != null)
                     foreach (var handler in handlers) message = await handler(message);
             },
-            (IRabbitChannel channel) => {
+            async (IRabbitChannel channel, CancellationToken cancellationToken) => {
                 byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(message);
-                channel.BasicPublish(this, null, jsonUtf8Bytes);
+                try
+                {
+                    await channel.BasicPublishAsync(this, jsonUtf8Bytes, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("[ERROR PUBLISHING] {Exception}: {Message}", ex.GetType().FullName, ex.Message);
+                    logger.LogDebug(ex.StackTrace);
+                    throw;
+                }
             }
         );
     }
@@ -115,10 +124,10 @@ public class RabbitPublisher<T> : IPublisher<T>
     /// <param name="messages">The list of messages to publish.</param>
     /// <returns>A Boolean future that indicates if the whole batch has been published
     /// or if a problem occured.</returns>
-    public async Task<bool> Publish(IEnumerable<T> messages)
+    public async Task<bool> PublishAsync(IEnumerable<T> messages)
     {
         var msgList = new List<T?>();
-        return await Publish(
+        return await PublishAsync(
             async () => {
                 foreach (var message in messages)
                 {
@@ -130,13 +139,13 @@ public class RabbitPublisher<T> : IPublisher<T>
                 }
                 
             },
-            (IRabbitChannel channel) => {
+            async (IRabbitChannel channel, CancellationToken cancellationToken) => {
                 foreach (var message in msgList)
                 {
                     byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(message);
 
-                    ulong? sequenceNumber = channel.NextPublishSeqNo(this);
-                    channel.BasicPublish(this, null, jsonUtf8Bytes);
+                    ulong? sequenceNumber = await channel.NextPublishSeqNoAsync(this);
+                    await channel.BasicPublishAsync(this, jsonUtf8Bytes, cancellationToken);
 
                     logger.LogTrace("Exchange='{exchange}', SequenceNumber='{seqNr}'",
                                     Exchange?.Name ?? "", sequenceNumber);
@@ -146,7 +155,7 @@ public class RabbitPublisher<T> : IPublisher<T>
         );
     }
 
-    private async Task<bool> Publish(Func<Task> PreProcess, Action<IRabbitChannel> Send)
+    private async Task<bool> PublishAsync(Func<Task> PreProcess, Func<IRabbitChannel, CancellationToken, Task> Send)
     {
         if(disposed) throw new ObjectDisposedException(GetType().FullName);
 
@@ -154,13 +163,13 @@ public class RabbitPublisher<T> : IPublisher<T>
         
         try
         {
-            using var connection = pool.Connection(this);
-            using var channel = connection.Channel(this, Exchange?.Name ?? "", queue, routingKey);
+            await using var connection = await pool.GetConnectionAsync(this);
+            await using var channel = await connection.GetChannelAsync(this, Exchange?.Name ?? "", queue, routingKey);
             try
             {
-                Send(channel);
+                var cancellationToken = new CancellationTokenSource(confirmTimeout).Token;
+                await Send(channel, cancellationToken);
 
-                channel?.WaitForConfirmsOrDie(this, confirmTimeout);
                 return true;
             }
             catch (AlreadyClosedException ace)
@@ -195,11 +204,11 @@ public class RabbitPublisher<T> : IPublisher<T>
         Dispose(true);
     }
 
-    public async Task<IHealthReport> ReportHealthStatus()
+    public async Task<IHealthReport> ReportHealthStatusAsync()
     {
         string name = GetType().Name;
         HealthReport report;
-        using (var connection = pool.Connection(this))
+        await using (var connection = await pool.GetConnectionAsync(this))
         {
 
             if (connection == null)
@@ -217,7 +226,7 @@ public class RabbitPublisher<T> : IPublisher<T>
 
         }
 
-        report.AddDependency(await pool.ReportHealthStatus());
+        report.AddDependency(await pool.ReportHealthStatusAsync());
         
         return report;
     }

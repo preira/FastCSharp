@@ -1,4 +1,3 @@
-using System.Runtime.Serialization;
 using FastCSharp.Observability;
 
 namespace FastCSharp.CircuitBreaker;
@@ -11,11 +10,6 @@ public class CircuitException : Exception
         // intentionally empty
     }
     public CircuitException(string? message) : base(message)
-    {
-        // intentionally empty
-    }
-    protected CircuitException(SerializationInfo info, StreamingContext context) 
-    : base(info, context)
     {
         // intentionally empty
     }
@@ -34,11 +28,6 @@ public class OpenCircuitException: Exception
         // intentionally empty
     }
     public OpenCircuitException(string? message) : base(message)
-    {
-        // intentionally empty
-    }
-    protected OpenCircuitException(SerializationInfo info, StreamingContext context) 
-    : base(info, context)
     {
         // intentionally empty
     }
@@ -129,7 +118,7 @@ public abstract class AbstractBreaker : Breaker, IHealthReporter
         });
     }
 
-    public async Task<IHealthReport> ReportHealthStatus()
+    public async Task<IHealthReport> ReportHealthStatusAsync()
     {
         return await Task.Run(() => 
         {

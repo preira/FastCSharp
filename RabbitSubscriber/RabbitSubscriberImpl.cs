@@ -18,7 +18,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     private QueueConfig QConfig { get; }
     private readonly IList<AmqpTcpEndpoint>? endpoints;
     private IConnection? connection;
-    private IModel? channel;
+    private IChannel? channel;
 
     readonly private ILogger<RabbitSubscriber<T>> logger;
     private OnMessageCallback<T>? _callback;
@@ -43,10 +43,14 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             }
             try
             {
-                var queueDeclareOk = channel?.QueueDeclarePassive(queue: QConfig.Name);
+                var task = channel!.QueueDeclarePassiveAsync(QConfig.Name!);
+                task.Wait();
+                var queueDeclareOk = task.Result;
+                
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                logger.LogWarning(e, "Queue passive declare failed. Queue may not exist or connection is not healthy.");
                 return false;
             }
             return true;
@@ -70,70 +74,85 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         _consumerTag = Guid.NewGuid().ToString();
     }
 
+    private int connectionInProgress = 0;
+
     /// <inheritdoc/>
-    public void ResetConnection()
+    public async Task ResetConnectionAsync()
     {
-        // Not sure it is necessary to lock here.
-        lock (_lock)
+        // Alllow only one thread to connect at a time.
+        while(Interlocked.CompareExchange(ref connectionInProgress, 1, 0) == 0)
         {
-            bool isConnected = false;
+            await Task.Delay(1);
+        }
+        try
+        {
+            await ReConnect();
+        }
+        finally
+        {
+            Interlocked.Exchange(ref connectionInProgress, 0);
+        }
+    }
 
-            while (!isConnected)
+    private async Task ReConnect()
+    {
+        bool isConnected = false;
+        while (!isConnected)
+        {
+            try
             {
-                try
+                if(connection == null || !connection.IsOpen)
                 {
-                    if(connection == null || !connection.IsOpen)
-                    {
-                        channel?.Dispose();
-                        connection?.Dispose();
+                    channel?.Dispose();
+                    connection?.Dispose();
 
-                        if(endpoints == null)
-                        {
-                            connection = connectionFactory.CreateConnection();
-                        }
-                        else
-                        {
-                            connection = connectionFactory.CreateConnection(endpoints);
-                        }
-                        connection.ConnectionShutdown += (sender, args) =>
-                        {
-                            logger.LogWarning("RabbitMQ connection shutdown: {0}. FastCSharp Client will try to recover.", args.ReplyText);
-                        };
-                        
-                        channel = connection.CreateModel();
-                        channel.ModelShutdown += (sender, args) =>
-                        {
-                            logger.LogWarning("RabbitMQ channel shutdown: {0}. FastCSharp Client will try to recover.", args.ReplyText);
-                        };
-                    }
-                    else if(channel == null || channel.IsClosed)
+                    if(endpoints == null)
                     {
-                        channel?.Dispose();
-                        channel = connection.CreateModel();
+                        connection = await connectionFactory.CreateConnectionAsync();
                     }
-
-                    isConnected = connection.IsOpen && channel.IsOpen;
-                    Task.Delay(1).Wait();
+                    else
+                    {
+                        connection = await connectionFactory.CreateConnectionAsync(endpoints);
+                    }
+                    connection.ConnectionShutdownAsync += async (sender, args) =>
+                    {
+                        logger.LogWarning("RabbitMQ connection shutdown: {0}. FastCSharp Client will try to recover.", args.ReplyText);
+                        await Task.Yield();
+                    };
+                    
+                    channel = await connection.CreateChannelAsync();
+                    channel.ChannelShutdownAsync += async (sender, args) =>
+                    {
+                        logger.LogWarning("RabbitMQ channel shutdown: {0}. FastCSharp Client will try to recover.", args.ReplyText);
+                        await Task.Yield();
+                    };
                 }
-                catch (Exception e)
+                else if(channel == null || channel.IsClosed)
                 {
-                    logger.LogError("Error connecting to Rabbit MQ. Retrying in 5 seconds.\nError: {message}", e.Message);
-                    // TODO: should be configurable.
-                    Task.Delay(5000).Wait();
+                    channel?.Dispose();
+                    channel = await connection.CreateChannelAsync();
                 }
+
+                isConnected = connection.IsOpen && channel.IsOpen;
+            }
+            catch (Exception e)
+            {
+                logger.LogError("Error connecting to Rabbit MQ. Retrying in 5 seconds.\nError: {message}", e.Message);
+                // TODO: should be configurable.
+                await Task.Delay(5000);
             }
         }
 
     }
 
     /// <inheritdoc/>
-    public override void Reset()
+    public override async Task ResetAsync()
     {
-        ResetConnection();
-        RegisterConsumer();
+        await ResetConnectionAsync();
+        await RegisterConsumer();
     }
 
-    private void RegisterConsumer()
+    private async Task RegisterConsumer()
     {
         bool isRegistered = false;
 
@@ -144,43 +163,42 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 if (channel == null || channel.IsClosed)
                 {
                     logger.LogTrace("Reseting connection befor registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
-                    ResetConnection();
+                    await ResetConnectionAsync();
                 }
                 else
                 {
                     logger.LogTrace("Connection and channel is operational for registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
                 }
                 // don't declare, just check if exists
-                channel?.QueueDeclarePassive(queue: QConfig.Name);
+                await channel!.QueueDeclarePassiveAsync(queue: QConfig.Name!);
 
                 // BasicQos configuration setting from config read.
-                channel?.BasicQos(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
+                await channel.BasicQosAsync(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
                 isRegistered = true;
             }
             catch (Exception e)
             {
-                logger.LogError("Error registering consumer. Retrying in 5 seconds.");
-                logger.LogError("Error: {message}", e.Message);
+                logger.LogError(e, "Error registering consumer. Retrying in 5 seconds.");
                 // TODO: should be configurable.
                 Task.Delay(5000).Wait();
-                ResetConnection();
+                await ResetConnectionAsync();
             }
         }
 
 
-        var consumer = new EventingBasicConsumer(channel);
+        var consumer = new AsyncEventingBasicConsumer(channel!);
 
         if (_callback == null)
         {
             throw new IncorrectInitializationException("Callback not registered. Check your implementation.");
         }
-        consumer.Received += GetListener(_callback);
+        consumer.ReceivedAsync += GetAsyncListener(_callback);
 
         // If consumer already exists, it will throw an error. Channel will be closed and recreated.
         try
         {
             logger.LogTrace("Subscribing consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
-            channel.BasicConsume(queue: QConfig.Name,
+            await channel!.BasicConsumeAsync(queue: QConfig.Name!,
                                 autoAck: false,
                                 consumer: consumer,
                                 consumerTag: ConsumerTag);
@@ -190,9 +208,9 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             logger.LogWarning(e, "Consumer already registered. Closing channel and recreating. " + 
                 "This has happened probably because there was a connection interruption that has been restablished.");
             channel!.Dispose();
-            channel = connection!.CreateModel();
-            channel.BasicQos(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
-            channel.BasicConsume(queue: QConfig.Name,
+            channel = await connection!.CreateChannelAsync();
+            await channel.BasicQosAsync(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
+            await channel.BasicConsumeAsync(queue: QConfig.Name!,
                                 autoAck: false,
                                 consumer: consumer,
                                 consumerTag: ConsumerTag);
@@ -201,20 +219,20 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         logger.LogInformation("Waiting for messages from queue {messageOrigin}.", QConfig.Name);
     }
 
-    protected override void _Register(OnMessageCallback<T> callback)
+    protected override async Task _RegisterAsync(OnMessageCallback<T> callback)
     {
         _callback = callback;
-        RegisterConsumer();
+        await RegisterConsumer();
     }
 
     /// <inheritdoc/>
-    public override void UnSubscribe()
+    public override async Task UnSubscribeAsync()
     {
         try
         {
             logger.LogTrace("Unsubscribing consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
             // this throws an null pointer exception if the consumer has never registered before.
-            channel?.BasicCancel(ConsumerTag);
+            await channel!.BasicCancelAsync(ConsumerTag);
         }
         catch (NullReferenceException)
         {
@@ -226,16 +244,16 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     /// Use close channel to stop receiving messages and close the channel.
     /// If you are looking to control message consumption, consider using UnSubscribe.
     /// </summary>
-    public void CloseChannel()
+    public async Task CloseChannel()
     {
         logger.LogTrace("Close channel initiated by consumer '{Tag}' for queue '{Queue}'.", ConsumerTag, QConfig.Name);
         // For Reply Codes, refer to https://www.rfc-editor.org/rfc/rfc2821#page-42
-        channel?.Close(421, "Consumer temporarily unavailable.");
+        await channel!.CloseAsync(421, "Consumer temporarily unavailable.");
     }
 
-    public EventHandler<BasicDeliverEventArgs> GetListener(OnMessageCallback<T> callback)
+    public AsyncEventHandler<BasicDeliverEventArgs> GetAsyncListener(OnMessageCallback<T> callback)
     {
-        return async (model, ea) =>
+        return async (ch, ea) =>
         {
             try
             {
@@ -248,12 +266,12 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 if (success)
                 {
                     logger.LogTrace(" [Acknwolledging] Message with delivery tag: {Tag}", ea.DeliveryTag);
-                    channel?.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+                    await channel!.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
                 }
                 else
                 {
                     logger.LogTrace(" [Rejecting and requeing] Message with delivery tag: {Tag}", ea.DeliveryTag);
-                    channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
+                    await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
                 }
             }
             catch (JsonException e)
@@ -261,21 +279,20 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 // Deserialization exception is a final exception and removes the message from the queue.
                 logger.LogError("Discarding unparseable message with id: {messageId} and tag: {Tag}", ea.BasicProperties.MessageId, ea.DeliveryTag);
                 logger.LogError("Error: {message}", e.Message);
-                channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
+                await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (UnauthorizedAccessException e)
             {
                 // Unauthorized exception is a final exception and removes the message from the queue hopefully to a DLQ.
                 logger.LogError("Unacking unauthorized message with tag '{Tag}' with requeue set to false. Hope you have DLQ set.", ea.DeliveryTag);
                 logger.LogError("Error: {message}", e.Message);
-                channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
+                await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (System.Exception e)
             {
                 logger.LogError("Discarding unparseable message with tag: {Tag}", ea.DeliveryTag);
                 logger.LogError("Error: {message}", e.Message);
-                channel?.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
-                throw;
+                await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
             }
             finally
             {   
@@ -299,7 +316,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     }
 
     /// <inheritdoc/>
-    public override async Task<IHealthReport> ReportHealthStatus()
+    public override async Task<IHealthReport> ReportHealthStatusAsync()
     {
         return await Task.Run(() =>
         {

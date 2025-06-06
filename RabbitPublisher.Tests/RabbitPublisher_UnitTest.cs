@@ -85,7 +85,7 @@ public class RabbitPublisher_UnitTest
     {
         RabbitPublisherConfig config = GetRabbitConfig(configuration);
 
-        using var publisher = new RabbitPublisher<string>(new RabbitConnectionPool(config, loggerFactory), loggerFactory, config);
+        using var publisher = new AsyncRabbitPublisher<string>(new RabbitConnectionPool(config, loggerFactory), loggerFactory, config);
         {
             var exchange = publisher.ForExchange("PUBLISH.SDK.DIRECT").ForQueue("TASK_QUEUE");
             Assert.NotNull(exchange);
@@ -122,7 +122,7 @@ public class RabbitPublisher_UnitTest
         RabbitPublisherConfig config = GetRabbitConfig(configuration);
         var conn = new RabbitConnectionPool(config, loggerFactory);
         
-        using var publisher = new RabbitPublisher<string>(conn, loggerFactory, config);
+        using var publisher = new AsyncRabbitPublisher<string>(conn, loggerFactory, config);
         
         Assert.Throws<KeyNotFoundException>(() => publisher.ForExchange("FAIL.TO.GET.EXCHANGE").ForQueue("TASK_QUEUE"));
         
@@ -135,25 +135,25 @@ public class RabbitPublisher_UnitTest
         
         var conn = new RabbitConnectionPool(config, loggerFactory);
         
-        using var publisher = new RabbitPublisher<string>(conn, loggerFactory, config);
+        using var publisher = new AsyncRabbitPublisher<string>(conn, loggerFactory, config);
         
         Assert.Throws<ArgumentNullException>(() => publisher.ForExchange("PUBLISH.SDK.DIRECT").ForQueue(null!));
     }
 
     [Fact]
-    public void FailToCreateNewDirectPublisherWithDefaultRoutingKey()
+    public async Task FailToCreateNewDirectPublisherWithDefaultRoutingKey()
     {
-        using RabbitPublisher<string> publisher = RabbitPublisherFactory(configuration, loggerFactory);
-
-        Assert.ThrowsAsync<ArgumentException>(async () => await publisher.ForExchange("PUBLISH.SDK.DIRECT").Publish("Test Message"));
+        using AsyncRabbitPublisher<string> publisher = RabbitPublisherFactory(configuration, loggerFactory);
+        var isPublished = await publisher.ForExchange("PUBLISH.SDK.DIRECT").PublishAsync("Test Message");
+        Assert.False(isPublished);
     }
 
-    private RabbitPublisher<string> RabbitPublisherFactory(IConfiguration configuration, ILoggerFactory loggerFactory)
+    private AsyncRabbitPublisher<string> RabbitPublisherFactory(IConfiguration configuration, ILoggerFactory loggerFactory)
     {
         RabbitPublisherConfig config = GetRabbitConfig(configuration);
 
         var conn = new RabbitConnectionPool(config, loggerFactory);
-        var publisher = new RabbitPublisher<string>(conn, loggerFactory, config);
+        var publisher = new AsyncRabbitPublisher<string>(conn, loggerFactory, config);
         return publisher;
     }
 
@@ -189,16 +189,16 @@ public class RabbitPublisher_UnitTest
     }
 
     [Fact]
-    public async void CreateNewFanoutPublisher_ConfirmDispose()
+    public async Task CreateNewFanoutPublisher_ConfirmDispose()
     {
         using var exchange = RabbitPublisherFactory(configuration, loggerFactory);
-        IPublisher<string>? publisher = null;
+        IAsyncPublisher<string>? publisher = null;
         using (publisher = exchange.ForExchange("PUBLISH.SDK.FANOUT"))
         {
             Assert.NotNull(publisher);
         };
         GC.Collect();
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => publisher.Publish(""));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => publisher.PublishAsync(""));
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public class RabbitPublisher_UnitTest
     }
 
     [Fact]
-    public async void DirectExchange_Publish_Success()
+    public async Task DirectExchange_Publish_Success()
     {
         var exchangeName = "PUBLISH.SDK.DIRECT";
         var routingKey = "TASK_QUEUE";
@@ -239,28 +239,26 @@ public class RabbitPublisher_UnitTest
 
         // var mockedRabbitPublisherConfiguration = new Mock<RabbitPublisherConfig>();
 
-        using var publisher = new RabbitPublisher<string>(
+        using var publisher = new AsyncRabbitPublisher<string>(
             mockedPool.Object,
             loggerFactory,
             GetRabbitConfig(configuration)
             );
 
-        mockedConnection.Setup(conn => conn.Channel(publisher, "test.direct.exchange", "test.direct.q", null)).Returns(mockedChannel.Object);
+        mockedConnection.Setup(conn => conn.GetChannelAsync(publisher, "test.direct.exchange", "test.direct.q", null)).ReturnsAsync(mockedChannel.Object);
 
-        mockedChannel.Setup(model => model.BasicPublish(publisher, It.IsAny<IBasicProperties>(), It.IsAny<byte[]>()))
-            .Verifiable("BasicPublish was not called");
-        mockedChannel.Setup(model => model.WaitForConfirmsOrDie(publisher, It.IsAny<TimeSpan>()))
+        mockedChannel.Setup(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .Verifiable("BasicPublish was not called");
             
-        mockedPool.Setup(conn => conn.Connection(publisher)).Returns(mockedConnection.Object);
+        mockedPool.Setup(conn => conn.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
 
-        Assert.True(await publisher.ForExchange(exchangeName).ForQueue(routingKey).Publish("Test Message"));
+        Assert.True(await publisher.ForExchange(exchangeName).ForQueue(routingKey).PublishAsync("Test Message"));
 
         mockedChannel.VerifyAll();
     }
 
     [Fact]
-    public async void DirectExchange_BatchPublish_Success()
+    public async Task DirectExchange_BatchPublish_Success()
     {
         var exchangeName = "PUBLISH.SDK.DIRECT";
         var routingKey = "TASK_QUEUE";
@@ -272,30 +270,28 @@ public class RabbitPublisher_UnitTest
 
         // var mockedRabbitPublisherConfiguration = new Mock<RabbitPublisherConfig>();
 
-        using var publisher = new RabbitPublisher<string>(
+        using var publisher = new AsyncRabbitPublisher<string>(
             mockedPool.Object,
             loggerFactory,
             GetRabbitConfig(configuration)
             );
 
-        mockedConnection.Setup(conn => conn.Channel(publisher, "test.direct.exchange", "test.direct.q", null)).Returns(mockedChannel.Object);
+        mockedConnection.Setup(conn => conn.GetChannelAsync(publisher, "test.direct.exchange", "test.direct.q", null)).ReturnsAsync(mockedChannel.Object);
 
-        mockedChannel.Setup(model => model.BasicPublish(publisher, It.IsAny<IBasicProperties>(), It.IsAny<byte[]>()))
-            .Verifiable("BasicPublish was not called");
-        mockedChannel.Setup(model => model.WaitForConfirmsOrDie(publisher, It.IsAny<TimeSpan>()))
+        mockedChannel.Setup(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .Verifiable("BasicPublish was not called");
             
-        mockedPool.Setup(conn => conn.Connection(publisher)).Returns(mockedConnection.Object);
+        mockedPool.Setup(conn => conn.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
 
-        Assert.True(await publisher.ForExchange(exchangeName).ForQueue(routingKey).Publish(new List<string> { "Test Message1", "Test Message2" }));
+        Assert.True(await publisher.ForExchange(exchangeName).ForQueue(routingKey).PublishAsync(new List<string> { "Test Message1", "Test Message2" }));
 
         mockedChannel.VerifyAll();
 
-        mockedChannel.Verify(model => model.BasicPublish(publisher, It.IsAny<IBasicProperties>(), It.IsAny<byte[]>()), Times.Exactly(2));
+        mockedChannel.Verify(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
-    public async void DirectExchange_Publish_Fails()
+    public async Task DirectExchange_Publish_Fails()
     {
         var exchangeName = "PUBLISH.SDK.DIRECT";
         var routingKey = "TASK_QUEUE";
@@ -304,39 +300,35 @@ public class RabbitPublisher_UnitTest
         var mockedChannel = new Mock<IRabbitChannel>();
         var mockedConnection = new Mock<IRabbitConnection>();
 
-        mockedChannel.Setup(model => 
-            model.BasicPublish(It.IsAny<object>(), 
-                null, 
-                It.IsAny<byte[]>())).Throws<Exception>();
-
-        using var publisher = new RabbitPublisher<string>(
+        using var publisher = new AsyncRabbitPublisher<string>(
             mockedPool.Object,
             loggerFactory,
             GetRabbitConfig(configuration)
             );
+            
+        mockedChannel.Setup(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Test Exception"));
 
-        mockedPool.Setup(conn => conn.Connection(publisher)).Returns(mockedConnection.Object);
-        mockedConnection.Setup(conn => conn.Channel(publisher, "test.direct.exchange", "test.direct.q", null)).Returns(mockedChannel.Object);
+        mockedPool.Setup(conn => conn.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
+        mockedConnection.Setup(conn => conn.GetChannelAsync(publisher, "test.direct.exchange", "test.direct.q", null)).ReturnsAsync(mockedChannel.Object);
 
-        Assert.False(await publisher.ForExchange(exchangeName).ForQueue(routingKey).Publish("Test Message"));
+        Assert.False(await publisher.ForExchange(exchangeName).ForQueue(routingKey).PublishAsync("Test Message"));
 
-        mockedPool.Verify(connection => connection.Connection(publisher), Times.AtLeastOnce());
+        mockedPool.Verify(connection => connection.GetConnectionAsync(publisher), Times.AtLeastOnce());
 
     }
 
     [Fact]
-    public async void DirectExchange_FailToStartConnectionAndRecover()
+    public async Task DirectExchange_FailToStartConnectionAndRecover()
     {
         var exchangeName = "PUBLISH.SDK.DIRECT";
         var routingKey = "TASK_QUEUE";
 
         var mockedConnectionPool = new Mock<IRabbitConnectionPool>();
+
         var mockedConnection = new Mock<IRabbitConnection>();
-
-
         var mockedChannel = new Mock<IRabbitChannel>();
 
-        using var publisher = new RabbitPublisher<string>(
+        using var publisher = new AsyncRabbitPublisher<string>(
             mockedConnectionPool.Object,
             loggerFactory,
             GetRabbitConfig(configuration)
@@ -344,26 +336,25 @@ public class RabbitPublisher_UnitTest
 
         var sequence = new MockSequence();
 
-        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Throws<Exception>();
-        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Throws<Exception>();
-        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.Connection(publisher)).Returns(mockedConnection.Object);
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.GetConnectionAsync(publisher)).Throws<Exception>();
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.GetConnectionAsync(publisher)).Throws<Exception>();
+        mockedConnectionPool.InSequence(sequence).Setup(pool => pool.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
 
-        mockedConnection.Setup(conn => conn.Channel(publisher, "test.direct.exchange", "test.direct.q", null)).Returns(mockedChannel.Object);
+        mockedConnection.Setup(conn => conn.GetChannelAsync(publisher, "test.direct.exchange", "test.direct.q", null)).ReturnsAsync(mockedChannel.Object);
 
         publisher.ForExchange(exchangeName).ForQueue(routingKey);
 
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.True(await publisher.Publish("Test Message"));
+        Assert.False(await publisher.PublishAsync("Test Message"));
+        Assert.False(await publisher.PublishAsync("Test Message"));
+        Assert.True(await publisher.PublishAsync("Test Message"));
 
-        mockedChannel.Verify(model => 
-            model.BasicPublish(publisher, null, 
-                It.IsAny<byte[]>()), Times.AtLeastOnce());
+        mockedChannel.Verify(channel => 
+            channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce());
     }
 
 
     [Fact]
-    public async void DirectExchange_PublishFailsRecoverThenOk()
+    public async Task DirectExchange_PublishFailsRecoverThenOk()
     {
         var exchangeName = "PUBLISH.SDK.DIRECT";
         var routingKey = "TASK_QUEUE";
@@ -372,29 +363,31 @@ public class RabbitPublisher_UnitTest
         var mockedConnection = new Mock<IRabbitConnection>();
         var mockedChannel = new Mock<IRabbitChannel>();
 
-        using var publisher = new RabbitPublisher<string>(
+        using var publisher = new AsyncRabbitPublisher<string>(
             mockedConnectionPool.Object,
             loggerFactory,
             GetRabbitConfig(configuration)
             );
 
-        mockedConnectionPool.Setup(pool => pool.Connection(publisher)).Returns(mockedConnection.Object);
-        mockedConnection.Setup(conn => conn.Channel(publisher, "test.direct.exchange", "test.direct.q", null)).Returns(mockedChannel.Object);
+        mockedConnectionPool.Setup(pool => pool.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
+        mockedConnection.Setup(conn => conn.GetChannelAsync(publisher, "test.direct.exchange", "test.direct.q", null)).ReturnsAsync(mockedChannel.Object);
 
         publisher.ForExchange(exchangeName).ForQueue(routingKey);
 
         var sequence = new MockSequence();
 
-        mockedChannel.InSequence(sequence).Setup(channel => channel.WaitForConfirmsOrDie(publisher, It.IsAny<TimeSpan>()) ).Throws<Exception>();
+        mockedChannel
+            .InSequence(sequence)
+            .Setup(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
 
-        Assert.False(await publisher.Publish("Test Message"));
-        Assert.True(await publisher.Publish("Test Message"));
+        Assert.False(await publisher.PublishAsync("Test Message"));
+        Assert.True(await publisher.PublishAsync("Test Message"));
 
-        mockedConnectionPool.Verify(pool => pool.Connection(publisher), Times.AtLeastOnce());
-        mockedConnection.Verify(conn => conn.Channel(publisher, "test.direct.exchange", "test.direct.q", null), Times.AtLeastOnce());
+        mockedConnectionPool.Verify(pool => pool.GetConnectionAsync(publisher), Times.AtLeastOnce());
+        mockedConnection.Verify(conn => conn.GetChannelAsync(publisher, "test.direct.exchange", "test.direct.q", null), Times.AtLeastOnce());
 
-        mockedChannel.Verify(model => 
-            model.BasicPublish(publisher, null, It.IsAny<byte[]>()), Times.AtLeastOnce());
+        mockedChannel.Verify(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce());
     }
 
     [Fact]
@@ -415,7 +408,7 @@ public class RabbitPublisher_UnitTest
         var services = serviceScope.ServiceProvider;
         Assert.NotNull(services);
 
-        Assert.Equal(typeof(RabbitPublisher<string>), services.GetRequiredService<IPublisher<string>>().GetType());
+        Assert.Equal(typeof(AsyncRabbitPublisher<string>), services.GetRequiredService<IAsyncPublisher<string>>().GetType());
     }
 
     [Fact]
@@ -436,7 +429,7 @@ public class RabbitPublisher_UnitTest
         var services = serviceScope.ServiceProvider;
         Assert.NotNull(services);
 
-        Assert.Equal(typeof(RabbitPublisher<string>), services.GetRequiredService<IPublisher<string>>().GetType());
+        Assert.Equal(typeof(AsyncRabbitPublisher<string>), services.GetRequiredService<IAsyncPublisher<string>>().GetType());
     }
 
     [Fact]
