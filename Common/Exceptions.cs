@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace FastCSharp.Exceptions;
+﻿namespace FastCSharp.Exceptions;
 
 [Serializable]
 public class IncorrectInitializationException : Exception
@@ -14,11 +12,6 @@ public class IncorrectInitializationException : Exception
         // intentionally empty
     }
     public IncorrectInitializationException(string? message, System.Exception? inner) : base(message, inner)
-    {
-        // intentionally empty
-    }
-    protected IncorrectInitializationException(SerializationInfo info, StreamingContext context) 
-    : base(info, context)
     {
         // intentionally empty
     }

@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using FastCSharp.Observability;
+using Microsoft.Extensions.Logging;
 
 namespace FastCSharp.Pool;
 
@@ -9,43 +11,73 @@ public class AsyncPool<T, K>  : IReturnable<K>, IAsyncPool<T>, IDisposable
 where T : Individual<K>, IAsyncDisposable
 where K : class, IDisposable
 {
-    private CreateAsync<T> IndividualFactoryAsync { get; set; }
-    readonly ConcurrentQueue<Individual<K>> available;
-    readonly ConcurrentDictionary<int, WeakReference<Individual<K>>> inUse;
+    public TimeSpan DefaultTimeout { get; private set;}
+    public IPoolStats? Stats { get => stats?.AllTimeStats; }
     public int MinSize { get; private set;}
     public int MaxSize { get; private set;}
-    public double DefaultTimeout { get; private set;}
+
     private int count;
-    public int Count { get => count; }
-    private int idx = 0;
+    public int Count { get => Volatile.Read(ref count); }
+
+    private CreateAsync<T> IndividualFactoryAsync { get; set; }
+    private readonly ConcurrentQueue<Individual<K>> available;
+    private readonly ConcurrentDictionary<int, WeakReference<Individual<K>>> inUse;
+    private readonly ILogger logger;
+
     private bool disposed;
     private readonly PoolStats? stats;
-    public IPoolStats? Stats { get => stats?.AllTimeStats; }
+    private readonly SemaphoreSlim _lock = new (1, 1);
 
-    private int Index {
-        get => Interlocked.Exchange(ref idx, idx = (idx) % Int32.MaxValue + 1);
+    /// <summary>
+    /// Flag to indicate if an individual is being added to the pool.
+    /// This is used to prevent multiple threads from trying to add individuals at the same time.
+    /// It is set to 1 when an individual is being added and reset to 0 when the addition is complete.
+    /// Using int instead of bool allows to use Interlocked operations for thread safety, simplifying the implementation.
+    /// </summary>
+    private int isAddingIndividual = 0;
+
+    private object _idxLock = new();
+    private int idx = 0;
+    private int Index
+    {
+        get
+        {
+            lock (_idxLock)
+            {
+                idx = ++idx % int.MaxValue;
+                return idx;
+            }
+        }
     }
     
-    public readonly SemaphoreSlim _lock = new (1, 1);
-    public readonly SemaphoreSlim _signal = new (0);
 
-    // TODO: change to accept a PoolConfig object
+    // TODO: change to:
+    // - [ ] accept a PoolConfig object
+    // - [ ] accept a logger
+    // - [ ] accept a CancelationToken 
     public AsyncPool(
-        CreateAsync<T> createIndividualAsync, 
-        int minSize, 
-        int maxSize, 
-        bool initialize = false, 
-        bool registerStats = true, 
+        CreateAsync<T> createIndividualAsync,
+        ILoggerFactory loggerFactory,
+        int minSize,
+        int maxSize,
+        bool initialize = false,
+        bool registerStats = true,
         double defaultTimeout = 1000)
     {
+        logger = loggerFactory.CreateLogger<AsyncPool<T, K>>();
+
+        ArgumentNullException.ThrowIfNull(createIndividualAsync);
         IndividualFactoryAsync = createIndividualAsync;
 
-        MinSize = minSize;
-        MaxSize = maxSize;
-        DefaultTimeout = defaultTimeout;
+        // avoiding problematic configurations
+        MinSize = minSize > 0 ? minSize : 0;
+        MaxSize = minSize < maxSize ? maxSize : minSize;
+        if (MaxSize < 1) throw new ArgumentException("MaxSize must be greater than 0.");
 
-        available = new ();
-        inUse = new ();
+        DefaultTimeout = TimeSpan.FromMilliseconds(defaultTimeout);
+
+        available = new();
+        inUse = new();
 
         if (initialize)
         {
@@ -57,10 +89,26 @@ where K : class, IDisposable
 
     private async Task DefferedInitializationAsync(int minSize)
     {
+        List<ConfiguredTaskAwaitable> tasks = new List<ConfiguredTaskAwaitable>(minSize);
         for (int i = 0; i < minSize; i++)
         {
-            var isSuccess = await AddIndividualAsync();
-            if (!isSuccess) break;
+            tasks.Add(
+                Task.Run(async () =>
+                {
+                    await AddIndividualAsync().ConfigureAwait(false);
+                }).ConfigureAwait(false)
+            );
+        }
+        foreach (var task in tasks)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "Error during pool initialization.");
+            }            
         }
     }
 
@@ -68,15 +116,11 @@ where K : class, IDisposable
     {
         try
         {
-            // Individuals can be created in parallel and put into used only after.
-            // This is to avoid the need to lock the pool when creating new individuals.
-            // If minimal size of the pool has been reached we can dispose the individual.
-            // It is inneficient but it only happens at pool start up and it allows the pool to be used earlier.
-            var individual = await CreateIndividualAsync();
+            var individual = await CreateIndividualAsync().ConfigureAwait(false);
 
             await _lock.WaitAsync();
 
-            if (Count >= MinSize)
+            if (count >= MaxSize)
             {
                 individual.DisposeValue(true);
                 return false;
@@ -91,63 +135,90 @@ where K : class, IDisposable
         }
         catch (Exception ex)
         {
-// TODO : need to log this            
-            // logger.LogCritical(ex, "Error creating individual.");
-            Console.WriteLine(ex);
+            logger.LogDebug(ex, "Error creating individual.");
             return false;
         }
         finally
         {
+            Interlocked.Exchange(ref isAddingIndividual, 0);
             _lock.Release();
         }
     }
 
-    public async Task<T> BorrowAsync(object caller, double timeout = -1)
+    public async Task<T> BorrowAsync(object caller, double timeoutInMilliseconds = -1)
     {
         if (disposed) throw new ObjectDisposedException(GetType().FullName);
 
-        // -1 signals to use default
-        timeout = timeout > -1 ? timeout : DefaultTimeout;
-        try
-        {
-            var timeLimit = DateTime.Now.AddMilliseconds(timeout);
-            await _lock.WaitAsync();
+            // -1 signals to use default
+            var timeoutSpan = timeoutInMilliseconds > -1 ? TimeSpan.FromMilliseconds(timeoutInMilliseconds) : DefaultTimeout;
+            var timeLimit = DateTime.Now.Add(timeoutSpan);
+            
+            Individual<K>? individual = null;
 
-            while (available.IsEmpty && Count >= MaxSize)
+            while (individual == null)
             {
-                var remaining = timeLimit - DateTime.Now;
-                await CheckPoolTimeoutAsync(timeout, remaining <= TimeSpan.Zero);
+                var remaining = GetRemainingTime(timeLimit);
+                try
+                {
+                    await _lock.WaitAsync(remaining);
 
-                stats?.PoolWait();
-                bool timedout = await _lock.WaitAsync(remaining);
+                    while (available.IsEmpty && Count >= MaxSize)
+                    {
+                        stats?.PoolWait();
 
-                if (!available.IsEmpty || Count < MaxSize) break;
+                        _lock.Release();
 
-                await CheckPoolTimeoutAsync(timeout, timedout);
+                        // Yield to allow other threads to give opportunity to others
+                        await Task.Yield();
+
+                        remaining = GetRemainingTime(timeLimit);
+
+                        bool timedout = await _lock.WaitAsync(remaining);
+
+                        if (!available.IsEmpty || Count < MaxSize) break;
+
+                        // Throws TimeoutException if timed out
+                        CheckPoolTimeoutAsync(timeoutSpan, timedout);
+                    }
+
+                    individual = GetIndividualAsync(caller);
+
+                    if (individual == null && Interlocked.CompareExchange(ref isAddingIndividual, 1, 0) == 0 && count < MaxSize)
+                    {
+                        // trigger add a new Individual and go back to waiting for an individual.
+                        _ = Task.Run(async () =>
+                        {
+                            await AddIndividualAsync().ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    _lock.Release();
+                }
+
             }
 
-            Individual<K>? individual = await GetIndividualAsync(caller);
-
-            // Monitor.Pulse(_lock);
             return (T)individual;
-        }
-        finally
-        {
-            _lock.Release();
-        }
     }
 
-    private async Task<Individual<K>> GetIndividualAsync(object caller)
+    /// <summary>
+    /// Calculates the remaining time until the time limit is reached.
+    /// If the remaining time is negative, it returns TimeSpan.Zero.
+    /// </summary>
+    /// <param name="timeLimit"></param>
+    /// <returns></returns>
+    private static TimeSpan GetRemainingTime(DateTime timeLimit)
+    {
+        TimeSpan remaining = timeLimit - DateTime.Now;
+        return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+    }
+
+    private Individual<K>? GetIndividualAsync(object caller)
     {
         Individual<K>? individual;
 
         var isHit = available.TryDequeue(out individual);
-
-        if (!isHit && Count < MaxSize)
-        {
-            Interlocked.Increment(ref count);
-            individual = await CreateIndividualAsync();
-        }
 
         if (individual != null)
         {
@@ -155,22 +226,17 @@ where K : class, IDisposable
 
             PutInUse(caller, individual);
         }
-        else
-        {
-            stats?.PoolError();
-            throw new Exception("If you are reading this, something is wrong with the pool implementation.");
-        }
 
         return individual;
     }
 
-    private async Task CheckPoolTimeoutAsync(double timeout, bool timedout)
+    private void CheckPoolTimeoutAsync(TimeSpan timeout, bool timedout)
     {
         if (timedout)
         {
             stats?.PoolTimeout();
-            if (stats?.TimeoutRatio > 0.5) await PurgeInUse();
-            throw new TimeoutException($"Could not get a {typeof(T)} from the pool within the {timeout} ms timeout.");
+            if (stats?.TimeoutRatio > 0.5) _PurgeInUse();
+            throw new TimeoutException($"Could not get a {typeof(T)} from the pool within the {timeout.TotalMilliseconds} ms timeout.");
         }
     }
 
@@ -183,7 +249,7 @@ where K : class, IDisposable
 
             var removed = inUse.Remove(individual.Id, out _);
             // If the available count is greater than 80% of the minimum size, we can dispose this individual.
-            if (!removed || individual.IsStalled || available.Count > (MinSize * 0.8) && Count > MinSize)
+            if (!removed || individual.IsStalled || available.Count > (MinSize * 0.8) && Count > MinSize || Count > MaxSize)
             {
                 if (removed)
                 {
@@ -193,14 +259,13 @@ where K : class, IDisposable
                 individual.DisposeValue(true);
  
                 stats?.PoolDisposed();
-                // Monitor.Pulse(_lock);
+
                 return false;
             }
 
             available.Enqueue(individual);
             stats?.PoolReturn(Count);
 
-            // Monitor.Pulse(_lock);
             return true;
         }
         finally
@@ -215,12 +280,7 @@ where K : class, IDisposable
         try
         {
             await _lock.WaitAsync();
-            inUse
-                .Where(e => !e.Value.TryGetTarget(out var target))
-                .ToList()
-                .ForEach(e => inUse.TryRemove(e.Key, out _));
-            Interlocked.Exchange(ref count, inUse.Count + available.Count);
-            stats?.PoolPurge(Count);
+            _PurgeInUse();
         }
         finally
         {
@@ -228,44 +288,64 @@ where K : class, IDisposable
         }
     }
 
+    /// <summary>
+    /// Removes all individuals that are not in use from the inUse list.
+    /// Calls to this method <b>MUST</b> come with a lock on the pool.
+    /// </summary>
+    private void _PurgeInUse()
+    {
+        inUse
+            .Where(e => !e.Value.TryGetTarget(out var target))
+            .ToList()
+            .ForEach(e => inUse.TryRemove(e.Key, out _));
+        Interlocked.Exchange(ref count, inUse.Count + available.Count);
+        stats?.PoolPurge(Count);
+    }
+
     private void PutInUse(object caller, Individual<K> individual)
     {
         individual.Owner = caller;
+        // Allow the individual to be disposed and not returned to the pool.
         inUse[individual.Id] = new WeakReference<Individual<K>>(individual);
     }
 
     private async Task<T> CreateIndividualAsync()
     {
-        // Keep individual Id for those in the pool
-        var individual = await IndividualFactoryAsync();
-        individual.Id = Index;
-        individual.ReturnAddress = this;
-        return individual;
+        try
+        {
+            var individual = await IndividualFactoryAsync().ConfigureAwait(false);
+            individual.Id = Index;
+            individual.ReturnAddress = this;
+            return individual;
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "The AsyncPool got an Error from IndividualFactoryAsync while attempting to create an individual.");
+            throw;
+        }
     }
 
     protected virtual void Dispose(bool disposing)
     {
+        if (disposed) return;
         try
         {
             _lock.Wait(5000);
 
-            if (!disposed)
+            if (disposing)
             {
-                if (disposing)
+                // dispose managed state (managed objects)
+                disposed = true;
+                foreach (var individual in available)
                 {
-                    // dispose managed state (managed objects)
-                    disposed = true;
-                    foreach (var individual in available)
-                    {
-                        individual.DisposeValue(true);
-                    }
-                    for (int i = 0; i < Count; i++)
-                    {
-                        inUse.TryRemove(i, out _);
-                    }
+                    individual.DisposeValue(true);
                 }
-
+                foreach (var key in inUse.Keys)
+                {
+                    inUse.TryRemove(key, out _);
+                }
             }
+
         }
         finally
         {

@@ -35,6 +35,7 @@ public class RabbitConnectionPool : IRabbitConnectionPool
 
         pool = new AsyncPool<RabbitConnection, IConnection>(
             async () => await CreateConnection(factory, config.Hosts, loggerFactory),
+            loggerFactory,
             poolConfig.MinSize, 
             poolConfig.MaxSize, 
             poolConfig.Initialize, 
@@ -43,7 +44,7 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         );
     }
 
-    private string getName() => $"{nameToken}-{Interlocked.Increment(ref instanceCount).ToString("D6")}";
+    private string getName(int instanceNumber) => $"{nameToken}-{instanceNumber.ToString("D6")}";
 
     static private PoolConfig PoolConfigOrDefaults(PoolConfig? fromConfig)
     {
@@ -63,9 +64,13 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         IConnection? connection;
         try
         {
-            factory.ClientProvidedName = getName();
-            logger.LogInformation($"Created RabbitConnection #{instanceCount}");
-            if(endpoints == null)
+            int incremented = Interlocked.Increment(ref instanceCount);
+            int instanceNumber = Volatile.Read(ref incremented);
+
+            logger.LogInformation($"Created RabbitConnection #{instanceNumber}");
+            factory.ClientProvidedName = getName(instanceNumber);
+            
+            if (endpoints == null)
             {
                 connection = await factory.CreateConnectionAsync();
             }

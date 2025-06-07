@@ -17,14 +17,16 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
     private readonly int defaultTimeout;
     private readonly bool gatherStats = false;
     private readonly bool initialize = false;
+    private ILoggerFactory LoggerFactory { get; set; }
 
     // TODO: pass min, max, defaultTimeout and gather stats from configuration
-    public RabbitConnection(IConnection connection, ILoggerFactory ILoggerFactory)
+    public RabbitConnection(IConnection connection, ILoggerFactory loggerFactory)
     : base(connection)
     {
         this.connection = connection;
-        logger = ILoggerFactory.CreateLogger<RabbitConnection>();
-        channelsPools = new ();
+        LoggerFactory = loggerFactory;
+        logger = loggerFactory.CreateLogger<RabbitConnection>();
+        channelsPools = new();
         minObjects = 1;
         maxObjects = 10;
         defaultTimeout = 1000;
@@ -44,6 +46,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
             // if it doesn't exist create a new pool after verifying the exchange and routing key
             pool = new AsyncPool<RabbitChannel, IChannel>(
                 async () => await CreateAsync(exchangeName, queue, routingKey),
+                LoggerFactory,
                 minObjects, maxObjects, initialize, gatherStats, defaultTimeout
             );
             _ = await CreateAsync(exchangeName, queue, routingKey);

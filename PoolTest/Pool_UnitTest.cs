@@ -1,10 +1,13 @@
 ﻿using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace FastCSharp.Pool.Tests;
 
 public class Pool_UnitTest
 {
+    ILoggerFactory LoggerFactory => new Mock<ILoggerFactory>().Object;
 
     [Fact]
     public async Task CreateNewPool()
@@ -20,6 +23,7 @@ public class Pool_UnitTest
                     }
                 );
             },
+            LoggerFactory,
             1, 10
             );
 
@@ -41,6 +45,7 @@ public class Pool_UnitTest
                     }
                 );
             },
+            LoggerFactory,
             1, 10
             );
 
@@ -63,6 +68,7 @@ public class Pool_UnitTest
                     }
                 );
             },
+            LoggerFactory,
             1, 10
             );
 
@@ -90,6 +96,7 @@ public class Pool_UnitTest
                     }
                 );
             },
+            LoggerFactory,
             1, 10
             );
 
@@ -113,6 +120,7 @@ public class Pool_UnitTest
                     }
                 );
             },
+            LoggerFactory,
             7, 10
             );
 
@@ -141,6 +149,7 @@ public class Pool_UnitTest
                     }
                 );
             },
+            LoggerFactory,
             7, 10
             );
 
@@ -167,6 +176,7 @@ public class Pool_UnitTest
                     }
                 );
             }, 
+            LoggerFactory,
             7, 10
             );
 
@@ -193,6 +203,7 @@ public class Pool_UnitTest
                     }
                 );
             }, 
+            LoggerFactory,
             7, 10
             );
         Thread[] threads = new Thread[10];
@@ -248,6 +259,7 @@ public class Pool_UnitTest
                     }
                 );
             }, 
+            LoggerFactory,
             minPoolSize, MaxPoolSize
             );
         DateTime start = DateTime.Now;
@@ -319,6 +331,7 @@ public class Pool_UnitTest
                     }
                 );
             }, 
+            LoggerFactory,
             7, 10
             );
 
@@ -396,6 +409,7 @@ public class Pool_UnitTest
                     }
                 );
             },
+            LoggerFactory,
             1, 10
             );
 
