@@ -74,7 +74,7 @@ public class FailuresThresholdBreakerStrategy : BreakerStrategy
         if (Breaker == null)
             throw new IncorrectInitializationException(ExceptionMessage);
 
-        if (++counter > threshold)
+        if (Interlocked.Increment(ref counter) > threshold)
         {
             Breaker.Open(backoff.Duration);
         }
@@ -87,7 +87,7 @@ public class FailuresThresholdBreakerStrategy : BreakerStrategy
             if (Breaker == null)
                 throw new IncorrectInitializationException(ExceptionMessage);
 
-            ++counter;
+            Interlocked.Increment(ref counter);
             Breaker.Open(backoff.Duration);
         }
         else
@@ -98,7 +98,7 @@ public class FailuresThresholdBreakerStrategy : BreakerStrategy
 
     private void ResetCounter()
     {
-        counter = 0;
+        Interlocked.Exchange(ref counter, 0);
     }
 
 }

@@ -1,4 +1,4 @@
-using FastCSharp.Criptography;
+using FastCSharp.Cryptography;
 
 namespace FastCSharp.CircuitBreaker;
 
@@ -31,19 +31,22 @@ public class RandomIncrementalBackoff : IBackoffStrategy
     {
         get
         {
-            ++counter;
-            if (counter == 1)
+            Interlocked.Increment(ref counter);
+            var currentCounter = Volatile.Read(ref counter);
+            var currentBackoff = backoff;
+            if (currentCounter == 1)
             {
-                return backoff;
+                return currentBackoff;
             }
-            else if (counter <  maxIncrements + 1)
+            else if (currentCounter < maxIncrements + 1)
             {
-                backoff += (Rnd.GetRandomDouble(precision) * increments);
-                return backoff;
+                currentBackoff += Rnd.GetRandomDouble(precision) * increments;
+                backoff = currentBackoff;
+                return currentBackoff;
             }
             else
             {
-                return backoff + Rnd.GetRandomDouble(precision) * increments;
+                return currentBackoff + Rnd.GetRandomDouble(precision) * increments;
             }
         }
     }

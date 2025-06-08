@@ -49,7 +49,7 @@ where T : class, IDisposable
     protected T GetValue(object owner)
     {
         if (Owner != owner) throw new InvalidOperationException("This individual is not owned by the caller.");
-        if (disposed) throw new ObjectDisposedException(GetType().FullName);
+        if (Volatile.Read(ref disposed)) throw new ObjectDisposedException(GetType().FullName);
         return value;
     }
 
@@ -57,21 +57,10 @@ where T : class, IDisposable
     {
         if (disposing)
         {
-            disposed = true;
+            Volatile.Write(ref disposed, true);
             value?.Dispose();
         }
     }
-    // public void Dispose()
-    // {
-    //     bool? isPoolExists = false; 
-    //     Task.Run(async () => isPoolExists = ReturnAddress != null ? await ReturnAddress.Return(this) : false).RunSynchronously();
-
-    //     if (isPoolExists == false)
-    //     {
-    //         // There is no more pool holding this individual.
-    //         DisposeValue(true);
-    //     }
-    // }
 
     public async ValueTask DisposeAsync()
     {

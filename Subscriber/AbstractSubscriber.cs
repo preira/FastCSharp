@@ -23,7 +23,7 @@ public abstract class AbstractSubscriber<T>: ISubscriber<T>
     /// Adds a callback to handle message upon arrival and before being processed by subscribed callback.
     /// This results ion a chain of responsibility where the order in which the handlers were added will 
     /// be respected. 
-    /// These handlers can handle different responsibilities such as message validation or criptography.
+    /// These handlers can handle different responsibilities such as message validation or cryptography.
     /// </summary>
     /// <param name="handler">The callback to handle the message.</param>
     /// <returns></returns>

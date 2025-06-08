@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace FastCSharp.Criptography;
+namespace FastCSharp.Cryptography;
 
 /// <summary>
 /// Static class for cryptographic operations
@@ -10,7 +10,7 @@ static public class Rnd
     private static readonly int maxPrecision = (int)Math.Log10(Int32.MaxValue);
 
     /// <summary>
-    /// Random double generator. It generates a random double between 0 (inclusive) and 1 (inclusive) with the given precision.
+    /// Random double generator. It generates a random double between 0 (inclusive) and 1 (exclusive) with the given precision.
     /// e.g. GetRandomDouble(3) will generate a random double between 0 and 1 with 3 decimal places.
     /// </summary>
     public static double GetRandomDouble(int precision)

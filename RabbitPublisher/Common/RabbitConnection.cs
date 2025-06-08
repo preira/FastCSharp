@@ -49,7 +49,6 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
                 LoggerFactory,
                 minObjects, maxObjects, initialize, gatherStats, defaultTimeout
             );
-            _ = await CreateAsync(exchangeName, queue, routingKey);
             channelsPools.TryAdd(Tuple.Create(exchangeName, queue, routingKey), pool);
         }
 

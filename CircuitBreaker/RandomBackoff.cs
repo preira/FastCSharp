@@ -1,4 +1,4 @@
-using FastCSharp.Criptography;
+using FastCSharp.Cryptography;
 
 namespace FastCSharp.CircuitBreaker;
 

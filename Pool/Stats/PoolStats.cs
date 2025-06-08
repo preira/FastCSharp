@@ -16,12 +16,13 @@ public class PoolStats
     private readonly ConcurrentDictionary<DateTime, PoolStatsPeriod> dayStats;
     private readonly ConcurrentDictionary<DateTime, PoolStatsPeriod> hourStats;
     private readonly ConcurrentDictionary<DateTime, PoolStatsPeriod> minuteStats;
+    private volatile PoolStatsPeriod _lastMinuteStat;
     private int lastSize;
 
     /// <summary>
     /// Returns the ration of requests that timed out.
     /// </summary>
-    public double TimeoutRatio { get => minuteStats.FirstOrDefault().Value?.TimeoutRatio ?? 0; }
+    public double TimeoutRatio { get => _lastMinuteStat.TimeoutRatio; }
 
     /// <summary>
     /// Returns the all time stats for the pool.
@@ -30,6 +31,7 @@ public class PoolStats
 
     public PoolStats()
     {
+        _lastMinuteStat = new PoolStatsPeriod(DateTime.Now, -1);
         alltimeStats = new PoolStatsPeriod(DateTime.Now, -1);
         yearStats = new();
         monthStats = new();
@@ -50,6 +52,7 @@ public class PoolStats
 
         PoolStatsPeriod? minute = GetAndRotate(minuteStats, timeFrames.Minute, CurrentTimeFrames.TruncateMinute);
         minute.UpdateSize(size, timeFrames.Minute);
+        _lastMinuteStat = minute;
 
         PoolStatsPeriod? hour = GetAndRotate(hourStats, timeFrames.Hour, CurrentTimeFrames.TruncateHour);
         hour.UpdateSize(size, timeFrames.Hour);
@@ -113,6 +116,7 @@ public class PoolStats
 
         PoolStatsPeriod? minute = GetAndRotate(minuteStats, timeFrames.Minute, CurrentTimeFrames.TruncateMinute);
         minute.PoolRequest(isHit, size, timeFrames.Minute);
+        _lastMinuteStat = minute;
 
         PoolStatsPeriod? hour = GetAndRotate(hourStats, timeFrames.Hour, CurrentTimeFrames.TruncateHour);
         hour.PoolRequest(isHit, size, timeFrames.Hour);
@@ -135,6 +139,7 @@ public class PoolStats
 
         PoolStatsPeriod? minute = GetAndRotate(minuteStats, timeFrames.Minute, CurrentTimeFrames.TruncateMinute);
         minute.PoolReturn(size, timeFrames.Minute);
+        _lastMinuteStat = minute;
 
         PoolStatsPeriod? hour = GetAndRotate(hourStats, timeFrames.Hour, CurrentTimeFrames.TruncateHour);
         hour.PoolReturn(size, timeFrames.Hour);
@@ -157,6 +162,7 @@ public class PoolStats
 
         PoolStatsPeriod? minute = GetAndRotate(minuteStats, timeFrames.Minute, CurrentTimeFrames.TruncateMinute);
         minute.PoolPurge(size, timeFrames.Minute);
+        _lastMinuteStat = minute;
 
         PoolStatsPeriod? hour = GetAndRotate(hourStats, timeFrames.Hour, CurrentTimeFrames.TruncateHour);
         hour.PoolPurge(size, timeFrames.Hour);
@@ -179,6 +185,7 @@ public class PoolStats
 
         PoolStatsPeriod? minute = GetAndRotate(minuteStats, timeFrames.Minute, CurrentTimeFrames.TruncateMinute);
         minute.PoolWait(timeFrames.Minute);
+        _lastMinuteStat = minute;
 
         PoolStatsPeriod? hour = GetAndRotate(hourStats, timeFrames.Hour, CurrentTimeFrames.TruncateHour);
         hour.PoolWait(timeFrames.Hour);
@@ -201,6 +208,7 @@ public class PoolStats
 
         PoolStatsPeriod? minute = GetAndRotate(minuteStats, timeFrames.Minute, CurrentTimeFrames.TruncateMinute);
         minute.PoolTimeout(timeFrames.Minute);
+        _lastMinuteStat = minute;
 
         PoolStatsPeriod? hour = GetAndRotate(hourStats, timeFrames.Hour, CurrentTimeFrames.TruncateHour);
         hour.PoolTimeout(timeFrames.Hour);
@@ -224,6 +232,7 @@ public class PoolStats
 
         PoolStatsPeriod? minute = GetAndRotate(minuteStats, timeFrames.Minute, CurrentTimeFrames.TruncateMinute);
         minute.PoolError(timeFrames.Minute);
+        _lastMinuteStat = minute;
 
         PoolStatsPeriod? hour = GetAndRotate(hourStats, timeFrames.Hour, CurrentTimeFrames.TruncateHour);
         hour.PoolError(timeFrames.Hour);
@@ -246,6 +255,7 @@ public class PoolStats
 
         PoolStatsPeriod? minute = GetAndRotate(minuteStats, timeFrames.Minute, CurrentTimeFrames.TruncateMinute);
         minute.PoolDisposed(timeFrames.Minute);
+        _lastMinuteStat = minute;
 
         PoolStatsPeriod? hour = GetAndRotate(hourStats, timeFrames.Hour, CurrentTimeFrames.TruncateHour);
         hour.PoolDisposed(timeFrames.Hour);

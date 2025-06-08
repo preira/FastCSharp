@@ -288,9 +288,11 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 logger.LogError("Error: {message}", e.Message);
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
-                logger.LogError("Discarding unparseable message with tag: {Tag}", ea.DeliveryTag);
+                logger.LogError(
+                    "Got an error from Callback handler function for message with tag: {Tag}. Message will be requeued until dead letter policy takes action.",
+                    ea.DeliveryTag);
                 logger.LogError("Error: {message}", e.Message);
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
             }

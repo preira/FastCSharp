@@ -1,5 +1,5 @@
 using Xunit;
-using FastCSharp.Criptography;
+using FastCSharp.Cryptography;
 using FastCSharp.Exceptions;
 
 namespace Common.Tests;

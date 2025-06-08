@@ -28,12 +28,13 @@ public class IncrementalBackoff : IBackoffStrategy
     {
         get
         {
-            if (counter < maxIncrements)
+            var currentCounter = Volatile.Read(ref counter);
+            if (currentCounter < maxIncrements)
             {
-                return backoff + counter++ * increment;
+                return backoff + Interlocked.CompareExchange(ref counter, currentCounter + 1, currentCounter) * increment;
             } 
-            return backoff + counter * increment;
+            return backoff + maxIncrements * increment;
         }
     }
-    public void Reset() => counter = 0;
+    public void Reset() => Interlocked.Exchange(ref counter, 0);
 }

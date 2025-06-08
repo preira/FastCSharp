@@ -22,19 +22,11 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         logger = loggerFactory.CreateLogger<RabbitConnectionPool>();
 
         nameToken = config.ClientName ?? "FastCSharp.RabbitPublisher";
-        var factory = new ConnectionFactory();
-
-        if(config.HostName != null)     factory.HostName = config.HostName;
-        if(config.Port != null)         factory.Port = (int) config.Port;
-        if(config.VirtualHost != null)  factory.VirtualHost = config.VirtualHost;
-        if(config.Password != null)     factory.Password = config.Password;
-        if(config.UserName != null)     factory.UserName = config.UserName;
-        if(config.Heartbeat != null)    factory.RequestedHeartbeat = (TimeSpan) config.Heartbeat;
 
         var poolConfig = PoolConfigOrDefaults(config.Pool);
 
         pool = new AsyncPool<RabbitConnection, IConnection>(
-            async () => await CreateConnection(factory, config.Hosts, loggerFactory),
+            async () => await CreateConnection(config, loggerFactory),
             loggerFactory,
             poolConfig.MinSize, 
             poolConfig.MaxSize, 
@@ -59,16 +51,26 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         return poolConf;
     }
 
-    private async Task<RabbitConnection> CreateConnection(ConnectionFactory factory, IList<AmqpTcpEndpoint>? endpoints, ILoggerFactory loggerFactory)
+    private async Task<RabbitConnection> CreateConnection(RabbitPublisherConfig config, ILoggerFactory loggerFactory)
     {
+        var factory = new ConnectionFactory();
+
+        if(config.HostName != null)     factory.HostName = config.HostName;
+        if(config.Port != null)         factory.Port = (int) config.Port;
+        if(config.VirtualHost != null)  factory.VirtualHost = config.VirtualHost;
+        if(config.Password != null)     factory.Password = config.Password;
+        if(config.UserName != null)     factory.UserName = config.UserName;
+        if(config.Heartbeat != null)    factory.RequestedHeartbeat = (TimeSpan) config.Heartbeat;
+
+        var endpoints = config.Hosts;
+
         IConnection? connection;
         try
         {
             int incremented = Interlocked.Increment(ref instanceCount);
-            int instanceNumber = Volatile.Read(ref incremented);
 
-            logger.LogInformation($"Created RabbitConnection #{instanceNumber}");
-            factory.ClientProvidedName = getName(instanceNumber);
+            factory.ClientProvidedName = getName(incremented);
+            logger.LogInformation($"Created RabbitConnection #{incremented} with name '{factory.ClientProvidedName}'");
             
             if (endpoints == null)
             {
