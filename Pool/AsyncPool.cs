@@ -50,10 +50,8 @@ where K : class, IDisposable
         }
     }
     
-
     // TODO: change to:
     // - [ ] accept a PoolConfig object
-    // - [ ] accept a logger
     // - [ ] accept a CancelationToken 
     public AsyncPool(
         CreateAsync<T> createIndividualAsync,
@@ -149,57 +147,70 @@ where K : class, IDisposable
     {
         if (disposed) throw new ObjectDisposedException(GetType().FullName);
 
-            // -1 signals to use default
-            var timeoutSpan = timeoutInMilliseconds > -1 ? TimeSpan.FromMilliseconds(timeoutInMilliseconds) : DefaultTimeout;
-            var timeLimit = DateTime.Now.Add(timeoutSpan);
-            
-            Individual<K>? individual = null;
+        // -1 signals to use default
+        var timeoutSpan = timeoutInMilliseconds > -1 ? TimeSpan.FromMilliseconds(timeoutInMilliseconds) : DefaultTimeout;
+        var timeLimit = DateTime.Now.Add(timeoutSpan);
+        
+        Individual<K>? individual = null;
 
-            while (individual == null)
+        while (individual == null)
+        {
+            var remaining = GetRemainingTime(timeLimit);
+
+            // Should release the lock if timeout is reached
+            bool isLockAcquired = false;
+            try
             {
-                var remaining = GetRemainingTime(timeLimit);
-                try
+                isLockAcquired = await _lock.WaitAsync(remaining);
+                if (!isLockAcquired)
                 {
-                    await _lock.WaitAsync(remaining);
-
-                    while (available.IsEmpty && Count >= MaxSize)
-                    {
-                        stats?.PoolWait();
-
-                        _lock.Release();
-
-                        // Yield to allow other threads to give opportunity to others
-                        await Task.Yield();
-
-                        remaining = GetRemainingTime(timeLimit);
-
-                        bool timedout = await _lock.WaitAsync(remaining);
-
-                        if (!available.IsEmpty || Count < MaxSize) break;
-
-                        // Throws TimeoutException if timed out
-                        CheckPoolTimeoutAsync(timeoutSpan, timedout);
-                    }
-
-                    individual = GetIndividualAsync(caller);
-
-                    if (individual == null && Interlocked.CompareExchange(ref isAddingIndividual, 1, 0) == 0 && count < MaxSize)
-                    {
-                        // trigger add a new Individual and go back to waiting for an individual.
-                        _ = Task.Run(async () =>
-                        {
-                            await AddIndividualAsync().ConfigureAwait(false);
-                        }).ConfigureAwait(false);
-                    }
+                    // Throws TimeoutException if timed out
+                    CheckPoolTimeoutAsync(timeoutSpan, true);
                 }
-                finally
+
+                while (available.IsEmpty && Count >= MaxSize)
+                {
+                    stats?.PoolWait();
+
+                    _lock.Release();
+
+                    // Yield to allow other threads to give opportunity to others
+                    await Task.Yield();
+
+                    remaining = GetRemainingTime(timeLimit);
+
+                    isLockAcquired = await _lock.WaitAsync(remaining);
+                    if (!isLockAcquired)
+                    {
+                        // Throws TimeoutException if timed out
+                        CheckPoolTimeoutAsync(timeoutSpan, true);
+                    }
+
+                    if (!available.IsEmpty || Count < MaxSize) break;
+
+                }
+
+                individual = GetIndividualAsync(caller);
+
+                if (individual == null && Interlocked.CompareExchange(ref isAddingIndividual, 1, 0) == 0 && count < MaxSize)
+                {
+                    // trigger add a new Individual and go back to waiting for an individual.
+                    _ = Task.Run(async () =>
+                    {
+                        await AddIndividualAsync().ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                if (isLockAcquired)
                 {
                     _lock.Release();
                 }
-
             }
+        }
 
-            return (T)individual;
+        return (T)individual;
     }
 
     /// <summary>

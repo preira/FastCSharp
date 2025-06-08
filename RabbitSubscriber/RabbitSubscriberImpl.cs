@@ -116,14 +116,14 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                     }
                     connection.ConnectionShutdownAsync += async (sender, args) =>
                     {
-                        logger.LogWarning("RabbitMQ connection shutdown: {0}. FastCSharp Client will try to recover.", args.ReplyText);
+                        logger.LogWarning("RabbitMQ connection shutdown: {0}. FastCSharp Client will NOT try to recover. You should have a watch dog to handle reconnection.", args.ReplyText);
                         await Task.Yield();
                     };
                     
                     channel = await connection.CreateChannelAsync();
                     channel.ChannelShutdownAsync += async (sender, args) =>
                     {
-                        logger.LogWarning("RabbitMQ channel shutdown: {0}. FastCSharp Client will try to recover.", args.ReplyText);
+                        logger.LogWarning("RabbitMQ channel shutdown: {0}. FastCSharp Client will NOT try to recover. You should have a watch dog to handle reconnection.", args.ReplyText);
                         await Task.Yield();
                     };
                 }
