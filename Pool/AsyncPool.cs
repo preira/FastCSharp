@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using FastCSharp.Observability;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +14,9 @@ where K : class, IDisposable
 {
     public TimeSpan DefaultTimeout { get; private set;}
     public IPoolStats? Stats { get => stats?.AllTimeStats; }
-    public int MinSize { get; private set;}
+    public JsonDocument? FullStatsReport => stats?.ToJson();
+     
+    public int MinSize { get; private set; }
     public int MaxSize { get; private set;}
 
     private int count;
@@ -145,6 +148,9 @@ where K : class, IDisposable
 
     public async Task<T> BorrowAsync(object caller, double timeoutInMilliseconds = -1)
     {
+        // request guid help determine the unique request for statistical purposes
+        Guid requestGuid = Guid.NewGuid();
+
         if (disposed) throw new ObjectDisposedException(GetType().FullName);
 
         // -1 signals to use default
@@ -165,47 +171,21 @@ where K : class, IDisposable
                 if (!isLockAcquired)
                 {
                     // Throws TimeoutException if timed out
-                    CheckPoolTimeoutAsync(timeoutSpan, true);
+                    CheckPoolTimeoutAsync(timeoutSpan, GetRemainingTime(timeLimit) == TimeSpan.Zero);
                 }
 
-                while (available.IsEmpty && Count >= MaxSize)
-                {
-                    stats?.PoolWait();
+                individual = GetIndividualAsync(caller, requestGuid);
 
-                    _lock.Release();
-
-                    // Yield to allow other threads to give opportunity to others
-                    await Task.Yield();
-
-                    remaining = GetRemainingTime(timeLimit);
-
-                    isLockAcquired = await _lock.WaitAsync(remaining);
-                    if (!isLockAcquired)
-                    {
-                        // Throws TimeoutException if timed out
-                        CheckPoolTimeoutAsync(timeoutSpan, true);
-                    }
-
-                    if (!available.IsEmpty || Count < MaxSize) break;
-
-                }
-
-                individual = GetIndividualAsync(caller);
-
-                if (individual == null && Interlocked.CompareExchange(ref isAddingIndividual, 1, 0) == 0 && count < MaxSize)
-                {
-                    // trigger add a new Individual and go back to waiting for an individual.
-                    _ = Task.Run(async () =>
-                    {
-                        await AddIndividualAsync().ConfigureAwait(false);
-                    }).ConfigureAwait(false);
-                }
             }
             finally
             {
                 if (isLockAcquired)
                 {
                     _lock.Release();
+                }
+                else
+                {
+                    stats?.PoolWaitForRequest(requestGuid);
                 }
             }
         }
@@ -225,17 +205,30 @@ where K : class, IDisposable
         return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
     }
 
-    private Individual<K>? GetIndividualAsync(object caller)
+    private Individual<K>? GetIndividualAsync(object caller, Guid requestGuid)
     {
         Individual<K>? individual;
 
         var isHit = available.TryDequeue(out individual);
 
+        stats?.PoolRequestForRequestGuid(isHit, Count, requestGuid);
+
         if (individual != null)
         {
-            stats?.PoolRequest(isHit, Count);
-
             PutInUse(caller, individual);
+        }
+        else
+        {
+            stats?.PoolWaitForRequest(requestGuid);
+            if (Interlocked.CompareExchange(ref isAddingIndividual, 1, 0) == 0 && count < MaxSize)
+            {
+                // trigger add a new Individual and go back to waiting for an individual.
+                _ = Task.Run(async () =>
+                {
+                    await AddIndividualAsync().ConfigureAwait(false);
+                }).ConfigureAwait(false);
+            }
+
         }
 
         return individual;

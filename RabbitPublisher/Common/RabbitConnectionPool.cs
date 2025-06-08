@@ -3,6 +3,7 @@ using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using FastCSharp.Pool;
 using FastCSharp.Observability;
+using System.Text.Json;
 
 namespace FastCSharp.RabbitPublisher.Common;
 
@@ -14,6 +15,7 @@ public class RabbitConnectionPool : IRabbitConnectionPool
     readonly ILogger logger;
 
     public IPoolStats? Stats => pool?.Stats;
+    public JsonDocument? FullStatsReport => pool?.FullStatsReport;
 
     public RabbitConnectionPool(
         RabbitPublisherConfig config, 

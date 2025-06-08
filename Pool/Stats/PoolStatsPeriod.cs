@@ -20,18 +20,18 @@ public class PoolStatsPeriod : IPoolStats
     //      = 187 x 12 x 12 = 2244 objects x 12 bytes = 26.928 bytes
 
     public readonly object _lock = new ();
-    private readonly ConcurrentDictionary<DateTime, int> poolHitCount;
-    private readonly ConcurrentDictionary<DateTime, int> poolNewCount;
-    private readonly ConcurrentDictionary<DateTime, int> poolErrorCount;
-    private readonly ConcurrentDictionary<DateTime, int> poolRequestCount;
-    private readonly ConcurrentDictionary<DateTime, int> poolReturnCount;
-    private readonly ConcurrentDictionary<DateTime, int> poolDisposedCount;
-    private readonly ConcurrentDictionary<DateTime, int> poolSizeChangeEvents;
-    private readonly ConcurrentDictionary<DateTime, int> poolMinSize;
-    private readonly ConcurrentDictionary<DateTime, int> poolMaxSize;
-    private readonly ConcurrentDictionary<DateTime, int> poolPurgeCount;
-    private readonly ConcurrentDictionary<DateTime, int> poolWaitCount;
-    private readonly ConcurrentDictionary<DateTime, int> poolTimeoutCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolHitCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolNewCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolErrorCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolRequestCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolReturnCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolDisposedCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolSizeChangeEvents;
+    private readonly ConcurrentDictionary<DateTime, long> poolMinSize;
+    private readonly ConcurrentDictionary<DateTime, long> poolMaxSize;
+    private readonly ConcurrentDictionary<DateTime, long> poolPurgeCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolWaitCount;
+    private readonly ConcurrentDictionary<DateTime, long> poolTimeoutCount;
     int lastSize;
     public DateTime PeriodStart { get; private set;}
 
@@ -68,7 +68,7 @@ public class PoolStatsPeriod : IPoolStats
         return true;
     }
 
-    private void IncrementWithLock(ConcurrentDictionary<DateTime, int> dictionary, DateTime key, int size = -1, Action? postAction = null)
+    private void IncrementWithLock(ConcurrentDictionary<DateTime, long> dictionary, DateTime key, int size = -1, Action? postAction = null)
     {
         lock (_lock)
         {
