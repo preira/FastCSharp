@@ -43,7 +43,8 @@ public class CircuitBreakerBuilder<TInput, TResult>
                 Build();
                 isBuilt = true;
             }
-            return wrappedCircuit ?? originalCircuit ?? throw new ArgumentNullException("circuit", "Unable to build Circuitbreaker. This is a fatal unexpected exception.");
+            return wrappedCircuit ?? originalCircuit ??
+                throw new InvalidOperationException("Unable to build Circuitbreaker. Check your callback. This is a fatal unexpected exception.");
         }
     }
 
@@ -138,7 +139,7 @@ public class CircuitBreakerBuilder<TInput, TResult>
 
         var config = strategySection.Get<BreakerStrategyConfig>();
 
-        if (config == null || config.Type == null || strategySection == null)
+        if (config == null || config.Type == null)
         {
             throw new IncorrectInitializationException("BreakerStrategy configuration seems to be incorrect.");
         }

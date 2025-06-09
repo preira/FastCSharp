@@ -92,13 +92,12 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         catch (Exception ex)
         {
             string error = BuildCreateConnectionErrorMessage(factory, endpoints);
-            logger.LogWarning("[CONFIG ERROR] {message}", error);
 
             throw new InvalidOperationException(error, ex);
         }
     }
 
-    private static string BuildCreateConnectionErrorMessage(ConnectionFactory factory, IList<AmqpTcpEndpoint>? endpoints)
+    private string BuildCreateConnectionErrorMessage(ConnectionFactory factory, IList<AmqpTcpEndpoint>? endpoints)
     {
         var error = $"\tFactory URI: {factory.Uri}\n";
         error += $"\tFactory endpoint: {factory.HostName}:{factory.Port}\n";
@@ -122,11 +121,14 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         if (endpoints != null)
         {
             error += $"\n> Also check your hostnames:";
-            endpoints?.ToList().ForEach(e =>
+            endpoints.ToList().ForEach(e =>
                 error += $"\n\t'{e?.HostName}':'{e?.Port}'"
             );
         }
         error += "\n";
+
+        logger.LogWarning("[CONFIG ERROR] {message}", error);
+
         return error;
     }
 

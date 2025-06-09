@@ -25,7 +25,7 @@ public class FailuresThresholdBreakerStrategy : BreakerStrategy
     /// <param name="backoffStrategy">The backoff strategy to calculate the backoff duration.</param>
     /// <param name="isShouldCloseImmediately">If set to true, a distinction will be made between uncontrolled exceptions and CircuitExceptions.
     /// The default is false.</param>
-    public FailuresThresholdBreakerStrategy(long failureThreshold, IBackoffStrategy backoffStrategy, Boolean isShouldCloseImmediately = false)
+    public FailuresThresholdBreakerStrategy(long failureThreshold, IBackoffStrategy backoffStrategy, bool isShouldCloseImmediately = false)
     {
         threshold = failureThreshold;
         backoff = backoffStrategy;

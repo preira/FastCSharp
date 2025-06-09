@@ -83,6 +83,8 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
         try
         {
             await Task.Delay(millisecondsDelay, cancellationTokenSource.Token);
+            cancellationTokenSource.Dispose();
+            cancellationTokenSource = null;
         }
         catch (TaskCanceledException)
         {
