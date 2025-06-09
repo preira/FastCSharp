@@ -23,8 +23,6 @@ public class HealthReport : IHealthReport
 
     public void AddDependency(IHealthReport dependency)
     {
-        // TODO: update status based on dependency status
-        // TODO: Push to parent
         dependencies.Add(dependency.Name, dependency);
     }
 

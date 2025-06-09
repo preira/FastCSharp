@@ -24,6 +24,6 @@ public interface IAsyncPool<T> : IHealthReporter
     /// <param name="caller"></param>
     /// <param name="timeout">A timeout of -1 signals to wait for the default timeout (this is the default value)</param>
     /// <returns></returns>
-    Task<T> BorrowAsync(object caller, double timeout = -1);
+    Task<T> BorrowAsync(object caller, double timeoutInMilliseconds = -1);
 
 }

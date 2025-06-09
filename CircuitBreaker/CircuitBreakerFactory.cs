@@ -43,7 +43,7 @@ public class CircuitBreakerBuilder<TInput, TResult>
                 Build();
                 isBuilt = true;
             }
-            return wrappedCircuit ?? originalCircuit ?? throw new ArgumentNullException(nameof(originalCircuit), "Unable to build Circuitbreaker. This is a fatal unexpected exception.");
+            return wrappedCircuit ?? originalCircuit ?? throw new ArgumentNullException("circuit", "Unable to build Circuitbreaker. This is a fatal unexpected exception.");
         }
     }
 
@@ -131,11 +131,16 @@ public class CircuitBreakerBuilder<TInput, TResult>
     private static BreakerStrategy NewBreakerStrategy(IConfigurationSection? configSection, IBackoffStrategy backoffStrategy)
     {
         var strategySection = configSection?.GetSection(BreakerStrategyConfig.SectionName);
-        var config = strategySection?.Get<BreakerStrategyConfig>();
+        if (strategySection == null)
+        {
+            throw new IncorrectInitializationException("BreakerStrategy configuration section not found.");
+        }
+
+        var config = strategySection.Get<BreakerStrategyConfig>();
 
         if (config == null || config.Type == null || strategySection == null)
         {
-            throw new IncorrectInitializationException("BreakerStrategy configuration not found or incorrect.");
+            throw new IncorrectInitializationException("BreakerStrategy configuration seems to be incorrect.");
         }
 
         switch (config.Type)
@@ -155,11 +160,15 @@ public class CircuitBreakerBuilder<TInput, TResult>
     private static IBackoffStrategy NewBackoffStrategy(IConfigurationSection? configSection)
     {
         var strategySection = configSection?.GetSection(BackoffStrategyConfig.SectionName);
-        var config = strategySection?.Get<BackoffStrategyConfig>();
-
-        if (config == null || config.Type == null || strategySection == null)
+        if (strategySection == null)
         {
-            throw new IncorrectInitializationException("BackoffStrategy configuration not found or incorrect.");
+            throw new IncorrectInitializationException("BackoffStrategy configuration not found.");
+        }
+
+        var config = strategySection.Get<BackoffStrategyConfig>();
+        if (config == null || config.Type == null)
+        {
+            throw new IncorrectInitializationException("BackoffStrategy configuration seems to be incorrect.");
         }
         switch (config.Type)
         {

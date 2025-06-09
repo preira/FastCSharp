@@ -68,7 +68,7 @@ public abstract class AbstractBreaker : Breaker, IHealthReporter
     /// <param name="callback">The function to be called when circuit is closed.</param>
     public virtual void Wrap(Action callback)
     {
-        Wrap<Boolean>(() =>
+        Wrap<bool>(() =>
         {
             callback();
             return true;

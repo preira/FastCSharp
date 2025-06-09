@@ -16,7 +16,6 @@ public class RabbitSubscriberFactory : ISubscriberFactory
 {
     readonly private ConnectionFactory connectionFactory;
     readonly private RabbitSubscriberConfig config = new();
-    // readonly private IDictionary<string, QueueConfig> queues = new Dictionary<string, QueueConfig>();
     readonly private ILoggerFactory loggerFactory;
 
     /// <summary>
@@ -50,35 +49,35 @@ public class RabbitSubscriberFactory : ISubscriberFactory
 
     private ConnectionFactory Configure()
     {
-        ConnectionFactory connectionFactory;
+        ConnectionFactory factory;
         if ((config.HostName == null || config.Port == 0) && config.Hosts == null)
         {
             throw new IncorrectInitializationException(
                 $"Message Queue was configured with Hostname:'{config.HostName}', Port:'{config.Port}', enpoints: '{JsonSerializer.Serialize(config.Hosts)}'.");
         }
 
-        connectionFactory = new ConnectionFactory
+        factory = new ConnectionFactory
         {
             ClientProvidedName = config.ClientName ?? "FastCSharp.RabbitMQSubscriber",
             NetworkRecoveryInterval = config.NetworkRecoveryInterval ?? TimeSpan.FromSeconds(10),
             AutomaticRecoveryEnabled = config.AutomaticRecoveryEnabled
         };
 
-        if (config.HostName != null) connectionFactory.HostName = config.HostName;
-        if (config.Port != null) connectionFactory.Port = (int)config.Port;
-        if (config.VirtualHost != null) connectionFactory.VirtualHost = config.VirtualHost;
-        if (config.Password != null) connectionFactory.Password = config.Password;
+        if (config.HostName != null) factory.HostName = config.HostName;
+        if (config.Port != null) factory.Port = (int)config.Port;
+        if (config.VirtualHost != null) factory.VirtualHost = config.VirtualHost;
+        if (config.Password != null) factory.Password = config.Password;
 
-        if (config.UserName != null) connectionFactory.UserName = config.UserName;
-        if (config.Heartbeat != null) connectionFactory.RequestedHeartbeat = (TimeSpan)config.Heartbeat;
-        if (config.ChannelMax != null) connectionFactory.RequestedChannelMax = (ushort)config.ChannelMax;
+        if (config.UserName != null) factory.UserName = config.UserName;
+        if (config.Heartbeat != null) factory.RequestedHeartbeat = (TimeSpan)config.Heartbeat;
+        if (config.ChannelMax != null) factory.RequestedChannelMax = (ushort)config.ChannelMax;
 
         if (config.Queues.Count == 0)
         {
             throw new IncorrectInitializationException($"Message Queue was configured with no queues.");
         }
 
-        return connectionFactory;
+        return factory;
     }
 
 

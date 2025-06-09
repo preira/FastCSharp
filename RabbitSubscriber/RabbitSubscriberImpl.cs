@@ -45,7 +45,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             {
                 var task = channel!.QueueDeclarePassiveAsync(QConfig.Name!);
                 task.Wait();
-                var queueDeclareOk = task.Result;
+                return task.Result.QueueName == QConfig.Name;
                 
             }
             catch (Exception e)
@@ -53,7 +53,6 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 logger.LogWarning(e, "Queue passive declare failed. Queue may not exist or connection is not healthy.");
                 return false;
             }
-            return true;
         }
     }
 
@@ -137,8 +136,8 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             }
             catch (Exception e)
             {
-                logger.LogError("Error connecting to Rabbit MQ. Retrying in 5 seconds.\nError: {message}", e.Message);
-                // TODO: should be configurable.
+                logger.LogError(e, "Error connecting to Rabbit MQ. Retrying in 5 seconds.");
+                // TODO: should be configurable. Could this take advantage of a Backoff strategy?
                 await Task.Delay(5000);
             }
         }
@@ -179,7 +178,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             catch (Exception e)
             {
                 logger.LogError(e, "Error registering consumer. Retrying in 5 seconds.");
-                // TODO: should be configurable.
+                // TODO: should be configurable. Could this take advantage of a Backoff strategy?
                 Task.Delay(5000).Wait();
                 await ResetConnectionAsync();
             }
@@ -228,16 +227,17 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     /// <inheritdoc/>
     public override async Task UnSubscribeAsync()
     {
-        try
+        if (logger.IsEnabled(LogLevel.Trace))
         {
             logger.LogTrace("Unsubscribing consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
-            // this throws an null pointer exception if the consumer has never registered before.
-            await channel!.BasicCancelAsync(ConsumerTag);
         }
-        catch (NullReferenceException)
+        // this throws an null pointer exception if the consumer has never registered before.
+        if (channel == null || !channel.IsOpen)
         {
-            logger.LogWarning("Consumer was never registered. Ignoring.");
+            logger.LogWarning("Channel is not open. Cannot unsubscribe consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+            return;
         }
+        await channel!.BasicCancelAsync(ConsumerTag);
     }
 
     /// <summary>
@@ -277,23 +277,21 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             catch (JsonException e)
             {
                 // Deserialization exception is a final exception and removes the message from the queue.
-                logger.LogError("Discarding unparseable message with id: {messageId} and tag: {Tag}", ea.BasicProperties.MessageId, ea.DeliveryTag);
-                logger.LogError("Error: {message}", e.Message);
+                logger.LogError(e, "Discarding unparseable message with id: {messageId} and tag: {Tag}", ea.BasicProperties.MessageId, ea.DeliveryTag);
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (UnauthorizedAccessException e)
             {
                 // Unauthorized exception is a final exception and removes the message from the queue hopefully to a DLQ.
-                logger.LogError("Unacking unauthorized message with tag '{Tag}' with requeue set to false. Hope you have DLQ set.", ea.DeliveryTag);
-                logger.LogError("Error: {message}", e.Message);
+                logger.LogError(e, "Unacking unauthorized message with tag '{Tag}' with requeue set to false. Hope you have DLQ set.", ea.DeliveryTag);
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (Exception e)
             {
                 logger.LogError(
+                    e,
                     "Got an error from Callback handler function for message with tag: {Tag}. Message will be requeued until dead letter policy takes action.",
                     ea.DeliveryTag);
-                logger.LogError("Error: {message}", e.Message);
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
             }
             finally

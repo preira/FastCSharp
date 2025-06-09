@@ -41,9 +41,11 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 
         if(!poolExists)
         {
-            logger.LogDebug($"Creating new channel pool for exchange '{exchangeName}' and queue '{queue}'.");
-            // TODO: pass min, max, initialize defaultTimeout and gather stats from configuration
-            // if it doesn't exist create a new pool after verifying the exchange and routing key
+            if(logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Channel pool for exchange '{ExchangeName}' and queue '{Queue}' does not exist. Creating new pool.", exchangeName, queue);
+            }
+
             pool = new AsyncPool<RabbitChannel, IChannel>(
                 async () => await CreateAsync(exchangeName, queue, routingKey),
                 LoggerFactory,
@@ -54,7 +56,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 
         if(pool == null)
         {
-            throw new Exception("FastCSharp could not create a new channel.");
+            throw new InvalidOperationException("FastCSharp could not create a new channel.");
         }
 
         return await pool.BorrowAsync(owner);
@@ -68,7 +70,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
         );
         if(channel == null)
         {
-            throw new Exception("FastCSharp could not create a new channel.");
+            throw new InvalidOperationException("FastCSharp could not create a new channel.");
         }
         return new RabbitChannel(channel, exchangeName, queue, routingKey);
     }

@@ -47,6 +47,8 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
         {
             OnResetListenners?.Invoke(this);
         }
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource = null;
         return didItChange;
     }
 

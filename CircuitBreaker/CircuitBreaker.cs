@@ -1,5 +1,3 @@
-using FastCSharp.Observability;
-
 namespace FastCSharp.CircuitBreaker;
 
 /// <summary>

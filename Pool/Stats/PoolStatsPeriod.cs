@@ -12,8 +12,6 @@ public class PoolStatsPeriod : IPoolStats
     // size change and timestamp (last N size change events)
     // pool hit ratio per period (last N periods)
     // return ratio per period (last N periods)
-    // TODO: Add PoolStats history to allow transitioning from a larger stats period and mantain the history
-    // TODO: Consider having history for the last minutes in seconds ganularity, last hour in minutes, 
     // last day in hours, month in days, years in months
     // total size for one year: 
     // (12 + 31 + 24 + 60 + 60) x (12 x ( 8 bytes (DateTime) + 4 bytes (int)) 

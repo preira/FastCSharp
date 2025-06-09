@@ -66,7 +66,7 @@ where T : class, IDisposable
     {
         bool isPoolExists = ReturnAddress != null && await ReturnAddress.ReturnAsync(this);
 
-        if (isPoolExists == false)
+        if (!isPoolExists)
         {
             // There is no more pool holding this individual.
             DisposeValue(true);

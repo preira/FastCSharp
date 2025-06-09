@@ -39,7 +39,7 @@ where K : class, IDisposable
     /// </summary>
     private int isAddingIndividual = 0;
 
-    private object _idxLock = new();
+    private readonly object _idxLock = new();
     private int idx = 0;
     private int Index
     {
@@ -168,7 +168,7 @@ where K : class, IDisposable
             try
             {
                 isLockAcquired = await _lock.WaitAsync(remaining);
-                if (!isLockAcquired)
+                if (!isLockAcquired || remaining == TimeSpan.Zero)
                 {
                     // Throws TimeoutException if timed out
                     CheckPoolTimeoutAsync(timeoutSpan, GetRemainingTime(timeLimit) == TimeSpan.Zero);
@@ -299,7 +299,7 @@ where K : class, IDisposable
     private void _PurgeInUse()
     {
         inUse
-            .Where(e => !e.Value.TryGetTarget(out var target))
+            .Where(e => !e.Value.TryGetTarget(out var _))
             .ToList()
             .ForEach(e => inUse.TryRemove(e.Key, out _));
         Interlocked.Exchange(ref count, inUse.Count + available.Count);
@@ -322,9 +322,9 @@ where K : class, IDisposable
             individual.ReturnAddress = this;
             return individual;
         }
-        catch (Exception ex)
+        catch 
         {
-            logger.LogCritical(ex, "The AsyncPool got an Error from IndividualFactoryAsync while attempting to create an individual.");
+            logger.LogWarning("The AsyncPool got an Error from IndividualFactoryAsync while attempting to create an individual.");
             throw;
         }
     }
@@ -369,8 +369,8 @@ where K : class, IDisposable
         return Task.Run(
             () => {
 
-                int currentlyAvailable = available.Count();
-                int currentlyInUse = inUse.Count();
+                int currentlyAvailable = available.Count;
+                int currentlyInUse = inUse.Count;
                 string name = GetType().Name;
                 HealthStatus status = HealthStatus.Healthy;
 

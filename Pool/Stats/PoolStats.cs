@@ -123,7 +123,7 @@ public class PoolStats
         }
     }
 
-    private void WrapCache(MemoryCache cache, Guid requestGuid, Action execute)
+    private static void WrapCache(MemoryCache cache, Guid requestGuid, Action execute)
     {
         if (cache.TryGetValue(requestGuid, out bool _)) return;
         cache.Set(requestGuid, true, CACHE_TIMEOUT);

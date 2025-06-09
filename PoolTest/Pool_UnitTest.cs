@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -209,13 +210,13 @@ public class Pool_UnitTest
         Thread[] threads = new Thread[10];
         for(int i = 0; i < threads.Length; i++)
         {
-            threads[i] = new Thread(async () => {
+            threads[i] = new Thread(() => {
                 try
                 {
                     var owner = new Owner();
                     for(int j = 0; j < 1000; j++)
                     {
-                        await owner.BorrowAndUseAsync(pool);
+                        owner.BorrowAndUseAsync(pool).Wait();
                         Thread.SpinWait(1000*Random.Shared.Next(1, 10));
                     }
                 }
@@ -229,10 +230,12 @@ public class Pool_UnitTest
         {
             thread.Start();
         }
-        foreach(var thread in threads)
+        foreach (var thread in threads)
         {
             thread.Join();
+            Assert.Equal(ThreadState.Stopped, thread.ThreadState);
         }
+        // var stats = JsonSerializer.Serialize(pool.FullStatsReport);
         Assert.InRange(pool.Count, 1, 10);
         Assert.Empty(exceptions);
         if (exceptions.Count > 0)
@@ -339,7 +342,7 @@ public class Pool_UnitTest
         // Count = 5
         for(int i = 0; i < 5; i++)
         {
-            var item = await pool.BorrowAsync(this, 10);
+            var item = await pool.BorrowAsync(this, 100);
             items.Enqueue(item);
             Assert.InRange(item.Value(this), 0, 5);
         }
@@ -455,16 +458,16 @@ class Int : IDisposable
 
 class Owner
 {
-    public async Task BorrowAndUseAsync(IAsyncPool<Item> pool)
+    public async Task<int> BorrowAndUseAsync(IAsyncPool<Item> pool)
     {
         await using var item = await pool.BorrowAsync(this);
-        item.Value(this);
+        return item.Value(this);
     }
-    public async Task BorrowAndUseWithRandomSpinWaitAsync(IAsyncPool<Item> pool)
+    public async Task<int> BorrowAndUseWithRandomSpinWaitAsync(IAsyncPool<Item> pool)
     {
         await using var item = await pool.BorrowAsync(this);
         Thread.SpinWait(10*Random.Shared.Next(1, 10));
-        item.Value(this);
+        return item.Value(this);
     }
     public async Task<Item> BorrowAsync(IAsyncPool<Item> pool)
     {

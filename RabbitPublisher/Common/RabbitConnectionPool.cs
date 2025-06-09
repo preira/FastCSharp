@@ -72,7 +72,10 @@ public class RabbitConnectionPool : IRabbitConnectionPool
             int incremented = Interlocked.Increment(ref instanceCount);
 
             factory.ClientProvidedName = getName(incremented);
-            logger.LogInformation($"Created RabbitConnection #{incremented} with name '{factory.ClientProvidedName}'");
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Created RabbitConnection #{Incremented} with name '{ClientProvidedName}'", incremented, factory.ClientProvidedName);
+            }
             
             if (endpoints == null)
             {
@@ -88,48 +91,61 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         }
         catch (Exception ex)
         {
+            string error = BuildCreateConnectionErrorMessage(factory, endpoints);
+            logger.LogWarning("[CONFIG ERROR] {message}", error);
 
-            var error = $"\tFactory URI: {factory.Uri}\n";
-            error += $"\tFactory endpoint: {factory?.HostName}:{factory?.Port}\n";
-
-            if(endpoints != null)
-            {
-                var i = 0;
-                endpoints.ToList().ForEach(e =>
-                    error += $"\tendpoint {++i}: {e}\n"
-                );
-            }
-            var usr = factory?.UserName;
-            string? staredUsr = usr != null ? $"{usr[..1]}******{usr[^2..]}" : null;
-
-            var pw = factory?.Password;
-            string? staredPw = pw != null ? $"{pw[..1]}******{pw[^2..]}" : null;
-
-            error += $"\n> This may be due to incorrect authentication, or the server may be unreacheable.";
-            error += $"\n> Please check your user ('{staredUsr}') and password ('{staredPw}').";
-
-            if (endpoints != null)
-            {
-                error += $"\n> Also check your hostnames:";
-                endpoints?.ToList().ForEach(e =>
-                    error += $"\n\t'{e?.HostName}':'{e?.Port}'"
-                );
-            }
-            error += "\n";
-            logger.LogError("[CONFIG ERROR] {message}\n{error}\n", ex.Message, error);
-
-            throw new Exception(error, ex);
+            throw new InvalidOperationException(error, ex);
         }
-    }    
+    }
+
+    private static string BuildCreateConnectionErrorMessage(ConnectionFactory factory, IList<AmqpTcpEndpoint>? endpoints)
+    {
+        var error = $"\tFactory URI: {factory.Uri}\n";
+        error += $"\tFactory endpoint: {factory.HostName}:{factory.Port}\n";
+
+        if (endpoints != null)
+        {
+            var i = 0;
+            endpoints.ToList().ForEach(e =>
+                error += $"\tendpoint {++i}: {e}\n"
+            );
+        }
+        var usr = factory.UserName;
+        string? staredUsr = usr != null ? $"{usr[..1]}******{usr[^2..]}" : null;
+
+        var pw = factory.Password;
+        string? staredPw = pw != null ? $"{pw[..1]}******{pw[^2..]}" : null;
+
+        error += $"\n> This may be due to incorrect authentication, or the server may be unreacheable.";
+        error += $"\n> Please check your user ('{staredUsr}') and password ('{staredPw}').";
+
+        if (endpoints != null)
+        {
+            error += $"\n> Also check your hostnames:";
+            endpoints?.ToList().ForEach(e =>
+                error += $"\n\t'{e?.HostName}':'{e?.Port}'"
+            );
+        }
+        error += "\n";
+        return error;
+    }
 
     public async Task<IRabbitConnection> GetConnectionAsync(object owner)
     {
         return await pool.BorrowAsync(owner);
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            pool.Dispose();
+        }
+    }
     public void Dispose()
     {
-        pool.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public Task<IHealthReport> ReportHealthStatusAsync()

@@ -103,16 +103,7 @@ public class AsyncRabbitPublisher<T> : IAsyncPublisher<T>
             },
             async (IRabbitChannel channel, CancellationToken cancellationToken) => {
                 byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(message);
-                try
-                {
-                    await channel.BasicPublishAsync(this, jsonUtf8Bytes, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError("[ERROR PUBLISHING] {Exception}: {Message}", ex.GetType().FullName, ex.Message);
-                    logger.LogDebug(ex.StackTrace);
-                    throw;
-                }
+                await channel.BasicPublishAsync(this, jsonUtf8Bytes, cancellationToken);
             }
         );
     }
@@ -147,8 +138,11 @@ public class AsyncRabbitPublisher<T> : IAsyncPublisher<T>
                     ulong? sequenceNumber = await channel.NextPublishSeqNoAsync(this);
                     await channel.BasicPublishAsync(this, jsonUtf8Bytes, cancellationToken);
 
-                    logger.LogTrace("Exchange='{exchange}', SequenceNumber='{seqNr}'",
-                                    Exchange?.Name ?? "", sequenceNumber);
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace("Exchange='{exchange}', SequenceNumber='{seqNr}'",
+                                        Exchange?.Name ?? "", sequenceNumber);
+                    }
 
                 }
             }
@@ -174,26 +168,25 @@ public class AsyncRabbitPublisher<T> : IAsyncPublisher<T>
             }
             catch (AlreadyClosedException ace)
             {
-                logger.LogError("[ERROR PUBLISHING: CHANNEL IS CLOSED] {Exception}: {Message}", ace.GetType().FullName, ace.Message);
-                logger.LogDebug(ace.StackTrace);
+                logger.LogError(ace, "[ERROR PUBLISHING: CHANNEL IS CLOSED] {Exception}: {Message}", ace.GetType().FullName, ace.Message);
                 channel.IsStalled = true;
             }
         }
         catch (Exception ex)
         {
-            logger.LogError("[ERROR PUBLISHING] {Exception}: {Message}", ex.GetType().FullName, ex.Message);
-            logger.LogDebug(ex.StackTrace);
+            logger.LogError(ex, "[ERROR PUBLISHING] {Exception}: {Message}", ex.GetType().FullName, ex.Message);
         }
         return false;
     }
 
-    protected void Dispose(bool disposing)
+    protected virtual void Dispose(bool disposing)
     {
         if(!disposed)
         {
-            if(disposing)
+            if (disposing)
             {
-                // pool.Dispose();
+                // Dispose managed resources
+                pool.Dispose();
             }
             disposed = true;
         }
@@ -202,6 +195,7 @@ public class AsyncRabbitPublisher<T> : IAsyncPublisher<T>
     public void Dispose()
     {
         Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public async Task<IHealthReport> ReportHealthStatusAsync()
