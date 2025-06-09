@@ -51,7 +51,7 @@ class TestSubscriber : AbstractSubscriber<string>
 public class Subscriber_UnitTest
 {
     [Fact]
-    public async void ShouldCallCallback()
+    public async Task ShouldCallCallback()
     {
         bool success = false;
         using var testImplementation = new TestSubscriber();
@@ -69,7 +69,7 @@ public class Subscriber_UnitTest
     }
 
     [Fact]
-    public async void ShouldAddHandler()
+    public async Task ShouldAddHandler()
     {
         bool success = false;
         bool isHandlerOk = false;
@@ -91,7 +91,7 @@ public class Subscriber_UnitTest
     }
 
     [Fact]
-    public async void ShouldAddHandlers()
+    public async Task ShouldAddHandlers()
     {
         bool success = false;
         bool isHandler1Ok = false;
