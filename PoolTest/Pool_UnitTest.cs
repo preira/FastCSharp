@@ -382,7 +382,7 @@ public class Pool_UnitTest
         // Count = Count + 2(10) [available = 0; inUse = 10]
         for(int i = 0; i < 2; i++)
         {
-            var item = await pool.BorrowAsync(this, 1);
+            var item = await pool.BorrowAsync(this, 10);
             items.Enqueue(item);
         }
         Assert.Equal(10, pool.Count);
