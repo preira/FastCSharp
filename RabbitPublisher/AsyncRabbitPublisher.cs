@@ -186,7 +186,7 @@ public class AsyncRabbitPublisher<T> : IAsyncPublisher<T>
             if (disposing)
             {
                 // Dispose managed resources
-                pool.Dispose();
+                // DO NOT DISPOSE pool here, it is managed by the DI container
             }
             disposed = true;
         }
