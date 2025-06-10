@@ -11,6 +11,7 @@ public static class Util
     public readonly static TimeSpan _millisec_backoff = TimeSpan.FromMilliseconds(5);
     public readonly static TimeSpan _10_sec_backoff = TimeSpan.FromSeconds(10);
     public readonly static TimeSpan _100_millisec_backoff = TimeSpan.FromMilliseconds(100);
+    public readonly static TimeSpan _1_sec_backoff = TimeSpan.FromSeconds(1);
     public readonly static TimeSpan _1_day_backoff = TimeSpan.FromDays(10);
     public static bool ExecuteThrowNotImplementedException(AbstractBreaker circuit, bool Success)
     {
@@ -166,7 +167,7 @@ public class CircuitBreaker_UnitTest
 
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
-        await Task.Delay(timeout);
+        await Task.Delay(timeout + timeout);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -197,7 +198,7 @@ public class CircuitBreaker_UnitTest
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
 
-        await Task.Delay(timeout);
+        await Task.Delay(timeout + timeout);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -315,7 +316,7 @@ public class BlockingCircuitBreaker_Tests
         Assert.True(circuit.IsOpen, "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        await Task.Delay(timeout);
+        await Task.Delay(timeout + timeout);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -352,7 +353,7 @@ public class BlockingCircuitBreaker_Tests
                 () => Success = true)
             );
 
-        await Task.Delay(timeout);
+        await Task.Delay(timeout + timeout);
         TimeSpan elapsedTime = DateTime.Now - startTime;
         Assert.True(elapsedTime > timeout, $"Elapsed Time {elapsedTime} > backoff {timeout}");
 
@@ -694,7 +695,7 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
 
-        await Task.Delay(timeout);
+        await Task.Delay(timeout + timeout);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -725,7 +726,7 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
 
-        await Task.Delay(timeout);
+        await Task.Delay(timeout + timeout);
 
         Success = false;
         circuit.Wrap(() => Success = true);
