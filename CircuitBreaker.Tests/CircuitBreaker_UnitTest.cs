@@ -1,13 +1,17 @@
 using Xunit;
 using FastCSharp.CircuitBreaker;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Circuit_Breaker.Tests;
 
 public static class Util
 {
     static TimeSpan increment = new TimeSpan(1000); // 1000 x 100 nano = 100 micro 
-    public readonly static TimeSpan _millisec_backoff = new TimeSpan(0, 0, 0, 0, 5);
+    public readonly static TimeSpan _millisec_backoff = TimeSpan.FromMilliseconds(5);
+    public readonly static TimeSpan _10_sec_backoff = TimeSpan.FromSeconds(10);
+    public readonly static TimeSpan _100_millisec_backoff = TimeSpan.FromMilliseconds(100);
+    public readonly static TimeSpan _1_day_backoff = TimeSpan.FromDays(10);
     public static bool ExecuteThrowNotImplementedException(AbstractBreaker circuit, bool Success)
     {
         Assert.Throws<NotImplementedException>(
@@ -142,9 +146,10 @@ public class CircuitBreaker_UnitTest
     [Fact]
     public async Task ControlledFailureRecovery()
     {
+        TimeSpan timeout = Util._100_millisec_backoff;
         var circuit =
             new CircuitBreaker(
-                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -161,7 +166,7 @@ public class CircuitBreaker_UnitTest
 
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
-        await Task.Delay(Util._millisec_backoff);
+        await Task.Delay(timeout);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -171,9 +176,10 @@ public class CircuitBreaker_UnitTest
     [Fact]
     public async Task UnControlledFailureRecovery()
     {
+        TimeSpan timeout = Util._100_millisec_backoff;
         var circuit =
             new CircuitBreaker(
-                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout))
             );
 
         Assert.True(circuit.IsClosed, "Circuit should start Closed.");
@@ -191,7 +197,7 @@ public class CircuitBreaker_UnitTest
         Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
         Assert.True(Success, "Function executed and shouldn't!");
 
-        await Task.Delay(Util._millisec_backoff);
+        await Task.Delay(timeout);
 
         Success = false;
         circuit.Wrap(() => Success = true);
@@ -287,70 +293,73 @@ public class BlockingCircuitBreaker_Tests
         Assert.True(Success, "Function dind't execute!");
     }
 
-    // [Fact]
+    [Fact]
+    public async Task ControlledFailureRecovery()
+    {
+        TimeSpan timeout = Util._100_millisec_backoff;
+        DateTime startTime = DateTime.Now;
+        var circuit =
+            new BlockingCircuitBreaker(
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout))
+            );
+
+        Assert.True(circuit.IsClosed, "Circuit should start Closed.");
+        var Success = false;
+        for (int i = 0; i < 5; ++i)
+        {
+            Success = Util.ExecuteThrowingCircuitException(circuit, Success);
+        }
+        Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
+
+        Success = Util.ExecuteThrowingCircuitException(circuit, Success);
+        Assert.True(circuit.IsOpen, "Circuit should be open now.");
+        Assert.True(Success, "Function dind't execute!");
+
+        await Task.Delay(timeout);
+
+        Success = false;
+        circuit.Wrap(() => Success = true);
+        TimeSpan elapsedTime = DateTime.Now - startTime;
+        Assert.True(elapsedTime > timeout, $"Elapsed Time {elapsedTime} > backoff {timeout}");
+        Assert.True(Success, "Function didn't execute after timeout!");
+    }
+
+    [Fact]
     // TODO: Fix this test
-    // public async Task ControlledFailureRecovery()
-    // {
-    //     DateTime startTime = DateTime.Now;
-    //     var circuit =
-    //         new BlockingCircuitBreaker(
-    //             new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
-    //         );
+    public async Task UnControlledFailureRecovery()
+    {
+        TimeSpan timeout = Util._100_millisec_backoff;
+        DateTime startTime = DateTime.Now;
+        var circuit =
+            new BlockingCircuitBreaker(
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout))
+            );
 
-    //     Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-    //     var Success = false;
-    //     for (int i = 0; i < 5; ++i)
-    //     {
-    //         Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-    //     }
-    //     Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
+        Assert.True(circuit.IsClosed, "Circuit should start Closed.");
+        var Success = false;
+        for (var i = 0; i < 5; ++i)
+        {
+            Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
+        }
+        Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
 
-    //     Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-    //     Assert.True(circuit.IsOpen, "Circuit should be open now.");
-    //     Assert.True(Success, "Function dind't execute!");
+        Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
+        Assert.True(circuit.IsOpen, "Circuit should be open now.");
+        Assert.True(Success, "Function dind't execute!");
 
-    //     await Task.Delay(Util._millisec_backoff);
+        Assert.Throws<OpenCircuitException>(
+            () => circuit.Wrap(
+                () => Success = true)
+            );
 
-    //     Success = false;
-    //     circuit.Wrap(() => Success = true);
-    //     TimeSpan elapsedTime = DateTime.Now - startTime;
-    //     Assert.True(elapsedTime > Util._millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._millisec_backoff}");
-    //     Assert.True(Success, "Function dind't execute after timeout!");
-    // }
+        await Task.Delay(timeout);
+        TimeSpan elapsedTime = DateTime.Now - startTime;
+        Assert.True(elapsedTime > timeout, $"Elapsed Time {elapsedTime} > backoff {timeout}");
 
-    // [Fact]
-    // TODO: Fix this test
-    // public void UnControlledFailureRecovery()
-    // {
-    //     DateTime startTime = DateTime.Now;
-    //     var circuit =
-    //         new BlockingCircuitBreaker(
-    //             new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
-    //         );
-
-    //     Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-    //     var Success = false;
-    //     for (var i = 0; i < 5; ++i)
-    //     {
-    //         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-    //     }
-    //     Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
-
-    //     Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-    //     Assert.True(circuit.IsOpen, "Circuit should be open now.");
-    //     Assert.True(Success, "Function dind't execute!");
-
-    //     // Will block until backoff is cleared. It serves as backoff control and will fail.
-    //     Assert.Throws<OpenCircuitException>(
-    //         () => circuit.Wrap(
-    //             () => Success = true)
-    //         );
-    //     TimeSpan elapsedTime = DateTime.Now - startTime;
-    //     Assert.True(elapsedTime > Util._millisec_backoff, $"Elapsed Time {elapsedTime} > backoff {Util._millisec_backoff}");
-    //     Success = false;
-    //     circuit.Wrap(() => Success = true);
-    //     Assert.True(Success, "Function dind't execute after timeout!");
-    // }
+        Success = false;
+        circuit.Wrap(() => Success = true);
+        Assert.True(Success, "Function dind't execute after timeout!");
+    }
 }
 
 
@@ -459,7 +468,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     // {
     //     // huge timeout to control recovery through CancelBackoff
     //     var _backoff = TimeSpan.FromDays(1);
-    //     var minimalDelay = TimeSpan.FromMilliseconds(5);
+    //     var minimalDelay = TimeSpan.FromMilliseconds(200);
     //     var circuit =
     //         new EventDrivenCircuitBreaker(
     //             new FailuresThresholdBreakerStrategy(2, new FixedBackoff(_backoff))
@@ -471,7 +480,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     //     circuit.OnOpen += (sender) => { opened = true; };
     //     Assert.False(opened);
 
-    //     bool[] attemptRecoveries = { false, false, false };
+    //     bool[] attemptRecoveries = [false, false, false];
 
     //     var recoveryScript = new List<Func<bool>>()
     //     {
@@ -484,7 +493,7 @@ public class EventDrivenCircuitBreaker_UnitTest
     //     {
     //         try
     //         {
-    //             circuit.Wrap<bool>(() => attemptStep.MoveNext() ? attemptStep.Current() : false);
+    //             circuit.Wrap(() => attemptStep.MoveNext() ? attemptStep.Current() : false);
     //         }
     //         catch (Exception) { }
     //     };
@@ -549,44 +558,43 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.True(Success, "Function dind't execute!");
     }
 
-    // [Fact]
-    // public void ControlledFailureExecutionCircuit()
-    // {
-    //     var circuit =
-    //         new EventDrivenCircuitBreaker(
-    //             new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
-    //         );
+    [Fact]
+    public void ControlledFailureExecutionCircuit()
+    {
+        var circuit =
+            new EventDrivenCircuitBreaker(
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._1_day_backoff))
+            );
 
-    //     Assert.True(circuit.IsClosed, "Circuit should start Closed.");
+        Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-    //     var Success = false;
-    //     for (int i = 0; i < 5; ++i)
-    //     {
-    //         Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-    //     }
-    //     Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
+        var Success = false;
+        for (int i = 0; i < 5; ++i)
+        {
+            Success = Util.ExecuteThrowingCircuitException(circuit, Success);
+        }
+        Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
 
-    //     Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-    //     Assert.True(circuit.IsOpen, "Circuit should be open now.");
-    //     Assert.True(Success, "Function dind't execute!");
-    // }
+        Success = Util.ExecuteThrowingCircuitException(circuit, Success);
+        Assert.True(circuit.IsOpen, "Circuit should be open now.");
+        Assert.True(Success, "Function dind't execute!");
+    }
 
-    // [Fact]
-    // public void UnControlledFailureExecutionCircuit()
-    // {
-    //     TimeSpan timeout = new TimeSpan(0, 0, 0, 0, 2);
-    //     var circuit =
-    //         new EventDrivenCircuitBreaker(
-    //             new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout), true)
-    //         );
+    [Fact]
+    public void UnControlledFailureExecutionCircuit()
+    {
+        var circuit =
+            new EventDrivenCircuitBreaker(
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._1_day_backoff), true)
+            );
 
-    //     Assert.True(circuit.IsClosed, "Circuit should start Closed.");
+        Assert.True(circuit.IsClosed, "Circuit should start Closed.");
 
-    //     var Success = false;
-    //     Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-    //     Assert.True(circuit.IsOpen, "Circuit should be Open.");
-    //     Assert.True(Success, "Function dind't execute!");
-    // }
+        var Success = false;
+        Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
+        Assert.True(circuit.IsOpen, "Circuit should be Open.");
+        Assert.True(Success, "Function dind't execute!");
+    }
 
     [Fact]
     public void Test_RemoveListeners()
@@ -605,11 +613,13 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.False(opened);
         Assert.False(reseted);
 
-        circuit.Open(new TimeSpan(0, 0, 0, 0, 2));
+        var hasOpened = circuit.Open(Util._10_sec_backoff);
+        Assert.True(hasOpened, "Circuit should open.");
         Assert.True(opened);
         Assert.False(reseted);
 
-        circuit.Closing();
+        var isClosing = circuit.Closing();
+        Assert.True(isClosing, "Circuit should be closing.");
         Assert.True(opened);
         Assert.True(reseted);
 
@@ -619,15 +629,17 @@ public class EventDrivenCircuitBreaker_UnitTest
         circuit.OnOpen -= onOpenListener;
         circuit.OnReset -= onResetListener;
 
-        circuit.Open(new TimeSpan(0, 0, 0, 0, 3));
+        hasOpened = circuit.Open(Util._10_sec_backoff);
+        Assert.True(hasOpened, "Circuit should open.");
         Assert.False(opened);
         Assert.False(reseted);
 
-        circuit.Close();
+        isClosing = circuit.Close();
+        Assert.True(isClosing, "Circuit should be closing.");
         Assert.False(opened);
         Assert.False(reseted);
 
-        circuit.Closing();
+        _ = circuit.Closing();
         Assert.False(opened);
         Assert.False(reseted);
     }
@@ -654,68 +666,67 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.True(Success, "Function dind't execute!");
     }
 
-    // [Fact]
-    // TODO: Fix this test
-    // public async Task ControlledFailureRecovery()
-    // {
-    //     TimeSpan timeout = new TimeSpan(0, 0, 0, 0, 20);
-    //     var circuit =
-    //         new EventDrivenCircuitBreaker(
-    //             new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout))
-    //         );
+    [Fact]
+    public async Task ControlledFailureRecovery()
+    {
+        TimeSpan timeout = Util._100_millisec_backoff;
+        var circuit =
+            new EventDrivenCircuitBreaker(
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout))
+            );
 
-    //     Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-    //     var Success = false;
-    //     for (int i = 0; i < 5; ++i)
-    //     {
-    //         Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-    //     }
-    //     Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
+        Assert.True(circuit.IsClosed, "Circuit should start Closed.");
+        var Success = false;
+        for (int i = 0; i < 5; ++i)
+        {
+            Success = Util.ExecuteThrowingCircuitException(circuit, Success);
+        }
+        Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
 
-    //     Success = Util.ExecuteThrowingCircuitException(circuit, Success);
-    //     Assert.True(circuit.IsOpen, "Circuit should be open now.");
-    //     Assert.True(Success, "Function dind't execute!");
+        Success = Util.ExecuteThrowingCircuitException(circuit, Success);
+        Assert.True(circuit.IsOpen, "Circuit should be open now.");
+        Assert.True(Success, "Function dind't execute!");
 
-    //     Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
-    //     Assert.True(Success, "Function executed and shouldn't!");
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
+        Assert.True(Success, "Function executed and shouldn't!");
 
-    //     await Task.Delay(timeout);
+        await Task.Delay(timeout);
 
-    //     Success = false;
-    //     circuit.Wrap(() => Success = true);
-    //     Assert.True(Success, "Function dind't execute after timeout!");
-    // }
+        Success = false;
+        circuit.Wrap(() => Success = true);
+        Assert.True(Success, "Function dind't execute after timeout!");
+    }
 
-    // [Fact]
-    // TODO: Fix this test
-    // public async Task UnControlledFailureRecovery()
-    // {
-    //     var circuit =
-    //         new EventDrivenCircuitBreaker(
-    //             new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
-    //         );
+    [Fact]
+    public async Task UnControlledFailureRecovery()
+    {
+        TimeSpan timeout = Util._100_millisec_backoff;
+        var circuit =
+            new EventDrivenCircuitBreaker(
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(timeout))
+            );
 
-    //     Assert.True(circuit.IsClosed, "Circuit should start Closed.");
-    //     var Success = false;
-    //     for (int i = 0; i < 5; ++i)
-    //     {
-    //         Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-    //     }
-    //     Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
+        Assert.True(circuit.IsClosed, "Circuit should start Closed.");
+        var Success = false;
+        for (int i = 0; i < 5; ++i)
+        {
+            Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
+        }
+        Assert.True(circuit.IsClosed, "Circuit should remain Closed.");
 
-    //     Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
-    //     Assert.True(circuit.IsOpen, "Circuit should be open now.");
-    //     Assert.True(Success, "Function dind't execute!");
+        Success = Util.ExecuteThrowNotImplementedException(circuit, Success);
+        Assert.True(circuit.IsOpen, "Circuit should be open now.");
+        Assert.True(Success, "Function dind't execute!");
 
-    //     Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
-    //     Assert.True(Success, "Function executed and shouldn't!");
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
+        Assert.True(Success, "Function executed and shouldn't!");
 
-    //     await Task.Delay(Util._millisec_backoff);
+        await Task.Delay(timeout);
 
-    //     Success = false;
-    //     circuit.Wrap(() => Success = true);
-    //     Assert.True(Success, "Function dind't execute after timeout!");
-    // }
+        Success = false;
+        circuit.Wrap(() => Success = true);
+        Assert.True(Success, "Function dind't execute after timeout!");
+    }
 
     [Fact]
     public void Test_SecondOpen()

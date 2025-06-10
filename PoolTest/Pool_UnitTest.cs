@@ -269,13 +269,13 @@ public class Pool_UnitTest
         Thread[] threads = new Thread[threadCount];
         for(int i = 0; i < threads.Length; i++)
         {
-            threads[i] = new Thread(async () => {
+            threads[i] = new Thread(() => {
                 try
                 {
                     var owner = new Owner();
                     for(int j = 0; j < 100; j++)
                     {
-                        await owner.BorrowAndUseWithRandomSpinWaitAsync(pool);
+                        owner.BorrowAndUseWithRandomSpinWaitAsync(pool).Wait();
                         Thread.SpinWait(100*Random.Shared.Next(1, 10));
                     }
                 }
@@ -324,6 +324,7 @@ public class Pool_UnitTest
     public async Task MakeUseOfPoolSize()
     {
         int count = 0;
+        int largeTimeout = 10000; // 10 seconds
         var pool = new AsyncPool<Item, Int>(
             async () => {
                 await Task.Yield();
@@ -342,7 +343,7 @@ public class Pool_UnitTest
         // Count = 5
         for(int i = 0; i < 5; i++)
         {
-            var item = await pool.BorrowAsync(this, 100);
+            var item = await pool.BorrowAsync(this, largeTimeout);
             items.Enqueue(item);
             Assert.InRange(item.Value(this), 0, 5);
         }
@@ -351,7 +352,7 @@ public class Pool_UnitTest
         // Count = Count + 5
         for(int i = 0; i < 5; i++)
         {
-            var item = await pool.BorrowAsync(this, 10);
+            var item = await pool.BorrowAsync(this, largeTimeout);
             items.Enqueue(item);
             Assert.InRange(item.Value(this), 5, 10);
         }
@@ -374,7 +375,7 @@ public class Pool_UnitTest
         // Count = Count + 1(8) [available = 0; inUse = 8]
         for(int i = 0; i < 7; i++)
         {
-            var item = await pool.BorrowAsync(this, 10);
+            var item = await pool.BorrowAsync(this, largeTimeout);
             items.Enqueue(item);
         }
         Assert.Equal(8, pool.Count);
@@ -382,12 +383,14 @@ public class Pool_UnitTest
         // Count = Count + 2(10) [available = 0; inUse = 10]
         for(int i = 0; i < 2; i++)
         {
-            var item = await pool.BorrowAsync(this, 10);
+            var item = await pool.BorrowAsync(this, largeTimeout);
             items.Enqueue(item);
         }
         Assert.Equal(10, pool.Count);
         Assert.Equal(10, items.Count);
 
+        // Count = 10 [available = 0; inUse = 10]
+        // Try to borrow more than available items
         await Assert.ThrowsAsync<TimeoutException>(async () => await pool.BorrowAsync(this, 1));
 
         // Count = 7 [available = 7; inUse = 0]

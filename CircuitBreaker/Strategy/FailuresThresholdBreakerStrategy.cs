@@ -14,7 +14,7 @@ public class FailuresThresholdBreakerStrategy : BreakerStrategy
     readonly long threshold;
     readonly IBackoffStrategy backoff;
     int counter;
-    readonly bool isCloseImmediately;
+    readonly bool isOpenImmediately;
 
     /// <summary>
     /// Implements a strategy for Breaking a circuit based on consecutive failures after which the circuit will 
@@ -23,13 +23,13 @@ public class FailuresThresholdBreakerStrategy : BreakerStrategy
     /// </summary>
     /// <param name="failureThreshold">The threshold for the number of failures.</param>
     /// <param name="backoffStrategy">The backoff strategy to calculate the backoff duration.</param>
-    /// <param name="isShouldCloseImmediately">If set to true, a distinction will be made between uncontrolled exceptions and CircuitExceptions.
+    /// <param name="isShouldOpenImmediately">If set to true, a distinction will be made between uncontrolled exceptions and CircuitExceptions.
     /// The default is false.</param>
-    public FailuresThresholdBreakerStrategy(long failureThreshold, IBackoffStrategy backoffStrategy, bool isShouldCloseImmediately = false)
+    public FailuresThresholdBreakerStrategy(long failureThreshold, IBackoffStrategy backoffStrategy, bool isShouldOpenImmediately = false)
     {
         threshold = failureThreshold;
         backoff = backoffStrategy;
-        isCloseImmediately = isShouldCloseImmediately;
+        isOpenImmediately = isShouldOpenImmediately;
         ResetCounter();
     }
 
@@ -54,7 +54,7 @@ public class FailuresThresholdBreakerStrategy : BreakerStrategy
 
     public override void RegisterUncontrolledFailure()
     {
-        if (isCloseImmediately)
+        if (isOpenImmediately)
         {
             if (Breaker == null)
                 throw new IncorrectInitializationException(ExceptionMessage);

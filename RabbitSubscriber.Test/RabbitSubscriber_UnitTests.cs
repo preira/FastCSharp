@@ -380,9 +380,10 @@ public class RabbitSubscriber_UnitTest
             connection.Setup(conn => conn.IsOpen).Returns(false);
             
             // Loops until the connection is recovered
-            var resetTask = Task.Run(() => subscriber.ResetConnectionAsync());
+            var resetTask = subscriber.ResetConnectionAsync();
 
-            await Task.Delay(2);
+            // this is time sensitive because we need to ensure the reset task is running and has already failed.
+            await Task.Delay(500);
 
             connection.Setup(conn => conn.IsOpen).Returns(true);
 

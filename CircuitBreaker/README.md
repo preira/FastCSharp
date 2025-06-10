@@ -12,4 +12,136 @@ To use this pattern, consider the following approach:
 
 ## CircuitBreaker in the configuration
 
-# :construction: TBD
+## Circuit Breaker Workflows
+
+### 1. BlockingCircuitBreaker with FailureThresholdStrategy
+
+```mermaid
+flowchart TD
+    A[Start Request] --> B{Is Circuit Open?}
+    B -- Yes --> C[Throw OpenCircuitException]
+    B -- No --> D[Execute Callback]
+    D --> E{Exception Thrown?}
+    E -- No --> F[Register Success]
+    F --> G[Return Result]
+    E -- Yes --> H{Is CircuitException?}
+    H -- Yes --> I[Register Failure]
+    H -- No --> J[Register Uncontrolled Failure]
+    I --> K{Failure Threshold Reached?}
+    J --> K
+    K -- Yes --> L["`Open Circuit 
+                    (Block for Backoff)`"]
+    K -- No --> G
+    L --> M[Throw OpenCircuitException]
+```
+
+### 2. EventDrivenCircuitBreaker with FailureThresholdStrategy
+
+```mermaid
+flowchart TD
+    A[Start Request] --> B{Is Circuit Open?}
+    B -- Yes --> C[Throw OpenCircuitException]
+    B -- No --> D[Execute Callback]
+    D --> E{Exception Thrown?}
+    E -- No --> F[Register Success]
+    F --> G[Return Result]
+    E -- Yes --> H{Is CircuitException?}
+    H -- Yes --> I[Register Failure]
+    H -- No --> J[Register Uncontrolled Failure]
+    I --> K{Failure Threshold Reached?}
+    J --> K
+    K -- Yes --> L["`Open Circuit 
+                    (Trigger OnOpen Event)`"]
+    K -- No --> G
+    L --> M[Start Backoff Timer]
+    M --> N["´After Backoff, Try to Close 
+            (Trigger OnReset Event)`"]
+```
+
+### 3. CircuitBreaker (Base) with FailureThresholdStrategy
+
+```mermaid
+flowchart TD
+    A[Start Request] --> B{Is Circuit Open?}
+    B -- Yes --> C[Throw OpenCircuitException]
+    B -- No --> D[Execute Callback]
+    D --> E{Exception Thrown?}
+    E -- No --> F[Register Success]
+    F --> G[Return Result]
+    E -- Yes --> H{Is CircuitException?}
+    H -- Yes --> I[Register Failure]
+    H -- No --> J[Register Uncontrolled Failure]
+    I --> K{Failure Threshold Reached?}
+    J --> K
+    K -- Yes --> L[Open Circuit]
+    K -- No --> G
+    L --> M[Throw OpenCircuitException]
+```
+
+> **Legend:**  
+> - "CircuitException" refers to controlled exceptions (e.g., expected failures).  
+> - "Uncontrolled Failure" refers to unexpected exceptions (e.g., runtime errors).  
+> - "Backoff" is determined by the configured BackoffStrategy.
+
+### Sequence Diagram: Successful Request
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Breaker
+    participant Callback
+
+    Client->>Breaker: Wrap(callback)
+    Breaker->>Breaker: Check if circuit is open
+    alt Circuit Closed
+        Breaker->>Callback: Execute callback
+        Callback-->>Breaker: Return result
+        Breaker-->>Client: Return result
+    else Circuit Open
+        Breaker-->>Client: Throw OpenCircuitException
+    end
+```
+
+### Sequence Diagram: Failure and Circuit Opens
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Breaker
+    participant Callback
+
+    Client->>Breaker: Wrap(callback)
+    Breaker->>Breaker: Check if circuit is open
+    alt Circuit Closed
+        Breaker->>Callback: Execute callback
+        Callback-->>Breaker: Throw Exception
+        Breaker->>Breaker: Register failure
+        Breaker->>Breaker: Check failure threshold
+        alt Threshold Reached
+            Breaker->>Breaker: Open circuit
+            Breaker-->>Client: Throw OpenCircuitException
+        else Threshold Not Reached
+            Breaker-->>Client: Propagate Exception
+        end
+    else Circuit Open
+        Breaker-->>Client: Throw OpenCircuitException
+    end
+```
+
+### Sequence Diagram: Circuit Half-Open and Recovery
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Breaker
+    participant Callback
+
+    Breaker->>Breaker: After backoff, set HALF_CLOSED
+    Client->>Breaker: Wrap(callback)
+    Breaker->>Breaker: Check if circuit is half-closed
+    Breaker->>Callback: Execute callback
+    Callback-->>Breaker: Return result
+    Breaker->>Breaker: Register success
+    Breaker->>Breaker: Close circuit
+    Breaker-->>Client: Return result
+```
