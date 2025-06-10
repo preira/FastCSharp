@@ -1,6 +1,6 @@
 using FastCSharp.Exceptions;
 
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 /// <summary>
 /// Consecutive failures circuit breaker strategy opens a circuit after a given number of

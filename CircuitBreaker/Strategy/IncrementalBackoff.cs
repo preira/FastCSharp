@@ -1,4 +1,4 @@
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 /// <summary>
 /// Incremental backoff strategy adds a time increment to subsequent Duration requests up to maxIncrements times.

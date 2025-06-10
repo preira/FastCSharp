@@ -1,4 +1,4 @@
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 /// <summary>
 /// Circuit breaker implementations need to extend from this class in order to profit from BreakerStrategy implementations.

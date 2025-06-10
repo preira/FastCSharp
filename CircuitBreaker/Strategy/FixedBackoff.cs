@@ -1,4 +1,4 @@
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 /// <summary>
 /// Fixed backoff strategy simply stores a fixed duration.

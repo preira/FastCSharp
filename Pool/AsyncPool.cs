@@ -278,6 +278,10 @@ where K : class, IDisposable
         }
     }
 
+    /// <summary>
+    /// Removes all individuals that are not in use from the inUse list.
+    /// Calls to this method <b>MUST</b> come with a lock on the pool.
+    /// </summary>
     public async Task PurgeInUse()
     {
         if (disposed) return;
@@ -292,14 +296,10 @@ where K : class, IDisposable
         }
     }
 
-    /// <summary>
-    /// Removes all individuals that are not in use from the inUse list.
-    /// Calls to this method <b>MUST</b> come with a lock on the pool.
-    /// </summary>
     private void _PurgeInUse()
     {
         inUse
-            .Where(e => !e.Value.TryGetTarget(out var _))
+            .Where(e => !e.Value.TryGetTarget(out var _) || e.Value.TryGetTarget(out var individual) && individual.IsDisposed)
             .ToList()
             .ForEach(e => inUse.TryRemove(e.Key, out _));
         Interlocked.Exchange(ref count, inUse.Count + available.Count);

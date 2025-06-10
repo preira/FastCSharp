@@ -33,6 +33,37 @@ public class Pool_UnitTest
     }
 
     [Fact]
+    public async Task CreateNewPoolWithDefferedInit()
+    {
+        int count = 0;
+        var pool = new AsyncPool<Item, Int>(
+            async () =>
+            {
+                await Task.Yield();
+                return new Item(
+                    new Int
+                    {
+                        Value = count++
+                    }
+                );
+            },
+            LoggerFactory,
+            5, 10, true
+            );
+        await Task.Delay(200); // Simulate some delay before borrowing
+        Assert.Equal(5, pool.Count);
+        var item = await pool.BorrowAsync(this);
+        Assert.InRange(item.Value(this), 0, 5);
+
+        item.DisposeValue();
+        await pool.PurgeInUse(); // Purge in-use items to reset the pool
+        Assert.Equal(4, pool.Count);
+        
+        pool.Dispose(); // Dispose the pool
+        Assert.Throws<AggregateException>(() => pool.BorrowAsync(this).Wait());
+    }
+
+    [Fact]
     public async Task CallPoolFromOneOwnerAndUseByDifferentOwnerFails()
     {
         int count = 0;
@@ -188,14 +219,15 @@ public class Pool_UnitTest
         }
         Assert.InRange(pool.Count, 1, 10);
     }
-    
+
     [Fact]
     public void CallPoolMultipleTimesMultipleThreadsAndOwners()
     {
         int count = 0;
-        ConcurrentStack<Exception> exceptions = new ();
+        ConcurrentStack<Exception> exceptions = new();
         var pool = new AsyncPool<Item, Int>(
-            async () => {
+            async () =>
+            {
                 await Task.Yield();
                 return new Item(
                     new Int
@@ -203,30 +235,31 @@ public class Pool_UnitTest
                         Value = Interlocked.Increment(ref count)
                     }
                 );
-            }, 
+            },
             LoggerFactory,
             7, 10
             );
         Thread[] threads = new Thread[10];
-        for(int i = 0; i < threads.Length; i++)
+        for (int i = 0; i < threads.Length; i++)
         {
-            threads[i] = new Thread(() => {
+            threads[i] = new Thread(() =>
+            {
                 try
                 {
                     var owner = new Owner();
-                    for(int j = 0; j < 1000; j++)
+                    for (int j = 0; j < 1000; j++)
                     {
                         owner.BorrowAndUseAsync(pool).Wait();
-                        Thread.SpinWait(1000*Random.Shared.Next(1, 10));
+                        Thread.SpinWait(1000 * Random.Shared.Next(1, 10));
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     exceptions.Push(ex);
                 }
             });
         }
-        foreach(var thread in threads)
+        foreach (var thread in threads)
         {
             thread.Start();
         }
@@ -242,6 +275,9 @@ public class Pool_UnitTest
         {
             throw new AggregateException(exceptions);
         }
+        Assert.NotNull(pool.Stats);
+        Assert.NotNull(pool.Stats.ToJson());
+        Assert.NotNull(pool.FullStatsReport);
     }
     
     [Fact]

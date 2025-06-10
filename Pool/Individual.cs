@@ -22,7 +22,7 @@ where T : class, IDisposable
 {
 
     private WeakReference? owner;
-    protected bool disposed;
+    public bool IsDisposed { get; protected set; }
 
     /// <summary>
     /// A Stalled individual is not working properly and will not be reclaimed to the pool.
@@ -49,7 +49,7 @@ where T : class, IDisposable
     protected T GetValue(object owner)
     {
         if (Owner != owner) throw new InvalidOperationException("This individual is not owned by the caller.");
-        if (Volatile.Read(ref disposed)) throw new ObjectDisposedException(GetType().FullName);
+        if (IsDisposed) throw new ObjectDisposedException(GetType().FullName);
         return value;
     }
 
@@ -57,7 +57,7 @@ where T : class, IDisposable
     {
         if (disposing)
         {
-            Volatile.Write(ref disposed, true);
+            IsDisposed = true;
             value?.Dispose();
         }
     }

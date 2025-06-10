@@ -1,6 +1,6 @@
 using FastCSharp.Cryptography;
 
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 /// <summary>
 /// Random backoff strategy provides a random duration value between the initial duration and 

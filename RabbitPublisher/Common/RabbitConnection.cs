@@ -34,7 +34,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 
     public async Task<IRabbitChannel> GetChannelAsync(object owner, string exchangeName, string? queue, string? routingKey)
     {
-        if(disposed) throw new ObjectDisposedException(GetType().FullName);
+        if(IsDisposed) throw new ObjectDisposedException(GetType().FullName);
 
         AsyncPool<RabbitChannel, IChannel>? pool;
         bool poolExists = channelsPools.TryGetValue(Tuple.Create(exchangeName, queue, routingKey), out pool);
@@ -64,7 +64,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
     
     private async Task<RabbitChannel> CreateAsync(string exchangeName, string? queue, string? routingKey, bool confirms = true)
     {
-        if(disposed) throw new ObjectDisposedException(GetType().FullName);
+        if(IsDisposed) throw new ObjectDisposedException(GetType().FullName);
         var channel = await connection!.CreateChannelAsync(
             new CreateChannelOptions(confirms, confirms)
         );
@@ -89,6 +89,6 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
     {
         await CloseAsync();
         connection?.Dispose();
-        disposed = true;
+        IsDisposed = true;
     }
 }

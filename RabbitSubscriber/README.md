@@ -91,7 +91,7 @@ dotnet add package FastCSharp.CircuitBreaker
 
 Open the `Program.cs` file and replace the code with the one below.  
 ```csharp
-using FastCSharp.CircuitBreaker;
+using FastCSharp.Circuit.Breaker;
 using FastCSharp.RabbitSubscriber;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

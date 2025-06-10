@@ -1,5 +1,5 @@
 using Xunit;
-using FastCSharp.CircuitBreaker;
+using FastCSharp.Circuit.Breaker;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -15,27 +15,25 @@ public static class Util
     public readonly static TimeSpan _1_day_backoff = TimeSpan.FromDays(10);
     public static bool ExecuteThrowNotImplementedException(AbstractBreaker circuit, bool Success)
     {
-        Assert.Throws<NotImplementedException>(
-            () => circuit.Wrap(
-                () =>
-                {
-                    Success = true;
-                    throw new NotImplementedException();
-                })
-            );
+        var wrappedFunction = circuit.Wrap(
+            () =>
+            {
+                Success = true;
+                throw new NotImplementedException();
+            });
+        Assert.Throws<NotImplementedException>(() => wrappedFunction());
         return Success;
     }
 
     public static bool ExecuteThrowingCircuitException(AbstractBreaker circuit, bool Success)
     {
-        Assert.Throws<CircuitException>(
-            () => circuit.Wrap(
-                () =>
-                {
-                    Success = true;
-                    throw new CircuitException();
-                })
-            );
+        var wrappedFunction = circuit.Wrap(
+            () =>
+            {
+                Success = true;
+                throw new CircuitException("Test Exception");
+            });
+        Assert.Throws<CircuitException>(() => wrappedFunction());
         return Success;
     }
 }
@@ -79,7 +77,43 @@ public class CircuitBreaker_UnitTest
             );
 
         var Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+
+        Assert.True(result);
+        Assert.True(Success, "Function dind't execute!");
+    }
+
+    [Fact]
+    public async Task SuccessfulExecutionCircuitParameterlessAsync()
+    {
+        var circuit =
+            new CircuitBreaker(
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+            );
+
+        var Success = false;
+
+        var wrappedFunction = circuit.WrapAsync(async () => { Success = true; await Task.Yield(); return true; });
+        var result = await wrappedFunction();
+
+        Assert.True(result);
+        Assert.True(Success, "Function dind't execute!");
+    }
+
+    [Fact]
+    public async Task SuccessfulExecutionCircuitAsync()
+    {
+        var circuit =
+            new CircuitBreaker(
+                new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
+            );
+
+        var Success = false;
+        var wrappedFunction = circuit.WrapAsync<bool, object>(async (obj) => { Success = true; await Task.Yield(); return true; });
+        var result = await wrappedFunction(new object());
+
+        Assert.True(result);
         Assert.True(Success, "Function dind't execute!");
     }
 
@@ -165,12 +199,14 @@ public class CircuitBreaker_UnitTest
         Assert.True(circuit.IsOpen, "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false)());
         Assert.True(Success, "Function executed and shouldn't!");
         await Task.Delay(timeout + timeout);
 
         Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+        Assert.True(result);
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 
@@ -195,13 +231,15 @@ public class CircuitBreaker_UnitTest
         Assert.True(circuit.IsOpen, "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false)());
         Assert.True(Success, "Function executed and shouldn't!");
 
         await Task.Delay(timeout + timeout);
 
         Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+        Assert.True(result);
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 }
@@ -231,7 +269,9 @@ public class BlockingCircuitBreaker_Tests
             );
 
         var Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+        Assert.True(result);
         Assert.True(Success, "Function dind't execute!");
     }
 
@@ -319,7 +359,10 @@ public class BlockingCircuitBreaker_Tests
         await Task.Delay(timeout + timeout);
 
         Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+        Assert.True(result);
+
         TimeSpan elapsedTime = DateTime.Now - startTime;
         Assert.True(elapsedTime > timeout, $"Elapsed Time {elapsedTime} > backoff {timeout}");
         Assert.True(Success, "Function didn't execute after timeout!");
@@ -348,17 +391,16 @@ public class BlockingCircuitBreaker_Tests
         Assert.True(circuit.IsOpen, "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Assert.Throws<OpenCircuitException>(
-            () => circuit.Wrap(
-                () => Success = true)
-            );
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = true)());
 
         await Task.Delay(timeout + timeout);
         TimeSpan elapsedTime = DateTime.Now - startTime;
         Assert.True(elapsedTime > timeout, $"Elapsed Time {elapsedTime} > backoff {timeout}");
 
         Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+        Assert.True(result);
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 }
@@ -374,7 +416,9 @@ public class EventDrivenCircuitBreaker_UnitTest
                 new FailuresThresholdBreakerStrategy(5, new FixedBackoff(Util._millisec_backoff))
             );
 
-        circuit.Wrap(() => { /*no need to implement*/ });
+        var wrappedFunction = circuit.Wrap(() => { /*no need to implement*/ });
+        var result = wrappedFunction();
+        Assert.True(result, "Circuit function should return true.");
         Assert.NotNull(circuit);
     }
 
@@ -494,21 +538,24 @@ public class EventDrivenCircuitBreaker_UnitTest
         {
             try
             {
-                circuit.Wrap(() => attemptStep.MoveNext() ? attemptStep.Current() : false);
+                var wrappedFunction = circuit.Wrap(() => attemptStep.MoveNext() ? attemptStep.Current() : false);
+                wrappedFunction();
             }
             catch (Exception) { }
         };
         // increment breaker counter
         try
         {
-            circuit.Wrap<bool>(() => throw new Exception("Test Exception 1"));
+            var cf1 = circuit.Wrap<bool>(() => throw new Exception("Test Exception 1"));
+            cf1();
         }
         catch { }
         Assert.True(circuit.IsClosed);
-        
+
         try
         {
-            circuit.Wrap<bool>(() => throw new Exception("Test Exception 2"));
+            var cf2 = circuit.Wrap<bool>(() => throw new Exception("Test Exception 2"));
+            cf2();
         }
         catch { }
         Assert.True(circuit.IsClosed);
@@ -518,7 +565,8 @@ public class EventDrivenCircuitBreaker_UnitTest
         // Open the circuit
         try
         {
-            circuit.Wrap<bool>(() => throw new Exception("Test Exception 3"));
+            var cf3 = circuit.Wrap<bool>(() => throw new Exception("Test Exception 3"));
+            cf3();
         }
         catch { }
         Assert.True(circuit.IsOpen);
@@ -559,7 +607,9 @@ public class EventDrivenCircuitBreaker_UnitTest
             );
 
         var Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+        Assert.True(result);
         Assert.True(Success, "Function dind't execute!");
     }
 
@@ -692,13 +742,15 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.True(circuit.IsOpen, "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false)());
         Assert.True(Success, "Function executed and shouldn't!");
 
         await Task.Delay(timeout + timeout);
 
         Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+        Assert.True(result);
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 
@@ -723,13 +775,15 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.True(circuit.IsOpen, "Circuit should be open now.");
         Assert.True(Success, "Function dind't execute!");
 
-        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false));
+        Assert.Throws<OpenCircuitException>(() => circuit.Wrap(() => Success = false)());
         Assert.True(Success, "Function executed and shouldn't!");
 
         await Task.Delay(timeout + timeout);
 
         Success = false;
-        circuit.Wrap(() => Success = true);
+        var wrappedFunction = circuit.Wrap(() => Success = true);
+        var result = wrappedFunction();
+        Assert.True(result);
         Assert.True(Success, "Function dind't execute after timeout!");
     }
 

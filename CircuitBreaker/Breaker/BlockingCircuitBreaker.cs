@@ -1,4 +1,4 @@
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 /// <summary>
 /// The BlockingCircuitBreaker blocks the execution for the duration of the backoff. 
@@ -12,79 +12,85 @@ public class BlockingCircuitBreaker : AbstractBreaker
     {
     }
 
-    public override TResult Wrap<TResult>(Func<TResult> callback)
+    public override Func<TResult> Wrap<TResult>(Func<TResult> callback)
     {
-        if (IsOpen)
+        return () =>
         {
-            // Since Sleep truncates the interval value at milliseconds, we need to round up
-            // to make sure the elapse time is greater than the remaing interval.
-            // Otherwise it will interfere with tests.
-            var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
-            var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
-            Thread.Sleep(millisecondsTimeout);
-            throw new OpenCircuitException();
-        }
-        else /* either closing or closed */
-        {
-            try
+            if (IsOpen)
             {
-                var result = callback();
-                Strategy.RegisterSucess();
-                return result;
+                // Since Sleep truncates the interval value at milliseconds, we need to round up
+                // to make sure the elapse time is greater than the remaing interval.
+                // Otherwise it will interfere with tests.
+                var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
+                var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
+                Thread.Sleep(millisecondsTimeout);
+                throw new OpenCircuitException();
             }
-            catch (Exception e)
+            else /* either closing or closed */
             {
-                if (e is CircuitException)
+                try
                 {
-                    Strategy.RegisterFailure();
+                    var result = callback();
+                    Strategy.RegisterSucess();
+                    return result;
                 }
-                else
+                catch (Exception e)
                 {
-                    Strategy.RegisterUncontrolledFailure();
+                    if (e is CircuitException)
+                    {
+                        Strategy.RegisterFailure();
+                    }
+                    else
+                    {
+                        Strategy.RegisterUncontrolledFailure();
+                    }
+                    throw;
                 }
-                throw;
             }
-        }
+        };
     }
 
-    public override async Task<TResult> WrapAsync<TResult>(Func<Task<TResult>> callback)
+    public override Func<Task<TResult>> WrapAsync<TResult>(Func<Task<TResult>> callback)
     {
-        if (IsOpen)
+        return async () =>
         {
-            // Since Sleep truncates the interval value at milliseconds, we need to round up
-            // to make sure the elapse time is greater than the remaing interval.
-            // Otherwise it will interfere with tests.
-            var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
-            var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
-            Thread.Sleep(millisecondsTimeout);
-            throw new OpenCircuitException();
-        }
-        else /* either closing or closed */
-        {
-            try
+            if (IsOpen)
             {
-                var result = await callback();
-                Strategy.RegisterSucess();
-                return result;
+                // Since Sleep truncates the interval value at milliseconds, we need to round up
+                // to make sure the elapse time is greater than the remaing interval.
+                // Otherwise it will interfere with tests.
+                var interval = (closeTimestamp - DateTime.Now).TotalMilliseconds;
+                var millisecondsTimeout = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
+                Thread.Sleep(millisecondsTimeout);
+                throw new OpenCircuitException();
             }
-            catch (Exception e)
+            else /* either closing or closed */
             {
-                if (e is CircuitException)
+                try
                 {
-                    Strategy.RegisterFailure();
+                    var result = await callback();
+                    Strategy.RegisterSucess();
+                    return result;
                 }
-                else
+                catch (Exception e)
                 {
-                    Strategy.RegisterUncontrolledFailure();
+                    if (e is CircuitException)
+                    {
+                        Strategy.RegisterFailure();
+                    }
+                    else
+                    {
+                        Strategy.RegisterUncontrolledFailure();
+                    }
+                    throw;
                 }
-                throw;
             }
-        }
+        };
     }
     
     public override Func<TInput, Task<TResult>> WrapAsync<TResult, TInput>(Func<TInput, Task<TResult>> callback)
     {
-        return async (TInput input) =>
+        return async (input) =>
         {
             if (IsOpen)
             {

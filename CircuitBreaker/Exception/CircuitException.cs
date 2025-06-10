@@ -1,4 +1,4 @@
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 [Serializable]
 public class CircuitException : Exception

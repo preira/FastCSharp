@@ -1,6 +1,6 @@
 using FastCSharp.Observability;
 
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 public abstract class AbstractBreaker : Breaker, IHealthReporter
 {
@@ -63,19 +63,19 @@ public abstract class AbstractBreaker : Breaker, IHealthReporter
     /// <typeparam name="TResult">The return type for the given callback function</typeparam>
     /// <returns>The callback return, or throws either any Exception that comes out 
     /// of the callback call or a OpenCircuitException if the circuit is open.</returns>
-    public abstract TResult Wrap<TResult>(Func<TResult> callback);
+    public abstract Func<TResult> Wrap<TResult>(Func<TResult> callback);
 
-    public abstract Task<TResult> WrapAsync<TResult>(Func<Task<TResult>> callback);
+    public abstract Func<Task<TResult>> WrapAsync<TResult>(Func<Task<TResult>> callback);
 
-    public abstract Func<TInput, Task<TResult>> WrapAsync<TResult, TInput>(Func<TInput, Task<TResult>> callback);
+    public abstract Func<TInput, Task<TResult>> WrapAsync<TResult,TInput>(Func<TInput, Task<TResult>> callback);
 
     /// <summary>
     /// Simplified version of Wrap<TResult> for methods returning void.
     /// </summary>
     /// <param name="callback">The function to be called when circuit is closed.</param>
-    public virtual void Wrap(Action callback)
+    public virtual Func<bool> Wrap(Action callback)
     {
-        Wrap<bool>(() =>
+        return Wrap(() =>
         {
             callback();
             return true;

@@ -1,4 +1,4 @@
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 // create a circuit breaker that is Event driven, based on the AbstractBreaker class. 
 // It should be able to be used as a decorator for any method that returns a value or void.

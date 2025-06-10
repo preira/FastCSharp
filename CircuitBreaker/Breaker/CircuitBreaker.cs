@@ -1,4 +1,4 @@
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 /// <summary>
 /// The circuit breaker creates an open circuit by not executing the callback
@@ -12,61 +12,68 @@ public class CircuitBreaker : AbstractBreaker
     {
     }
 
-    public override TResult Wrap<TResult>(Func<TResult> callback)
+    public override Func<TResult> Wrap<TResult>(Func<TResult> callback)
     {
-        if (IsOpen)
+        return () =>
         {
-            throw new OpenCircuitException();
-        }
-        else /* either closing or closed */
-        {
-            try
+            if (IsOpen)
             {
-                var result = callback();
-                Strategy.RegisterSucess();
-                return result;
+                throw new OpenCircuitException();
             }
-            catch (Exception e)
+            else /* either closing or closed */
             {
-                if (e is CircuitException)
+                try
                 {
-                    Strategy.RegisterFailure();
+                    var result = callback();
+                    Strategy.RegisterSucess();
+                    return result;
                 }
-                else
+                catch (Exception e)
                 {
-                    Strategy.RegisterUncontrolledFailure();
+                    if (e is CircuitException)
+                    {
+                        Strategy.RegisterFailure();
+                    }
+                    else
+                    {
+                        Strategy.RegisterUncontrolledFailure();
+                    }
+                    throw;
                 }
-                throw;
             }
-        }
+        };
     }
-    public override async Task<TResult> WrapAsync<TResult>(Func<Task<TResult>> callback)
+
+    public override Func<Task<TResult>> WrapAsync<TResult>(Func<Task<TResult>> callback)
     {
-        if (IsOpen)
+        return async () =>
         {
-            throw new OpenCircuitException();
-        }
-        else /* either closing or closed */
-        {
-            try
+            if (IsOpen)
             {
-                var result = await callback();
-                Strategy.RegisterSucess();
-                return result;
+                throw new OpenCircuitException();
             }
-            catch (Exception e)
+            else /* either closing or closed */
             {
-                if (e is CircuitException)
+                try
                 {
-                    Strategy.RegisterFailure();
+                    TResult result = await callback();
+                    Strategy.RegisterSucess();
+                    return result;
                 }
-                else
+                catch (Exception e)
                 {
-                    Strategy.RegisterUncontrolledFailure();
+                    if (e is CircuitException)
+                    {
+                        Strategy.RegisterFailure();
+                    }
+                    else
+                    {
+                        Strategy.RegisterUncontrolledFailure();
+                    }
+                    throw;
                 }
-                throw;
             }
-        }
+        };
     }
 
     public override Func<TInput, Task<TResult>> WrapAsync<TResult, TInput>(Func<TInput, Task<TResult>> callback)

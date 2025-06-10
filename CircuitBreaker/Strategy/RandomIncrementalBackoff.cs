@@ -1,6 +1,6 @@
 using FastCSharp.Cryptography;
 
-namespace FastCSharp.CircuitBreaker;
+namespace FastCSharp.Circuit.Breaker;
 
 /// <summary>
 /// Implements a backoff strategy that continuously adds increments randomly generated between 0 and increments. 
