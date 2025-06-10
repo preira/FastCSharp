@@ -8,6 +8,8 @@ using System.Text.Json;
 using FastCSharp.Exceptions;
 using FastCSharp.Subscriber;
 using FastCSharp.RabbitSubscriber.Impl;
+using RabbitMQ.Client.Exceptions;
+using System.Threading.Tasks;
 
 namespace FastCSharp.RabbitSubscriber.Test;
 
@@ -171,16 +173,6 @@ public class RabbitSubscriber_UnitTest
         using var subscriber = new RabbitSubscriber<object>(connectionFactory.Object, queue, loggerFactory, null);
         Assert.NotNull(subscriber);
     }
-
-    // [Fact]
-    // public void RabbitSubscriberFactory_Create()
-    // {
-    //     var factory = new RabbitSubscriberFactory(configuration, loggerFactory);
-    //     Assert.NotNull(factory);
-    //     var subscriber = factory.NewSubscriber<object>("QUEUE_TOKEN");
-        
-    //     Assert.Throws<BrokerUnreachableException>(() => subscriber.Register(async (msg) => await new Task<bool>(() => true)));
-    // }
 
     [Fact]
     public void RabbitSubscriberFactory_FailCreateWithEmptyQueueName()
@@ -402,6 +394,7 @@ public class RabbitSubscriber_UnitTest
     [Fact]
     public async Task Test_ResetOpenConnection()
     {
+        int delay = 100;
         var connectionFactory = new Mock<IConnectionFactory>();
         var queue = new QueueConfig()
         {
@@ -427,14 +420,13 @@ public class RabbitSubscriber_UnitTest
             
             connection.Verify(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>()), Times.Once);
             connectionFactory.Verify(factory => factory.CreateConnectionAsync(It.IsAny<CancellationToken>()), Times.Once);
-            
-            await Task.Delay(1);
+            await Task.Delay(delay);
             channel.Setup(_channel => _channel.IsClosed).Returns(true);
             channel.Setup(_channel => _channel.IsOpen).Returns(false);
-            await Task.Delay(1);
+            await Task.Delay(delay);
             
             var resetTask = Task.Run(() => subscriber.ResetConnectionAsync());
-            await Task.Delay(1);
+            await Task.Delay(delay);
             channel.Setup(_channel => _channel.IsClosed).Returns(false);
             channel.Setup(_channel => _channel.IsOpen).Returns(true);
             await resetTask;

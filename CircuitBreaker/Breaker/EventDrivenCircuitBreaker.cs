@@ -6,7 +6,8 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
 {
     public const string TypeName = "EventDrivenCircuitBreaker";
     private TimeSpan _duration;
-    private CancellationTokenSource? cancellationTokenSource;
+    private volatile CancellationTokenSource? cancellationTokenSource;
+    
 
     private event Action<object>? OnResetListenners;
     public event Action<object> OnReset
@@ -47,8 +48,6 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
         {
             OnResetListenners?.Invoke(this);
         }
-        cancellationTokenSource?.Cancel();
-        cancellationTokenSource = null;
         return didItChange;
     }
 
@@ -69,29 +68,48 @@ public class EventDrivenCircuitBreaker : CircuitBreaker
 
     private async Task TryToRecoverWithDelay()
     {
-        var now = DateTime.Now;
-        if (closeTimestamp.CompareTo(now) < 0)
-        {
-            // reset backoff interval
-            closeTimestamp = lastOpenTimestamp + _duration;
-        }
-        var interval = (closeTimestamp - now).TotalMilliseconds;
-        interval = Math.Max(0, interval);
-        var millisecondsDelay = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
-
-        cancellationTokenSource = new CancellationTokenSource();
+        bool hasLock = await semaphoreSlim.WaitAsync(TimeSpan.FromMilliseconds(100));
         try
         {
-            await Task.Delay(millisecondsDelay, cancellationTokenSource.Token);
-            cancellationTokenSource.Dispose();
-            cancellationTokenSource = null;
-        }
-        catch (TaskCanceledException)
-        {
-            // backoff was cancelled
-        }
+            // Someone else may have closed the circuit while we were waiting for the lock.
+            if (Status != CircuitStatus.OPEN)
+            {
+                return;
+            }
+            var now = DateTime.Now;
+            if (closeTimestamp.CompareTo(now) < 0)
+            {
+                // reset backoff interval
+                closeTimestamp = lastOpenTimestamp + _duration;
+            }
+            var interval = (closeTimestamp - now).TotalMilliseconds;
+            interval = Math.Max(0, interval);
+            var millisecondsDelay = (int)Math.Round(interval, MidpointRounding.AwayFromZero);
 
-        Closing();
+            cancellationTokenSource = new CancellationTokenSource();
+            try
+            {
+                semaphoreSlim.Release();
+                await Task.Delay(millisecondsDelay, cancellationTokenSource.Token);
+
+                await semaphoreSlim.WaitAsync(TimeSpan.FromMilliseconds(100));
+                cancellationTokenSource.Dispose();
+                cancellationTokenSource = null;
+            }
+            catch (TaskCanceledException)
+            {
+                // backoff was cancelled
+            }
+
+            Closing();
+        }
+        finally
+        {
+            if (hasLock)
+            {
+                semaphoreSlim.Release();
+            }
+        }
     }
 
 }

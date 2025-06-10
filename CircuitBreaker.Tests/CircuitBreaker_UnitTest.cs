@@ -463,87 +463,91 @@ public class EventDrivenCircuitBreaker_UnitTest
         Assert.True(reseted);
     }
 
-    // [Fact]
-    // public async Task AttemptRecovery_FailBeforeRecovering_Test()
-    // {
-    //     // huge timeout to control recovery through CancelBackoff
-    //     var _backoff = TimeSpan.FromDays(1);
-    //     var minimalDelay = TimeSpan.FromMilliseconds(200);
-    //     var circuit =
-    //         new EventDrivenCircuitBreaker(
-    //             new FailuresThresholdBreakerStrategy(2, new FixedBackoff(_backoff))
-    //         );
-    //     var healtStatusRask = await circuit.ReportHealthStatusAsync();
-    //     var report = JsonSerializer.Serialize(healtStatusRask);
+    [Fact]
+    public async Task AttemptRecovery_FailBeforeRecovering_Test()
+    {
+        // huge timeout to control recovery through CancelBackoff
+        var _backoff = TimeSpan.FromDays(1);
+        var minimalDelay = TimeSpan.FromMilliseconds(200);
+        var circuit =
+            new EventDrivenCircuitBreaker(
+                new FailuresThresholdBreakerStrategy(2, new FixedBackoff(_backoff))
+            );
+        var healtStatusRask = await circuit.ReportHealthStatusAsync();
+        var report = JsonSerializer.Serialize(healtStatusRask);
         
-    //     var opened = false;
-    //     circuit.OnOpen += (sender) => { opened = true; };
-    //     Assert.False(opened);
+        var opened = false;
+        circuit.OnOpen += (sender) => { opened = true; };
+        Assert.False(opened);
 
-    //     bool[] attemptRecoveries = [false, false, false];
+        bool[] attemptRecoveries = [false, false, false];
 
-    //     var recoveryScript = new List<Func<bool>>()
-    //     {
-    //         () => { attemptRecoveries[0] = true; throw new Exception("Test Exception 4");  },
-    //         () => { attemptRecoveries[1] = true; throw new Exception("Test Exception 5"); },
-    //         () => { attemptRecoveries[2] = true; return true; }
-    //     };
-    //     var attemptStep = recoveryScript.GetEnumerator();
-    //     circuit.OnReset += (sender) =>
-    //     {
-    //         try
-    //         {
-    //             circuit.Wrap(() => attemptStep.MoveNext() ? attemptStep.Current() : false);
-    //         }
-    //         catch (Exception) { }
-    //     };
-    //     // increment breaker counter
-    //     try
-    //     {
-    //         circuit.Wrap<bool>(() => throw new Exception("Test Exception 1"));
-    //     }
-    //     catch (Exception) { }
-    //     try
-    //     {
-    //         circuit.Wrap<bool>(() => throw new Exception("Test Exception 2"));
-    //     }
-    //     catch (Exception) { }
+        var recoveryScript = new List<Func<bool>>()
+        {
+            () => { attemptRecoveries[0] = true; throw new Exception("Test Exception 4");  },
+            () => { attemptRecoveries[1] = true; throw new Exception("Test Exception 5"); },
+            () => { attemptRecoveries[2] = true; return true; }
+        };
+        var attemptStep = recoveryScript.GetEnumerator();
+        circuit.OnReset += (sender) =>
+        {
+            try
+            {
+                circuit.Wrap(() => attemptStep.MoveNext() ? attemptStep.Current() : false);
+            }
+            catch (Exception) { }
+        };
+        // increment breaker counter
+        try
+        {
+            circuit.Wrap<bool>(() => throw new Exception("Test Exception 1"));
+        }
+        catch { }
+        Assert.True(circuit.IsClosed);
+        
+        try
+        {
+            circuit.Wrap<bool>(() => throw new Exception("Test Exception 2"));
+        }
+        catch { }
+        Assert.True(circuit.IsClosed);
 
-    //     AssertAttemptRecoveries(attemptRecoveries, [false, false, false]);
+        AssertAttemptRecoveries(attemptRecoveries, [false, false, false]);
 
-    //     // Open the circuit
-    //     try
-    //     {
-    //         circuit.Wrap<bool>(() => throw new Exception("Test Exception 3"));
-    //     }
-    //     catch (Exception) { }
-    //     // circuit.Open(new TimeSpan(10000000000));
-    //     AssertAttemptRecoveries(attemptRecoveries, [false, false, false]);
+        // Open the circuit
+        try
+        {
+            circuit.Wrap<bool>(() => throw new Exception("Test Exception 3"));
+        }
+        catch { }
+        Assert.True(circuit.IsOpen);
+        // circuit.Open(new TimeSpan(10000000000));
+        AssertAttemptRecoveries(attemptRecoveries, [false, false, false]);
 
-    //     var isCanceled = circuit.CancelBackoff();
-    //     await Task.Delay(minimalDelay);
-    //     Assert.True(opened);
-    //     AssertAttemptRecoveries(attemptRecoveries, [true, false, false]);
+        var isCanceled = circuit.CancelBackoff();
+        await Task.Delay(minimalDelay);
+        Assert.True(opened);
+        AssertAttemptRecoveries(attemptRecoveries, [true, false, false]);
 
-    //     circuit.CancelBackoff();
-    //     await Task.Delay(minimalDelay);
-    //     Assert.True(opened);
-    //     AssertAttemptRecoveries(attemptRecoveries, [true, true, false]);
+        circuit.CancelBackoff();
+        await Task.Delay(minimalDelay);
+        Assert.True(opened);
+        AssertAttemptRecoveries(attemptRecoveries, [true, true, false]);
 
-    //     // Finally succeeds
-    //     circuit.CancelBackoff();
-    //     await Task.Delay(minimalDelay);
-    //     AssertAttemptRecoveries(attemptRecoveries, [true, true, true]);
+        // Finally succeeds
+        circuit.CancelBackoff();
+        await Task.Delay(minimalDelay);
+        AssertAttemptRecoveries(attemptRecoveries, [true, true, true]);
 
-    //     Assert.True(circuit.IsClosed);
+        Assert.True(circuit.IsClosed);
 
-    //     static void AssertAttemptRecoveries(bool[] actual, bool[] expected)
-    //     {
-    //         Assert.Equal(expected[0], actual[0]);
-    //         Assert.Equal(expected[1], actual[1]);
-    //         Assert.Equal(expected[2], actual[2]);
-    //     }
-    // }
+        static void AssertAttemptRecoveries(bool[] actual, bool[] expected)
+        {
+            Assert.Equal(expected[0], actual[0]);
+            Assert.Equal(expected[1], actual[1]);
+            Assert.Equal(expected[2], actual[2]);
+        }
+    }
 
     [Fact]
     public void SuccessfulExecutionCircuit()

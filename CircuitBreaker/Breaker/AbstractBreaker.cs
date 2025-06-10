@@ -7,6 +7,7 @@ public abstract class AbstractBreaker : Breaker, IHealthReporter
     protected CircuitStatus Status { get; set; }
     protected DateTime lastOpenTimestamp;
     protected DateTime closeTimestamp;
+    protected SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
     protected AbstractBreaker(BreakerStrategy strategy) : base(strategy)
     {
         Status = CircuitStatus.CLOSED;
@@ -14,17 +15,23 @@ public abstract class AbstractBreaker : Breaker, IHealthReporter
 
     public override bool Open(TimeSpan duration)
     {
-        var previousStatus = Status;
-        lastOpenTimestamp = DateTime.Now;
-        closeTimestamp = lastOpenTimestamp + duration;
-        Status = CircuitStatus.OPEN;
-        return previousStatus != Status;
+        return WithLock(() =>
+        {
+            var previousStatus = Status;
+            lastOpenTimestamp = DateTime.Now;
+            closeTimestamp = lastOpenTimestamp + duration;
+            Status = CircuitStatus.OPEN;
+            return previousStatus != Status;
+        });
     }
     public override bool Close() 
     {
-        var previousStatus = Status;
-        Status = CircuitStatus.CLOSED;
-        return previousStatus != Status;
+        return WithLock(() =>
+        {
+            var previousStatus = Status;
+            Status = CircuitStatus.CLOSED;
+            return previousStatus != Status;
+        });
     } 
 
     public override bool Closing()
@@ -86,5 +93,22 @@ public abstract class AbstractBreaker : Breaker, IHealthReporter
             };
             return report;
         });
+    }
+
+    protected T WithLock<T>(Func<T> action)
+    {
+        bool hasLock = false;
+        try
+        {
+            hasLock = semaphoreSlim.Wait(TimeSpan.FromMilliseconds(100));
+            return action();
+        }
+        finally
+        {
+            if (hasLock)
+            {
+                semaphoreSlim.Release();
+            }
+        }
     }
 }
