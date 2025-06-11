@@ -1,7 +1,6 @@
 using Xunit;
 using FastCSharp.Circuit.Breaker;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Circuit_Breaker.Tests;
 

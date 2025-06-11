@@ -1,6 +1,5 @@
 ﻿using FastCSharp.Subscriber;
 using FastCSharp.Exceptions;
-using FastCSharp.RabbitCommon;
 using RabbitMQ.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;

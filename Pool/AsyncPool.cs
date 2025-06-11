@@ -30,6 +30,7 @@ where K : class, IDisposable
     private bool disposed;
     private readonly PoolStats? stats;
     private readonly SemaphoreSlim _lock = new (1, 1);
+    private readonly TimeSpan lockDefaultTimeout = TimeSpan.FromMilliseconds(60000);
 
     /// <summary>
     /// Flag to indicate if an individual is being added to the pool.
@@ -59,23 +60,24 @@ where K : class, IDisposable
     public AsyncPool(
         CreateAsync<T> createIndividualAsync,
         ILoggerFactory loggerFactory,
-        int minSize,
-        int maxSize,
-        bool initialize = false,
-        bool registerStats = true,
-        double defaultTimeout = 1000)
+        PoolConfig? poolConfig = null)
     {
         logger = loggerFactory.CreateLogger<AsyncPool<T, K>>();
 
         ArgumentNullException.ThrowIfNull(createIndividualAsync);
         IndividualFactoryAsync = createIndividualAsync;
 
+        int minSize = poolConfig?.MinSize ?? 0;
+        int maxSize = poolConfig?.MaxSize ?? 5;
+        bool initialize = poolConfig?.Initialize ?? false;
+        bool registerStats = poolConfig?.GatherStats ?? true;
+
         // avoiding problematic configurations
         MinSize = minSize > 0 ? minSize : 0;
         MaxSize = minSize < maxSize ? maxSize : minSize;
         if (MaxSize < 1) throw new ArgumentException("MaxSize must be greater than 0.");
 
-        DefaultTimeout = TimeSpan.FromMilliseconds(defaultTimeout);
+        DefaultTimeout = poolConfig?.DefaultWaitTimeout ?? TimeSpan.FromMilliseconds(1000);
 
         available = new();
         inUse = new();
@@ -115,11 +117,12 @@ where K : class, IDisposable
 
     private async Task<bool> AddIndividualAsync()
     {
+        var isLockAcquired = false;
         try
         {
             var individual = await CreateIndividualAsync().ConfigureAwait(false);
 
-            await _lock.WaitAsync();
+            isLockAcquired = await _lock.WaitAsync(lockDefaultTimeout);
 
             if (count >= MaxSize)
             {
@@ -142,7 +145,10 @@ where K : class, IDisposable
         finally
         {
             Interlocked.Exchange(ref isAddingIndividual, 0);
-            _lock.Release();
+            if (isLockAcquired)
+            {
+                _lock.Release();
+            }
         }
     }
 
@@ -156,7 +162,7 @@ where K : class, IDisposable
         // -1 signals to use default
         var timeoutSpan = timeoutInMilliseconds > -1 ? TimeSpan.FromMilliseconds(timeoutInMilliseconds) : DefaultTimeout;
         var timeLimit = DateTime.Now.Add(timeoutSpan);
-        
+
         Individual<K>? individual = null;
 
         while (individual == null)
@@ -247,9 +253,10 @@ where K : class, IDisposable
     public async Task<bool> ReturnAsync(Individual<K> individual)
     {
         if (disposed) return false;
+        var isLockAcquired = false;
         try
         {
-            await _lock.WaitAsync();
+            isLockAcquired = await _lock.WaitAsync(lockDefaultTimeout);
 
             var removed = inUse.Remove(individual.Id, out _);
             // If the available count is greater than 80% of the minimum size, we can dispose this individual.
@@ -261,7 +268,7 @@ where K : class, IDisposable
                 }
                 // Else it is not in the inUse list, it is not a valid connection and should be terminated without updating counters.
                 individual.DisposeValue(true);
- 
+
                 stats?.PoolDisposed();
 
                 return false;
@@ -274,7 +281,10 @@ where K : class, IDisposable
         }
         finally
         {
-            _lock.Release();
+            if (isLockAcquired)
+            {
+                _lock.Release();
+            }
         }
     }
 
@@ -285,14 +295,18 @@ where K : class, IDisposable
     public async Task PurgeInUse()
     {
         if (disposed) return;
+        var isLockAcquired = false;
         try
         {
-            await _lock.WaitAsync();
+            isLockAcquired = await _lock.WaitAsync(lockDefaultTimeout);
             _PurgeInUse();
         }
         finally
         {
-            _lock.Release();
+            if (isLockAcquired)
+            {
+                _lock.Release();
+            }
         }
     }
 
@@ -332,9 +346,10 @@ where K : class, IDisposable
     protected virtual void Dispose(bool disposing)
     {
         if (disposed) return;
+        var isLockAcquired = false;
         try
         {
-            _lock.Wait(5000);
+            isLockAcquired = _lock.Wait(lockDefaultTimeout);
 
             if (disposing)
             {
@@ -353,7 +368,10 @@ where K : class, IDisposable
         }
         finally
         {
-            _lock.Release();
+            if (isLockAcquired)
+            {
+                _lock.Release();
+            }
         }
     }
 

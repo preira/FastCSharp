@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -25,7 +24,14 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            1, 10
+            new PoolConfig
+            {
+                MinSize = 1,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
             );
 
         var item = await pool.BorrowAsync(this);
@@ -48,7 +54,14 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            5, 10, true
+            new PoolConfig
+            {
+                MinSize = 5,
+                MaxSize = 10,
+                Initialize = true,
+                GatherStats = false,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
             );
         await Task.Delay(200); // Simulate some delay before borrowing
         Assert.Equal(5, pool.Count);
@@ -78,7 +91,15 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            1, 10
+                        new PoolConfig
+            {
+                MinSize = 1,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
+
             );
 
         var item = await new Owner().BorrowAsync(pool);
@@ -101,7 +122,15 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            1, 10
+                        new PoolConfig
+            {
+                MinSize = 1,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
+
             );
 
         var item = await new Owner().BorrowAsync(pool);
@@ -129,7 +158,15 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            1, 10
+                        new PoolConfig
+            {
+                MinSize = 1,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
+
             );
 
         var owner = new Owner();
@@ -153,7 +190,14 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            7, 10
+            new PoolConfig
+            {
+                MinSize = 7,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
             );
 
         var owner = new Owner();
@@ -182,7 +226,14 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            7, 10
+            new PoolConfig
+            {
+                MinSize = 7,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
             );
 
         var owner = new Owner();
@@ -209,7 +260,14 @@ public class Pool_UnitTest
                 );
             }, 
             LoggerFactory,
-            7, 10
+            new PoolConfig
+            {
+                MinSize = 7,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
             );
 
         for(int i = 0; i < 100; i++)
@@ -237,7 +295,15 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            7, 10
+                        new PoolConfig
+            {
+                MinSize = 7,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
+
             );
         Thread[] threads = new Thread[10];
         for (int i = 0; i < threads.Length; i++)
@@ -299,7 +365,14 @@ public class Pool_UnitTest
                 );
             }, 
             LoggerFactory,
-            minPoolSize, MaxPoolSize
+            new PoolConfig
+            {
+                MinSize = minPoolSize,
+                MaxSize = MaxPoolSize,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
             );
         DateTime start = DateTime.Now;
         Thread[] threads = new Thread[threadCount];
@@ -372,7 +445,15 @@ public class Pool_UnitTest
                 );
             }, 
             LoggerFactory,
-            7, 10
+                        new PoolConfig
+            {
+                MinSize = 7,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
+
             );
 
         var items = new Queue<Item>();
@@ -452,7 +533,15 @@ public class Pool_UnitTest
                 );
             },
             LoggerFactory,
-            1, 10
+                        new PoolConfig
+            {
+                MinSize = 1,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
+
             );
 
         for(int i = 0; i < 100; i++)

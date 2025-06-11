@@ -30,11 +30,7 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         pool = new AsyncPool<RabbitConnection, IConnection>(
             async () => await CreateConnection(config, loggerFactory),
             loggerFactory,
-            poolConfig.MinSize, 
-            poolConfig.MaxSize, 
-            poolConfig.Initialize, 
-            poolConfig.GatherStats, 
-            poolConfig.DefaultWaitTimeout.TotalMilliseconds
+            poolConfig
         );
     }
 

@@ -97,15 +97,15 @@ public abstract class AbstractBreaker : Breaker, IHealthReporter
 
     protected T WithLock<T>(Func<T> action)
     {
-        bool hasLock = false;
+        bool isLockAcquired = false;
         try
         {
-            hasLock = semaphoreSlim.Wait(TimeSpan.FromMilliseconds(100));
+            isLockAcquired = semaphoreSlim.Wait(TimeSpan.FromMilliseconds(100));
             return action();
         }
         finally
         {
-            if (hasLock)
+            if (isLockAcquired)
             {
                 semaphoreSlim.Release();
             }

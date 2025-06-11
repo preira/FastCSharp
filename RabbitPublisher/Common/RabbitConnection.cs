@@ -8,8 +8,9 @@ namespace FastCSharp.RabbitPublisher.Common;
 
 public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 {
-    private readonly IConnection connection;
     public bool IsOpen => connection.IsOpen;
+    private readonly IConnection connection;
+    private PoolConfig PoolConfig { get; }
     private readonly ConcurrentDictionary<Tuple<string, string?, string?>, AsyncPool<RabbitChannel, IChannel>> channelsPools;
     readonly private ILogger logger;
     private readonly int minObjects;
@@ -20,16 +21,23 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
     private ILoggerFactory LoggerFactory { get; set; }
 
     // TODO: pass min, max, defaultTimeout and gather stats from configuration
-    public RabbitConnection(IConnection connection, ILoggerFactory loggerFactory)
+    public RabbitConnection(IConnection connection, ILoggerFactory loggerFactory, PoolConfig? poolConfig = null)
     : base(connection)
     {
         this.connection = connection;
         LoggerFactory = loggerFactory;
         logger = loggerFactory.CreateLogger<RabbitConnection>();
         channelsPools = new();
-        minObjects = 1;
-        maxObjects = 10;
-        defaultTimeout = 1000;
+
+        PoolConfig = poolConfig ??
+            new PoolConfig
+            {
+                MinSize = 1,
+                MaxSize = 10,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000),
+                GatherStats = false,
+                Initialize = false
+            };
     }
 
     public async Task<IRabbitChannel> GetChannelAsync(object owner, string exchangeName, string? queue, string? routingKey)
@@ -49,7 +57,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
             pool = new AsyncPool<RabbitChannel, IChannel>(
                 async () => await CreateAsync(exchangeName, queue, routingKey),
                 LoggerFactory,
-                minObjects, maxObjects, initialize, gatherStats, defaultTimeout
+                PoolConfig
             );
             channelsPools.TryAdd(Tuple.Create(exchangeName, queue, routingKey), pool);
         }

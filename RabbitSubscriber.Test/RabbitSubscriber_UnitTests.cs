@@ -8,8 +8,6 @@ using System.Text.Json;
 using FastCSharp.Exceptions;
 using FastCSharp.Subscriber;
 using FastCSharp.RabbitSubscriber.Impl;
-using RabbitMQ.Client.Exceptions;
-using System.Threading.Tasks;
 
 namespace FastCSharp.RabbitSubscriber.Test;
 
