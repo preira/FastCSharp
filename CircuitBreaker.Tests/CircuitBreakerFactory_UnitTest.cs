@@ -20,7 +20,7 @@ public class CircuitBreakerFactory_UnitTest
         };
 
         builder
-            .Set(LoggerFactory.Create(builder => builder.AddConsole()))
+            .Set(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Trace)))
             .Set(new ConfigurationBuilder().Build().GetSection("CircuitBreaker"))
             .Set(callback)
             .OnOpen((sender) => Console.WriteLine("Circuit Opened"))
@@ -68,7 +68,7 @@ public class CircuitBreakerFactory_UnitTest
         };
 
         builder
-            .Set(LoggerFactory.Create(builder => builder.AddConsole()))
+            .Set(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Trace)))
             .Set(configuration.GetSection("CircuitBreaker"))
             .Set(callback)
             .Build();
@@ -106,7 +106,7 @@ public class CircuitBreakerFactory_UnitTest
         };
 
         builder
-            .Set(LoggerFactory.Create(builder => builder.AddConsole()))
+            .Set(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Trace)))
             .Set(configuration.GetSection("CircuitBreaker"))
             .Set(callback)
             .OnOpen((sender) => Console.WriteLine("Circuit Opened"))
@@ -144,7 +144,7 @@ public class CircuitBreakerFactory_UnitTest
         };
 
         builder
-            .Set(LoggerFactory.Create(builder => builder.AddConsole()))
+            .Set(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Trace)))
             .Set(configuration.GetSection("CircuitBreaker"))
             .Set(callback)
             .Build();
@@ -180,7 +180,7 @@ public class CircuitBreakerFactory_UnitTest
         };
 
         builder
-            .Set(LoggerFactory.Create(builder => builder.AddConsole()))
+            .Set(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Trace)))
             .Set(configuration.GetSection("CircuitBreaker"))
             .Set(callback)
             .Build();
