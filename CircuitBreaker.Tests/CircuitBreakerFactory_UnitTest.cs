@@ -34,16 +34,6 @@ public class CircuitBreakerFactory_UnitTest
         Assert.True(isSuccess, "The callback should have been invoked successfully.");
     }
 
-/*
-                "CircuitBreaker": {
-                    "Type" : "EventDrivenCircuitBreaker",
-                    "BackoffStrategy": {
-                        "Type": "FixedBackoff",
-                        "Duration": 1000
-                    }
-                }
-*/
-
     [Fact]
     public async Task Create_BlockingCircuitBreaker()
     {

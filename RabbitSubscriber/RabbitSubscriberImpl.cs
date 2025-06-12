@@ -221,18 +221,12 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             {
                 if (channel == null || channel.IsClosed)
                 {
-                    if (logger.IsEnabled(LogLevel.Trace))
-                    {
-                        logger.LogTrace("Reseting connection befor registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
-                    }
+                    Log(LogLevel.Trace)("Channel is closed or null. Attempting to reset connection before registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
                     await ResetConnectionAsync();
                 }
                 else
                 {
-                    if (logger.IsEnabled(LogLevel.Trace))
-                    {
-                        logger.LogTrace("Connection and channel is operational for registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
-                    }
+                    Log(LogLevel.Trace)("Connection and channel is operational for registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
                 }
                 // don't declare, just check if exists
                 await channel!.QueueDeclarePassiveAsync(queue: QConfig.Name!);
@@ -243,10 +237,8 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             }
             catch (Exception e)
             {
-                if (logger.IsEnabled(LogLevel.Error))
-                {
-                    logger.LogError(e, "Error registering consumer. Retrying in 5 seconds.");
-                }
+                LogException(LogLevel.Error)(e, "Error verifying channel for consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+
                 // TODO: should be configurable. Could this take advantage of a Backoff strategy?
                 Task.Delay(5000).Wait();
                 await ResetConnectionAsync();
@@ -285,7 +277,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
     /// </summary>
     public async Task CloseChannel()
     {
-        logger.LogTrace("Close channel initiated by consumer '{Tag}' for queue '{Queue}'.", ConsumerTag, QConfig.Name);
+        Log(LogLevel.Trace)("Close channel initiated by consumer '{Tag}' for queue '{Queue}'.", ConsumerTag, QConfig.Name);
         // For Reply Codes, refer to https://www.rfc-editor.org/rfc/rfc2821#page-42
         await channel!.CloseAsync(421, "Consumer temporarily unavailable.");
     }
@@ -296,7 +288,7 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         {
             try
             {
-                Log(LogLevel.Trace, " [Received-Thread:{ThreadID}] Message with delivery tag: {Tag}", Environment.CurrentManagedThreadId, ea.DeliveryTag);
+                Log(LogLevel.Trace)(" [Received-Thread:{ThreadID}] Message with delivery tag: {Tag}", Environment.CurrentManagedThreadId, ea.DeliveryTag);
 
                 var body = ea.Body.ToArray();
                 var message = JsonSerializer.Deserialize<T>(body);
@@ -304,31 +296,31 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 var success = await callback(message);
                 if (success)
                 {
-                    Log(LogLevel.Trace, " [Processing] Message with delivery tag: {Tag}", ea.DeliveryTag);
+                    Log(LogLevel.Trace)(" [Processing] Message with delivery tag: {Tag}", ea.DeliveryTag);
                     await channel!.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
                 }
                 else
                 {
-                    Log(LogLevel.Trace, " [Rejecting and requeing] Message with delivery tag: {Tag}", ea.DeliveryTag);
+                    Log(LogLevel.Trace)(" [Rejecting and requeing] Message with delivery tag: {Tag}", ea.DeliveryTag);
                     await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
                 }
             }
             catch (JsonException e)
             {
                 // Deserialization exception is a final exception and removes the message from the queue.
-                Log(LogLevel.Error, e, "Discarding unparseable message with id: {messageId} and tag: {Tag}", ea.BasicProperties.MessageId, ea.DeliveryTag);
+                LogException(LogLevel.Error)(e, "Discarding unparseable message with id: {messageId} and tag: {Tag}", ea.BasicProperties.MessageId, ea.DeliveryTag);
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (UnauthorizedAccessException e)
             {
                 // Unauthorized exception is a final exception and removes the message from the queue hopefully to a DLQ.
-                Log(LogLevel.Error, e, "Unacking unauthorized message with tag '{Tag}' with requeue set to false. Hope you have DLQ set.", ea.DeliveryTag);
+                LogException(LogLevel.Error)(e, "Unacking unauthorized message with tag '{Tag}' with requeue set to false. Hope you have DLQ set.", ea.DeliveryTag);
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (Exception e)
             {
                 // Any other exception is considered a transient error and the message will be requeued.
-                Log(LogLevel.Error, e, "Callback error processing message with tag: {Tag}. Message will be requeued until dead letter policy takes action.", ea.DeliveryTag);
+                LogException(LogLevel.Error)(e, "Callback error processing message with tag: {Tag}. Message will be requeued until dead letter policy takes action.", ea.DeliveryTag);
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
             }
             finally
@@ -338,20 +330,52 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         };
     }
 
-    private void Log(LogLevel level, string template, params object?[] args)
+    private delegate void LogExceptionDelegate(Exception? exception, string? message, params object?[] args);
+    private LogExceptionDelegate LogException(LogLevel level)
     {
         if (logger.IsEnabled(level))
         {
-            logger.Log(level, template, args);
+            switch (level)
+            {
+                case LogLevel.Critical:
+                    return logger.LogCritical;
+                case LogLevel.Error:
+                    return logger.LogError;
+                case LogLevel.Information:
+                    return logger.LogInformation;
+                case LogLevel.Trace:
+                    return logger.LogTrace;
+                case LogLevel.Warning:
+                    return logger.LogWarning;
+                default:
+                    return logger.LogDebug;
+            }
         }
+        return (Exception? exception, string? message, params object?[] args) => {  }; // No-op if logging is not enabled for the level.
     }
 
-    private void Log(LogLevel level, Exception exception, string template, params object?[] args)
+    private delegate void LogDelegate(string? message, params object?[] args);
+    private LogDelegate Log(LogLevel level)
     {
         if (logger.IsEnabled(level))
         {
-            logger.Log(level, exception, template, args);
+            switch (level)
+            {
+                case LogLevel.Critical:
+                    return logger.LogCritical;
+                case LogLevel.Error:
+                    return logger.LogError;
+                case LogLevel.Information:
+                    return logger.LogInformation;
+                case LogLevel.Trace:
+                    return logger.LogTrace;
+                case LogLevel.Warning:
+                    return logger.LogWarning;
+                default:
+                    return logger.LogDebug;
+            }
         }
+        return (string? message, params object?[] args) => {  }; // No-op if logging is not enabled for the level.
     }
 
     protected override void Dispose(bool disposing)
