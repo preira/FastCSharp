@@ -345,7 +345,7 @@ public class Pool_UnitTest
         Assert.NotNull(pool.Stats.ToJson());
         Assert.NotNull(pool.FullStatsReport);
     }
-    
+
     [Fact]
     public void CallPoolWithMoreThreadsThanIndividuals()
     {
@@ -353,9 +353,10 @@ public class Pool_UnitTest
         int minPoolSize = 7;
         int MaxPoolSize = 10;
         int threadCount = 12;
-        ConcurrentStack<Exception> exceptions = new ();
+        ConcurrentStack<Exception> exceptions = new();
         var pool = new AsyncPool<Item, Int>(
-            async () => {
+            async () =>
+            {
                 await Task.Yield();
                 return new Item(
                     new Int
@@ -363,7 +364,7 @@ public class Pool_UnitTest
                         Value = Interlocked.Increment(ref count)
                     }
                 );
-            }, 
+            },
             LoggerFactory,
             new PoolConfig
             {
@@ -376,29 +377,30 @@ public class Pool_UnitTest
             );
         DateTime start = DateTime.Now;
         Thread[] threads = new Thread[threadCount];
-        for(int i = 0; i < threads.Length; i++)
+        for (int i = 0; i < threads.Length; i++)
         {
-            threads[i] = new Thread(() => {
+            threads[i] = new Thread(() =>
+            {
                 try
                 {
                     var owner = new Owner();
-                    for(int j = 0; j < 100; j++)
+                    for (int j = 0; j < 100; j++)
                     {
                         owner.BorrowAndUseWithRandomSpinWaitAsync(pool).Wait();
-                        Thread.SpinWait(100*Random.Shared.Next(1, 10));
+                        Thread.SpinWait(100 * Random.Shared.Next(1, 10));
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     exceptions.Push(ex);
                 }
             });
         }
-        foreach(var thread in threads)
+        foreach (var thread in threads)
         {
             thread.Start();
         }
-        foreach(var thread in threads)
+        foreach (var thread in threads)
         {
             thread.Join();
         }
@@ -427,15 +429,17 @@ public class Pool_UnitTest
         {
             throw new AggregateException(exceptions);
         }
+        
     }
-    
+
     [Fact]
     public async Task MakeUseOfPoolSize()
     {
         int count = 0;
         int largeTimeout = 10000; // 10 seconds
         var pool = new AsyncPool<Item, Int>(
-            async () => {
+            async () =>
+            {
                 await Task.Yield();
                 return new Item(
                     new Int
@@ -443,22 +447,22 @@ public class Pool_UnitTest
                         Value = count++
                     }
                 );
-            }, 
+            },
             LoggerFactory,
                         new PoolConfig
-            {
-                MinSize = 7,
-                MaxSize = 10,
-                Initialize = false,
-                GatherStats = true,
-                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
-            }
+                        {
+                            MinSize = 7,
+                            MaxSize = 10,
+                            Initialize = false,
+                            GatherStats = true,
+                            DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+                        }
 
             );
 
         var items = new Queue<Item>();
         // Count = 5
-        for(int i = 0; i < 5; i++)
+        for (int i = 0; i < 5; i++)
         {
             var item = await pool.BorrowAsync(this, largeTimeout);
             items.Enqueue(item);
@@ -467,7 +471,7 @@ public class Pool_UnitTest
         Assert.Equal(5, pool.Count);
 
         // Count = Count + 5
-        for(int i = 0; i < 5; i++)
+        for (int i = 0; i < 5; i++)
         {
             var item = await pool.BorrowAsync(this, largeTimeout);
             items.Enqueue(item);
@@ -476,29 +480,29 @@ public class Pool_UnitTest
         Assert.Equal(10, pool.Count);
 
         // Count = Count(10) [available = 5; inUse = 5]
-        for(int i = 0; i < 5; i++)
+        for (int i = 0; i < 5; i++)
         {
             await items.Dequeue().DisposeAsync();
         }
         Assert.Equal(10, pool.Count);
 
         // Count = Count - 3(7) [available = 6 (80%); inUse = 1]
-        for(int i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             await items.Dequeue().DisposeAsync();
         }
         Assert.Equal(7, pool.Count);
 
         // Count = Count + 1(8) [available = 0; inUse = 8]
-        for(int i = 0; i < 7; i++)
+        for (int i = 0; i < 7; i++)
         {
             var item = await pool.BorrowAsync(this, largeTimeout);
             items.Enqueue(item);
         }
         Assert.Equal(8, pool.Count);
-        
+
         // Count = Count + 2(10) [available = 0; inUse = 10]
-        for(int i = 0; i < 2; i++)
+        for (int i = 0; i < 2; i++)
         {
             var item = await pool.BorrowAsync(this, largeTimeout);
             items.Enqueue(item);
@@ -511,7 +515,7 @@ public class Pool_UnitTest
         await Assert.ThrowsAsync<TimeoutException>(async () => await pool.BorrowAsync(this, 1));
 
         // Count = 7 [available = 7; inUse = 0]
-        foreach(var item in items)
+        foreach (var item in items)
         {
             await item.DisposeAsync();
         }

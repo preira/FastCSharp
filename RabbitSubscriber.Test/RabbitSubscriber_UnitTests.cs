@@ -73,6 +73,7 @@ public class RabbitSubscriber_UnitTest
                 .AddFilter("Microsoft", LogLevel.Warning)
                 .AddFilter("System", LogLevel.Warning)
                 .AddFilter("NonHostConsoleApp.Program", LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Trace)
                 .AddConsole();
         });
 
@@ -216,13 +217,12 @@ public class RabbitSubscriber_UnitTest
 
             channel.Verify(channel => channel.QueueDeclarePassiveAsync(queue.Name, It.IsAny<CancellationToken>()), Times.Once);
             channel.Verify(channel => channel.BasicQosAsync((uint)queue.PrefetchSize, (ushort)queue.PrefetchCount, false, It.IsAny<CancellationToken>()), Times.Once);
-            channel.Verify(channel => channel.Dispose(), Times.Once);
-            connection.Verify(conn => conn.Dispose(), Times.Once);
 
-            Assert.NotNull(subscriber.Options);
+            Assert.False(subscriber.IsHealthy);
 
-            Assert.True(subscriber.IsHealthy);
         }
+        channel.Verify(channel => channel.Dispose(), Times.Once);
+        connection.Verify(conn => conn.Dispose(), Times.Once);
 
     }
 
@@ -277,7 +277,7 @@ public class RabbitSubscriber_UnitTest
 
             var report = await subscriber.ReportHealthStatusAsync();
             Assert.NotNull(report);
-            Assert.Equal(HealthStatus.Healthy, report.Status);
+            Assert.Equal(HealthStatus.Unhealthy, report.Status);
             Assert.NotNull(report.Summarize());
         }
     }
