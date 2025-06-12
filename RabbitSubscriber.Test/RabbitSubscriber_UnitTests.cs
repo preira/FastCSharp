@@ -8,6 +8,7 @@ using System.Text.Json;
 using FastCSharp.Exceptions;
 using FastCSharp.Subscriber;
 using FastCSharp.RabbitSubscriber.Impl;
+using FastCSharp.Observability;
 
 namespace FastCSharp.RabbitSubscriber.Test;
 
@@ -212,12 +213,17 @@ public class RabbitSubscriber_UnitTest
         {
             // connection.IsOpen && channel.IsOpen
             await subscriber.RegisterAsync(async (msg) => await new Task<bool>(() => true));
+
+            channel.Verify(channel => channel.QueueDeclarePassiveAsync(queue.Name, It.IsAny<CancellationToken>()), Times.Once);
+            channel.Verify(channel => channel.BasicQosAsync((uint)queue.PrefetchSize, (ushort)queue.PrefetchCount, false, It.IsAny<CancellationToken>()), Times.Once);
+            channel.Verify(channel => channel.Dispose(), Times.Once);
+            connection.Verify(conn => conn.Dispose(), Times.Once);
+
+            Assert.NotNull(subscriber.Options);
+
+            Assert.True(subscriber.IsHealthy);
         }
 
-        channel.Verify(channel => channel.QueueDeclarePassiveAsync(queue.Name, It.IsAny<CancellationToken>()), Times.Once);
-        channel.Verify(channel => channel.BasicQosAsync((uint)queue.PrefetchSize, (ushort)queue.PrefetchCount, false, It.IsAny<CancellationToken>()), Times.Once);
-        channel.Verify(channel => channel.Dispose(), Times.Once);
-        connection.Verify(conn => conn.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -248,11 +254,11 @@ public class RabbitSubscriber_UnitTest
             ulong deliveryTag = 1;
 
             var deliverEventArgs = new BasicDeliverEventArgs(
-                    Guid.NewGuid().ToString(), 
-                    deliveryTag, 
-                    false, 
-                    "exchange", 
-                    "routingKey", 
+                    Guid.NewGuid().ToString(),
+                    deliveryTag,
+                    false,
+                    "exchange",
+                    "routingKey",
                     basicProperties.Object,
                     JsonSerializer.SerializeToUtf8Bytes("message")
                 );
@@ -268,6 +274,11 @@ public class RabbitSubscriber_UnitTest
 
             await AsyncInvoke_GetListenerAndAwaitTaskCompletion(channel, subscriber, deliverEventArgs, new Task<bool>(() => throw new Exception()));
             channel.Verify(channel => channel.BasicNackAsync(deliveryTag, false, true, It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+            var report = await subscriber.ReportHealthStatusAsync();
+            Assert.NotNull(report);
+            Assert.Equal(HealthStatus.Healthy, report.Status);
+            Assert.NotNull(report.Summarize());
         }
     }
 
@@ -438,6 +449,36 @@ public class RabbitSubscriber_UnitTest
     }
 
     [Fact]
+    public void Test_IsHealthyHandleChannelException()
+    {
+        var connectionFactory = new Mock<IConnectionFactory>();
+        var queue = new QueueConfig()
+        {
+            Name = "queue.name",
+            PrefetchCount = 1,
+            PrefetchSize = 0,
+        };
+        var connection = new Mock<IConnection>();
+        connectionFactory.Setup(factory => factory.CreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
+
+        var channel = new Mock<IChannel>();
+        
+        connection.Setup(conn => conn.CreateChannelAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
+
+        connection.Setup(conn => conn.IsOpen).Returns(true);
+        channel.Setup(_channel => _channel.IsOpen).Returns(true);
+        channel.Setup(_channel =>
+            _channel
+                .QueueDeclarePassiveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("Queue not found"));
+
+        using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
+        {
+            Assert.False(subscriber.IsHealthy);
+        }
+    }
+
+    [Fact]
     public async Task Test_ResetAndRegisterConsumerWithNullCallback()
     {
         var connectionFactory = new Mock<IConnectionFactory>();
@@ -456,10 +497,15 @@ public class RabbitSubscriber_UnitTest
 
         connection.Setup(conn => conn.IsOpen).Returns(true);
         channel.Setup(_channel => _channel.IsOpen).Returns(true);
+        // channel.Setup(_channel =>
+        //     _channel
+        //         .QueueDeclarePassiveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        //         .ThrowsAsync(new Exception("Queue not found"));
 
         using (var subscriber = new RabbitSubscriber<string>(connectionFactory.Object, queue, loggerFactory, null))
         {
             await Assert.ThrowsAsync<IncorrectInitializationException>(async () => await subscriber.ResetAsync());
+            Assert.False(subscriber.IsHealthy);
         }
     }
 

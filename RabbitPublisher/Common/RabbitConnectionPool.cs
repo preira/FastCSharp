@@ -123,7 +123,10 @@ public class RabbitConnectionPool : IRabbitConnectionPool
         }
         error += "\n";
 
-        logger.LogWarning("[CONFIG ERROR] {message}", error);
+        if (logger.IsEnabled(LogLevel.Warning))
+        {
+            logger.LogWarning("[CONFIG ERROR] {message}", error);
+        }
 
         return error;
     }

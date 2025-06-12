@@ -49,7 +49,9 @@ where T : class, IDisposable
     protected T GetValue(object owner)
     {
         if (Owner != owner) throw new InvalidOperationException("This individual is not owned by the caller.");
-        if (IsDisposed) throw new ObjectDisposedException(GetType().FullName);
+
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
         return value;
     }
 
@@ -71,5 +73,6 @@ where T : class, IDisposable
             // There is no more pool holding this individual.
             DisposeValue(true);
         }
+        GC.SuppressFinalize(this);
     }
 }

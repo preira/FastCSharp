@@ -151,7 +151,7 @@ public class AsyncRabbitPublisher<T> : IAsyncPublisher<T>
 
     private async Task<bool> PublishAsync(Func<Task> PreProcess, Func<IRabbitChannel, CancellationToken, Task> Send)
     {
-        if(disposed) throw new ObjectDisposedException(GetType().FullName);
+        ObjectDisposedException.ThrowIf(disposed, this);
 
         await PreProcess();
         
@@ -168,13 +168,20 @@ public class AsyncRabbitPublisher<T> : IAsyncPublisher<T>
             }
             catch (AlreadyClosedException ace)
             {
-                logger.LogError(ace, "[ERROR PUBLISHING: CHANNEL IS CLOSED] {Exception}: {Message}", ace.GetType().FullName, ace.Message);
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    // Log the error with the exception type and message
+                    logger.LogError(ace, "[ERROR PUBLISHING: CHANNEL IS CLOSED] {Exception}: {Message}", ace.GetType().FullName, ace.Message);
+                }
                 channel.IsStalled = true;
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[ERROR PUBLISHING] {Exception}: {Message}", ex.GetType().FullName, ex.Message);
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "[ERROR PUBLISHING] {Exception}: {Message}", ex.GetType().FullName, ex.Message);
+            }
         }
         return false;
     }

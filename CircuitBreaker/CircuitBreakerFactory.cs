@@ -26,7 +26,7 @@ public static class CircuitBreakerFactory
 
 public class CircuitBreakerBuilder<TInput, TResult>
 {
-    private ILogger logger = LoggerFactory.Create(builder => ConsoleLoggerExtensions.AddConsole(builder)).CreateLogger(typeof(CircuitBreakerBuilder<TInput, TResult>));
+    private ILogger logger = LoggerFactory.Create(builder => ConsoleLoggerExtensions.AddConsole(builder)).CreateLogger<CircuitBreakerBuilder<TInput, TResult>>();
     private IConfigurationSection? config;
     private Func<TInput, Task<TResult>>? originalCircuit;
     private Action<object>? onOpen;
@@ -129,7 +129,7 @@ public class CircuitBreakerBuilder<TInput, TResult>
     }
 
 
-    private static BreakerStrategy NewBreakerStrategy(IConfigurationSection? configSection, IBackoffStrategy backoffStrategy)
+    private static FailuresThresholdBreakerStrategy NewBreakerStrategy(IConfigurationSection? configSection, IBackoffStrategy backoffStrategy)
     {
         var strategySection = configSection?.GetSection(BreakerStrategyConfig.SectionName);
         if (strategySection == null)

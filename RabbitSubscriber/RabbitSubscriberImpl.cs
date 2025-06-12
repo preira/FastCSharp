@@ -115,14 +115,20 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                     }
                     connection.ConnectionShutdownAsync += async (sender, args) =>
                     {
-                        logger.LogWarning("RabbitMQ connection shutdown: {0}. FastCSharp Client will NOT try to recover. You should have a watch dog to handle reconnection.", args.ReplyText);
+                        if (logger.IsEnabled(LogLevel.Warning))
+                        {
+                            logger.LogWarning("RabbitMQ connection shutdown: {Message}. FastCSharp Client will NOT try to recover. You should have a watch dog to handle reconnection.", args.ReplyText);
+                        }
                         await Task.Yield();
                     };
                     
                     channel = await connection.CreateChannelAsync();
                     channel.ChannelShutdownAsync += async (sender, args) =>
                     {
-                        logger.LogWarning("RabbitMQ channel shutdown: {0}. FastCSharp Client will NOT try to recover. You should have a watch dog to handle reconnection.", args.ReplyText);
+                        if (logger.IsEnabled(LogLevel.Warning))
+                        {
+                            logger.LogWarning("RabbitMQ channel shutdown: {Message}. FastCSharp Client will NOT try to recover. You should have a watch dog to handle reconnection.", args.ReplyText);
+                        }
                         await Task.Yield();
                     };
                 }
@@ -136,7 +142,10 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error connecting to Rabbit MQ. Retrying in 5 seconds.");
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(e, "Error connecting to Rabbit MQ. Retrying in 5 seconds.");
+                }
                 // TODO: should be configurable. Could this take advantage of a Backoff strategy?
                 await Task.Delay(5000);
             }
@@ -161,12 +170,18 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             {
                 if (channel == null || channel.IsClosed)
                 {
-                    logger.LogTrace("Reseting connection befor registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace("Reseting connection befor registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+                    }
                     await ResetConnectionAsync();
                 }
                 else
                 {
-                    logger.LogTrace("Connection and channel is operational for registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace("Connection and channel is operational for registering consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+                    }
                 }
                 // don't declare, just check if exists
                 await channel!.QueueDeclarePassiveAsync(queue: QConfig.Name!);
@@ -177,9 +192,12 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error registering consumer. Retrying in 5 seconds.");
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(e, "Error registering consumer. Retrying in 5 seconds.");
+                }
                 // TODO: should be configurable. Could this take advantage of a Backoff strategy?
-                Task.Delay(5000).Wait();
+                    Task.Delay(5000).Wait();
                 await ResetConnectionAsync();
             }
         }
@@ -196,16 +214,22 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         // If consumer already exists, it will throw an error. Channel will be closed and recreated.
         try
         {
-            logger.LogTrace("Subscribing consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                logger.LogTrace("Subscribing consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+            }
             await channel!.BasicConsumeAsync(queue: QConfig.Name!,
-                                autoAck: false,
-                                consumer: consumer,
-                                consumerTag: ConsumerTag);
+                                    autoAck: false,
+                                    consumer: consumer,
+                                    consumerTag: ConsumerTag);
         }
         catch (OperationInterruptedException e)
         {
-            logger.LogWarning(e, "Consumer already registered. Closing channel and recreating. " + 
-                "This has happened probably because there was a connection interruption that has been restablished.");
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogWarning(e, "Consumer already registered. Closing channel and recreating. " + 
+                    "This has happened probably because there was a connection interruption that has been restablished.");
+            }
             channel!.Dispose();
             channel = await connection!.CreateChannelAsync();
             await channel.BasicQosAsync(QConfig.PrefetchSize ?? 0, QConfig.PrefetchCount ?? 0, global: false);
@@ -214,8 +238,10 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                                 consumer: consumer,
                                 consumerTag: ConsumerTag);
         }
-
-        logger.LogInformation("Waiting for messages from queue {messageOrigin}.", QConfig.Name);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Waiting for messages from queue {messageOrigin}.", QConfig.Name);
+        }
     }
 
     protected override async Task _RegisterAsync(OnMessageCallback<T> callback)
@@ -234,7 +260,10 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         // this throws an null pointer exception if the consumer has never registered before.
         if (channel == null || !channel.IsOpen)
         {
-            logger.LogWarning("Channel is not open. Cannot unsubscribe consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Channel is not open. Cannot unsubscribe consumer '{Tag}' from queue '{Queue}'.", ConsumerTag, QConfig.Name);
+            }
             return;
         }
         await channel!.BasicCancelAsync(ConsumerTag);
@@ -257,7 +286,10 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         {
             try
             {
-                logger.LogTrace(" [Receiving-Thread:{ThreadID}] Message with delivery tag: {Tag}", Environment.CurrentManagedThreadId, ea.DeliveryTag);
+                if (logger.IsEnabled(LogLevel.Trace))
+                {
+                    logger.LogTrace(" [Received-Thread:{ThreadID}] Message with delivery tag: {Tag}", Environment.CurrentManagedThreadId, ea.DeliveryTag);
+                }
 
                 var body = ea.Body.ToArray();
                 var message = JsonSerializer.Deserialize<T>(body);
@@ -265,33 +297,46 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
                 var success = await callback(message);
                 if (success)
                 {
-                    logger.LogTrace(" [Acknwolledging] Message with delivery tag: {Tag}", ea.DeliveryTag);
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace(" [Acknwolledging] Message with delivery tag: {Tag}", ea.DeliveryTag);
+                    }
                     await channel!.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
                 }
                 else
                 {
-                    logger.LogTrace(" [Rejecting and requeing] Message with delivery tag: {Tag}", ea.DeliveryTag);
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace(" [Rejecting and requeing] Message with delivery tag: {Tag}", ea.DeliveryTag);
+                    }
                     await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
                 }
             }
             catch (JsonException e)
             {
                 // Deserialization exception is a final exception and removes the message from the queue.
-                logger.LogError(e, "Discarding unparseable message with id: {messageId} and tag: {Tag}", ea.BasicProperties.MessageId, ea.DeliveryTag);
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(e, "Discarding unparseable message with id: {messageId} and tag: {Tag}", ea.BasicProperties.MessageId, ea.DeliveryTag);
+                }
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (UnauthorizedAccessException e)
             {
                 // Unauthorized exception is a final exception and removes the message from the queue hopefully to a DLQ.
-                logger.LogError(e, "Unacking unauthorized message with tag '{Tag}' with requeue set to false. Hope you have DLQ set.", ea.DeliveryTag);
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(e, "Unacking unauthorized message with tag '{Tag}' with requeue set to false. Hope you have DLQ set.", ea.DeliveryTag);
+                }
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (Exception e)
             {
-                logger.LogError(
-                    e,
-                    "Got an error from Callback handler function for message with tag: {Tag}. Message will be requeued until dead letter policy takes action.",
-                    ea.DeliveryTag);
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    // Log the error with the exception type and message
+                    logger.LogError(e, "Callback error processing message with tag: {Tag}. Message will be requeued until dead letter policy takes action.", ea.DeliveryTag);
+                }
                 await channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
             }
             finally

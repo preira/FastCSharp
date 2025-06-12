@@ -13,11 +13,6 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
     private PoolConfig PoolConfig { get; }
     private readonly ConcurrentDictionary<Tuple<string, string?, string?>, AsyncPool<RabbitChannel, IChannel>> channelsPools;
     readonly private ILogger logger;
-    private readonly int minObjects;
-    private readonly int maxObjects;
-    private readonly int defaultTimeout;
-    private readonly bool gatherStats = false;
-    private readonly bool initialize = false;
     private ILoggerFactory LoggerFactory { get; set; }
 
     // TODO: pass min, max, defaultTimeout and gather stats from configuration
@@ -42,7 +37,7 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
 
     public async Task<IRabbitChannel> GetChannelAsync(object owner, string exchangeName, string? queue, string? routingKey)
     {
-        if(IsDisposed) throw new ObjectDisposedException(GetType().FullName);
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
 
         AsyncPool<RabbitChannel, IChannel>? pool;
         bool poolExists = channelsPools.TryGetValue(Tuple.Create(exchangeName, queue, routingKey), out pool);
@@ -72,7 +67,8 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
     
     private async Task<RabbitChannel> CreateAsync(string exchangeName, string? queue, string? routingKey, bool confirms = true)
     {
-        if(IsDisposed) throw new ObjectDisposedException(GetType().FullName);
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
         var channel = await connection!.CreateChannelAsync(
             new CreateChannelOptions(confirms, confirms)
         );

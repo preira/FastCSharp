@@ -157,7 +157,7 @@ where K : class, IDisposable
         // request guid help determine the unique request for statistical purposes
         Guid requestGuid = Guid.NewGuid();
 
-        if (disposed) throw new ObjectDisposedException(GetType().FullName);
+        ObjectDisposedException.ThrowIf(disposed, this);
 
         // -1 signals to use default
         var timeoutSpan = timeoutInMilliseconds > -1 ? TimeSpan.FromMilliseconds(timeoutInMilliseconds) : DefaultTimeout;
