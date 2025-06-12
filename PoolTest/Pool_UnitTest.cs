@@ -21,7 +21,8 @@ public class Pool_UnitTest
     {
         int count = 0;
         var pool = new AsyncPool<Item, Int>(
-            async () => {
+            async () =>
+            {
                 await Task.Yield();
                 return new Item(
                     new Int
@@ -43,6 +44,9 @@ public class Pool_UnitTest
 
         var item = await pool.BorrowAsync(this);
         Assert.Equal(0, item.Value(this));
+        var report = pool.ReportHealthStatusAsync();
+        Assert.NotNull(report);
+        Assert.NotNull(report.ToString());
     }
 
     [Fact]
