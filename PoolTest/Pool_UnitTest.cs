@@ -1,13 +1,20 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
-using Moq;
 using Xunit;
 
 namespace FastCSharp.Pool.Tests;
 
 public class Pool_UnitTest
 {
-    ILoggerFactory LoggerFactory => new Mock<ILoggerFactory>().Object;
+    ILoggerFactory TestLoggerFactory => LoggerFactory.Create(builder =>
+        {
+            builder
+                .AddFilter("Microsoft", LogLevel.Warning)
+                .AddFilter("System", LogLevel.Warning)
+                .AddFilter("NonHostConsoleApp.Program", LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Trace)
+                .AddConsole();
+        });
 
     [Fact]
     public async Task CreateNewPool()
@@ -23,7 +30,7 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
+            TestLoggerFactory,
             new PoolConfig
             {
                 MinSize = 1,
@@ -53,7 +60,7 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
+            TestLoggerFactory,
             new PoolConfig
             {
                 MinSize = 5,
@@ -90,8 +97,8 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
-                        new PoolConfig
+            TestLoggerFactory,
+            new PoolConfig
             {
                 MinSize = 1,
                 MaxSize = 10,
@@ -121,8 +128,8 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
-                        new PoolConfig
+            TestLoggerFactory,
+            new PoolConfig
             {
                 MinSize = 1,
                 MaxSize = 10,
@@ -157,8 +164,8 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
-                        new PoolConfig
+            TestLoggerFactory,
+            new PoolConfig
             {
                 MinSize = 1,
                 MaxSize = 10,
@@ -189,7 +196,7 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
+            TestLoggerFactory,
             new PoolConfig
             {
                 MinSize = 7,
@@ -225,7 +232,7 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
+            TestLoggerFactory,
             new PoolConfig
             {
                 MinSize = 7,
@@ -259,7 +266,7 @@ public class Pool_UnitTest
                     }
                 );
             }, 
-            LoggerFactory,
+            TestLoggerFactory,
             new PoolConfig
             {
                 MinSize = 7,
@@ -294,8 +301,8 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
-                        new PoolConfig
+            TestLoggerFactory,
+            new PoolConfig
             {
                 MinSize = 7,
                 MaxSize = 10,
@@ -365,7 +372,7 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
+            TestLoggerFactory,
             new PoolConfig
             {
                 MinSize = minPoolSize,
@@ -448,15 +455,15 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
-                        new PoolConfig
-                        {
-                            MinSize = 7,
-                            MaxSize = 10,
-                            Initialize = false,
-                            GatherStats = true,
-                            DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
-                        }
+            TestLoggerFactory,
+            new PoolConfig
+            {
+                MinSize = 7,
+                MaxSize = 10,
+                Initialize = false,
+                GatherStats = true,
+                DefaultWaitTimeout = TimeSpan.FromMilliseconds(1000)
+            }
 
             );
 
@@ -536,8 +543,8 @@ public class Pool_UnitTest
                     }
                 );
             },
-            LoggerFactory,
-                        new PoolConfig
+            TestLoggerFactory,
+            new PoolConfig
             {
                 MinSize = 1,
                 MaxSize = 10,

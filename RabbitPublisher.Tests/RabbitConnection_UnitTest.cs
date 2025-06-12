@@ -3,6 +3,7 @@ using Xunit;
 using RabbitMQ.Client;
 using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.Logging;
+using FastCSharp.Pool;
 
 namespace RabbitPublisher.Tests;
 
@@ -12,9 +13,15 @@ public class RabbitConnection_UnitTest
     public async Task Constructor_WithValidParameters_ShouldCreateInstance()
     {
         // Arrange
-        var loggerFactoryMock = new Mock<ILoggerFactory>();
-        var loggerMock = new Mock<ILogger<RabbitConnection>>();
-        loggerFactoryMock.Setup(lf => lf.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder
+                .AddFilter("Microsoft", LogLevel.Warning)
+                .AddFilter("System", LogLevel.Warning)
+                .AddFilter("NonHostConsoleApp.Program", LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Trace)
+                .AddConsole();
+        });
 
         var connectionMock = new Mock<IConnection>();
 
@@ -26,8 +33,8 @@ public class RabbitConnection_UnitTest
         // Act
         var connection = new RabbitConnection(
             connectionMock.Object,
-            loggerFactoryMock.Object, 
-            new FastCSharp.Pool.PoolConfig
+            loggerFactory,
+            new PoolConfig
             {
                 MinSize = 1,
                 MaxSize = 10,
@@ -46,6 +53,8 @@ public class RabbitConnection_UnitTest
 
         // Assert
         Assert.NotNull(connection);
+        await connection.DisposeValue();
+        Assert.True(connection.IsDisposed);
     }
 
 //     [Fact]

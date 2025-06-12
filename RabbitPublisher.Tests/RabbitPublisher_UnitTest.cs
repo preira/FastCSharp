@@ -10,6 +10,8 @@ using FastCSharp.RabbitPublisher.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using FastCSharp.Publisher;
+using System.Threading.Tasks;
+using FastCSharp.Observability;
 
 namespace FastCSharp.RabbitPublisher.Tests;
 
@@ -28,15 +30,16 @@ public class RabbitPublisher_UnitTest
 
     public RabbitPublisher_UnitTest()
     {
-        loggerFactory = LoggerFactory.Create(builder =>
+        loggerFactory =  LoggerFactory.Create(builder =>
         {
             builder
                 .AddFilter("Microsoft", LogLevel.Warning)
                 .AddFilter("System", LogLevel.Warning)
                 .AddFilter("NonHostConsoleApp.Program", LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Trace)
                 .AddConsole();
         });
-
+        
         emptyConfiguration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -235,7 +238,6 @@ public class RabbitPublisher_UnitTest
 
         var mockedChannel = new Mock<IRabbitChannel>();
         var mockedConnection = new Mock<IRabbitConnection>();
-        var mockedLoggerFactory = new Mock<ILoggerFactory>();
 
         // var mockedRabbitPublisherConfiguration = new Mock<RabbitPublisherConfig>();
 
@@ -266,8 +268,8 @@ public class RabbitPublisher_UnitTest
 
         var mockedChannel = new Mock<IRabbitChannel>();
         var mockedConnection = new Mock<IRabbitConnection>();
-        var mockedLoggerFactory = new Mock<ILoggerFactory>();
 
+        var healthReport = new Mock<IHealthReport>();
         // var mockedRabbitPublisherConfiguration = new Mock<RabbitPublisherConfig>();
 
         using var publisher = new AsyncRabbitPublisher<string>(
@@ -277,17 +279,24 @@ public class RabbitPublisher_UnitTest
             );
 
         mockedConnection.Setup(conn => conn.GetChannelAsync(publisher, "test.direct.exchange", "test.direct.q", null)).ReturnsAsync(mockedChannel.Object);
+        mockedConnection.Setup(conn => conn.IsOpen).Returns(true);
 
         mockedChannel.Setup(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .Verifiable("BasicPublish was not called");
-            
-        mockedPool.Setup(conn => conn.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
+
+        healthReport.Setup(report => report.Name).Returns("Test Health Report");
+        mockedPool.Setup(pool => pool.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
+        mockedPool.Setup(pool => pool.ReportHealthStatusAsync()).ReturnsAsync(healthReport.Object);
 
         Assert.True(await publisher.ForExchange(exchangeName).ForQueue(routingKey).PublishAsync(new List<string> { "Test Message1", "Test Message2" }));
 
         mockedChannel.VerifyAll();
 
         mockedChannel.Verify(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+        var report = await publisher.ReportHealthStatusAsync();
+        Assert.NotNull(report);
+        Assert.Equal(HealthStatus.Healthy, report.Status);
     }
 
     [Fact]
@@ -300,6 +309,8 @@ public class RabbitPublisher_UnitTest
         var mockedChannel = new Mock<IRabbitChannel>();
         var mockedConnection = new Mock<IRabbitConnection>();
 
+        var healthReport = new Mock<IHealthReport>();
+
         using var publisher = new AsyncRabbitPublisher<string>(
             mockedPool.Object,
             loggerFactory,
@@ -308,13 +319,20 @@ public class RabbitPublisher_UnitTest
             
         mockedChannel.Setup(channel => channel.BasicPublishAsync(publisher, It.IsAny<byte[]>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Test Exception"));
 
-        mockedPool.Setup(conn => conn.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
+        healthReport.Setup(report => report.Name).Returns("Test Health Report");
+        mockedPool.Setup(pool => pool.GetConnectionAsync(publisher)).ReturnsAsync(mockedConnection.Object);
+        mockedPool.Setup(pool => pool.ReportHealthStatusAsync()).ReturnsAsync(healthReport.Object);
+
         mockedConnection.Setup(conn => conn.GetChannelAsync(publisher, "test.direct.exchange", "test.direct.q", null)).ReturnsAsync(mockedChannel.Object);
+        mockedConnection.Setup(conn => conn.IsOpen).Returns(false);
 
         Assert.False(await publisher.ForExchange(exchangeName).ForQueue(routingKey).PublishAsync("Test Message"));
 
         mockedPool.Verify(connection => connection.GetConnectionAsync(publisher), Times.AtLeastOnce());
 
+        var report = await publisher.ReportHealthStatusAsync();
+        Assert.NotNull(report);
+        Assert.Equal(HealthStatus.Unhealthy, report.Status);
     }
 
     [Fact]
