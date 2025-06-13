@@ -92,36 +92,36 @@ public class CircuitBreakerBuilder<TInput, TResult>
                 throw new IncorrectInitializationException("Build method was called too early and configuration was not yet set for this CircuitBreaker.");
             }
  
-        var breakerSection = config.GetSection(CircuitBreakerConfig.SectionName);
-        var breakerConfig = breakerSection?.Get<CircuitBreakerConfig>();
-        if (breakerConfig == null)
-        {
-            // no configuration means no circuit breaker
-                logger.LogWarning("No circuit breaker configuration found. Circuit breaker disabled. Check you configuration settings if this is unintended.");
-                return;
-        }
-        var breakerStrategy = NewBreakerStrategy(breakerSection, NewBackoffStrategy(breakerSection));
+            var breakerSection = config.GetSection(CircuitBreakerConfig.SectionName);
+            var breakerConfig = breakerSection?.Get<CircuitBreakerConfig>();
+            if (breakerConfig == null)
+            {
+                // no configuration means no circuit breaker
+                    logger.LogWarning("No circuit breaker configuration found. Circuit breaker disabled. Check you configuration settings if this is unintended.");
+                    return;
+            }
+            var breakerStrategy = NewBreakerStrategy(breakerSection, NewBackoffStrategy(breakerSection));
 
-        AbstractBreaker circuitBreaker;
-        switch (breakerConfig.Type)
-        {
-            case BlockingCircuitBreaker.TypeName:
-                circuitBreaker = new BlockingCircuitBreaker(breakerStrategy);
-                break;
-            case EventDrivenCircuitBreaker.TypeName:
-                EventDrivenCircuitBreaker eventBreaker = new EventDrivenCircuitBreaker(breakerStrategy);
-                if (onOpen == null || onReset == null)
-                {
-                    throw new IncorrectInitializationException("EventDrivenCircuitBreaker requires onOpen and onReset callbacks. Review your implementation or your configuration.");
-                }
-                eventBreaker.OnOpen += onOpen;
-                eventBreaker.OnReset += onReset;
-                circuitBreaker = eventBreaker;
-                break;
-            default:
-                circuitBreaker = new CircuitBreaker(breakerStrategy);
-                break;
-        }
+            AbstractBreaker circuitBreaker;
+            switch (breakerConfig.Type)
+            {
+                case BlockingCircuitBreaker.TypeName:
+                    circuitBreaker = new BlockingCircuitBreaker(breakerStrategy);
+                    break;
+                case EventDrivenCircuitBreaker.TypeName:
+                    EventDrivenCircuitBreaker eventBreaker = new EventDrivenCircuitBreaker(breakerStrategy);
+                    if (onOpen == null || onReset == null)
+                    {
+                        throw new IncorrectInitializationException("EventDrivenCircuitBreaker requires onOpen and onReset callbacks. Review your implementation or your configuration.");
+                    }
+                    eventBreaker.OnOpen += onOpen;
+                    eventBreaker.OnReset += onReset;
+                    circuitBreaker = eventBreaker;
+                    break;
+                default:
+                    circuitBreaker = new CircuitBreaker(breakerStrategy);
+                    break;
+            }
 
             HealthReporter = circuitBreaker;
             wrappedCircuit = circuitBreaker.WrapAsync(originalCircuit);
