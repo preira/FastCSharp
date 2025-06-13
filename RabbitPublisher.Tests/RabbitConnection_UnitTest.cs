@@ -57,47 +57,78 @@ public class RabbitConnection_UnitTest
         Assert.True(connection.IsDisposed);
     }
 
-//     [Fact]
-//     public void Connect_ShouldReturnOpenConnection()
-//     {
-//         // Arrange
-//         var connectionMock = new Mock<IConnection>();
-//         var loggerFactoryMock = new Mock<ILoggerFactory>();
+    [Fact]
+    public void Constructor_WithValidParameters_ShouldCreateInstance2()
+    {
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var config = new RabbitPublisherConfig
+        {
+            ClientName = "TestClient",
+            Pool = new PoolConfig { MinSize = 2, MaxSize = 4, GatherStats = true }
+        };
 
-//         // Act
-//         var connection = new RabbitConnection(connectionMock.Object, loggerFactoryMock.Object);
+        var pool = new RabbitConnectionPool(config, loggerFactory);
+        Assert.NotNull(pool);
+        Assert.NotNull(pool.Stats);
+        Assert.NotNull(pool.FullStatsReport); 
+    }
 
-//         // Assert
-//         Assert.NotNull(connection);
-//     }
+    // [Fact]
+    // public void PoolConfigOrDefaults_ReturnsDefaults_WhenNull()
+    // {
+    //     var method = typeof(RabbitConnectionPool).GetMethod("PoolConfigOrDefaults", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+    //     var result = method?.Invoke(null, new object[] { null }) as PoolConfig;
+    //     Assert.NotNull(result);
+    //     Assert.Equal(1, result.MinSize);
+    //     Assert.Equal(5, result.MaxSize);
+    //     Assert.False(result.Initialize);
+    //     Assert.False(result.GatherStats);
+    //     Assert.Equal(TimeSpan.FromMilliseconds(100), result.DefaultWaitTimeout);
+    // }
 
-//     [Fact]
-//     public void Dispose_ShouldCloseConnection()
-//     {
-//         // Arrange
-//         var connectionMock = new Mock<IConnection>();
-//         var loggerFactoryMock = new Mock<ILoggerFactory>();
+    [Fact]
+    public void Dispose_CallsPoolDispose()
+    {
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var config = new RabbitPublisherConfig { ClientName = "TestDispose" };
+        var pool = new RabbitConnectionPool(config, loggerFactory);
 
-//         // Act
-//         var connection = new RabbitConnection(connectionMock.Object, loggerFactoryMock.Object);
+        pool.Dispose();
+        // Should not throw, and can call Dispose again
+        pool.Dispose();
+    }
 
-//         connection.Dispose();
+    [Fact]
+    public void BuildCreateConnectionErrorMessage_FormatsError()
+    {
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var config = new RabbitPublisherConfig { ClientName = "TestError" };
+        var pool = new RabbitConnectionPool(config, loggerFactory);
 
-//         // Assert
-//         connectionMock.Verify(c => c.Close(), Times.Once);
-//     }
+        var factory = new ConnectionFactory
+        {
+            HostName = "localhost",
+            Port = 5672,
+            UserName = "user",
+            Password = "pass"
+        };
+        var endpoints = new List<AmqpTcpEndpoint> { new AmqpTcpEndpoint("localhost", 5672) };
 
-//     [Fact]
-//     public void Connect_WhenConnectionFails_ShouldThrowException()
-//     {
-//         // Arrange
-//         var connectionMock = new Mock<IConnection>();
-//         var loggerFactoryMock = new Mock<ILoggerFactory>();
+        var method = typeof(RabbitConnectionPool).GetMethod("BuildCreateConnectionErrorMessage", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var error = (string?)method?.Invoke(pool, [factory, endpoints]);
+        Assert.Contains("localhost", error);
+        Assert.Contains("user", error);
+        Assert.Contains("pass", error);
+    }
 
-//         // Act
-//         var connection = new RabbitConnection(connectionMock.Object, loggerFactoryMock.Object);
+    [Fact]
+    public async Task ReportHealthStatusAsync_DelegatesToPool()
+    {
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var config = new RabbitPublisherConfig { ClientName = "TestHealth" };
+        var pool = new RabbitConnectionPool(config, loggerFactory);
 
-//         // Act & Assert
-//         Assert.Throws<Exception>(() => connection.Connect());
-//     }
+        var report = await pool.ReportHealthStatusAsync();
+        Assert.NotNull(report);
+    }
 }

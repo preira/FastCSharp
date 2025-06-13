@@ -326,6 +326,15 @@ public class CircuitBreakerFactory_UnitTest
         builder.Set(config.GetSection("CircuitBreaker"));
         builder.Build();
         // Should not throw if Build is called again
-        builder.Build();
+        try
+        {
+            builder.Build();
+            Assert.True(true, "Rebuild should not throw an exception.");
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Rebuild should not throw: {ex.Message}");
+        }
+        
     }
 }

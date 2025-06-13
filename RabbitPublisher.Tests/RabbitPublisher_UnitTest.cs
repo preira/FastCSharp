@@ -151,7 +151,7 @@ public class RabbitPublisher_UnitTest
         Assert.False(isPublished);
     }
 
-    private AsyncRabbitPublisher<string> RabbitPublisherFactory(IConfiguration configuration, ILoggerFactory loggerFactory)
+    static private AsyncRabbitPublisher<string> RabbitPublisherFactory(IConfiguration configuration, ILoggerFactory loggerFactory)
     {
         RabbitPublisherConfig config = GetRabbitConfig(configuration);
 

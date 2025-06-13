@@ -55,7 +55,6 @@ where K : class, IDisposable
     }
     
     // TODO: change to:
-    // - [ ] accept a PoolConfig object
     // - [ ] accept a CancelationToken 
     public AsyncPool(
         CreateAsync<T> createIndividualAsync,

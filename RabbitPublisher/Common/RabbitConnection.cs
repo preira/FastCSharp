@@ -15,7 +15,6 @@ public class RabbitConnection : Individual<IConnection>, IRabbitConnection
     readonly private ILogger logger;
     private ILoggerFactory LoggerFactory { get; set; }
 
-    // TODO: pass min, max, defaultTimeout and gather stats from configuration
     public RabbitConnection(IConnection connection, ILoggerFactory loggerFactory, PoolConfig? poolConfig = null)
     : base(connection)
     {

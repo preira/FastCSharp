@@ -6,7 +6,7 @@ namespace FastCSharp.Pool.Tests;
 
 public class Pool_UnitTest
 {
-    ILoggerFactory TestLoggerFactory => LoggerFactory.Create(builder =>
+    static ILoggerFactory TestLoggerFactory => LoggerFactory.Create(builder =>
         {
             builder
                 .AddFilter("Microsoft", LogLevel.Warning)
@@ -348,10 +348,7 @@ public class Pool_UnitTest
         // var stats = JsonSerializer.Serialize(pool.FullStatsReport);
         Assert.InRange(pool.Count, 1, 10);
         Assert.Empty(exceptions);
-        if (exceptions.Count > 0)
-        {
-            throw new AggregateException(exceptions);
-        }
+
         Assert.NotNull(pool.Stats);
         Assert.NotNull(pool.Stats.ToJson());
         Assert.NotNull(pool.FullStatsReport);
@@ -436,11 +433,6 @@ public class Pool_UnitTest
 
 
         Assert.Empty(exceptions);
-        if (exceptions.Count > 0)
-        {
-            throw new AggregateException(exceptions);
-        }
-        
     }
 
     [Fact]

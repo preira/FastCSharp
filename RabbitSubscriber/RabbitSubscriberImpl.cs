@@ -331,54 +331,6 @@ public class RabbitSubscriber<T> : AbstractSubscriber<T>
         };
     }
 
-    // private delegate void LogExceptionDelegate(Exception? exception, string? message, params object?[] args);
-    // private LogExceptionDelegate logger.LogException(LogLevel level)
-    // {
-    //     if (logger.IsEnabled(level))
-    //     {
-    //         switch (level)
-    //         {
-    //             case LogLevel.Critical:
-    //                 return logger.LogCritical;
-    //             case LogLevel.Error:
-    //                 return logger.LogError;
-    //             case LogLevel.Information:
-    //                 return logger.LogInformation;
-    //             case LogLevel.Trace:
-    //                 return logger.LogTrace;
-    //             case LogLevel.Warning:
-    //                 return logger.LogWarning;
-    //             default:
-    //                 return logger.LogDebug;
-    //         }
-    //     }
-    //     return (Exception? exception, string? message, params object?[] args) => {  }; // No-op if logging is not enabled for the level.
-    // }
-
-    // private delegate void LogDelegate(string? message, params object?[] args);
-    // private LogDelegate logger.Log(LogLevel level)
-    // {
-    //     if (logger.IsEnabled(level))
-    //     {
-    //         switch (level)
-    //         {
-    //             case LogLevel.Critical:
-    //                 return logger.LogCritical;
-    //             case LogLevel.Error:
-    //                 return logger.LogError;
-    //             case LogLevel.Information:
-    //                 return logger.LogInformation;
-    //             case LogLevel.Trace:
-    //                 return logger.LogTrace;
-    //             case LogLevel.Warning:
-    //                 return logger.LogWarning;
-    //             default:
-    //                 return logger.LogDebug;
-    //         }
-    //     }
-    //     return (string? message, params object?[] args) => {  }; // No-op if logging is not enabled for the level.
-    // }
-
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)
