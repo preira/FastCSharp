@@ -1,17 +1,10 @@
 // filepath: c:\Users\João\Projetos\Fast\RabbitPublisher.sln\RabbitPublisher\Source\AsyncRabbitPublisherTest.cs
 using Xunit;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using FastCSharp.RabbitPublisher.Impl;
 using FastCSharp.RabbitPublisher.Common;
-using FastCSharp.RabbitCommon;
-using FastCSharp.Observability;
-using FastCSharp.Publisher;
 
 namespace FastCSharp.RabbitPublisher.Tests;
 
@@ -31,13 +24,6 @@ public class AsyncRabbitPublisherTest
                 }
             }
         };
-
-    private static Mock<ILogger> MockLogger(LogLevel enabledLevel = LogLevel.None)
-    {
-        var logger = new Mock<ILogger>();
-        logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns<LogLevel>(lvl => lvl >= enabledLevel);
-        return logger;
-    }
 
     [Fact]
     public void ForExchange_Valid_SetsExchange()
@@ -122,6 +108,7 @@ public class AsyncRabbitPublisherTest
         );
         pub.Dispose();
         pub.Dispose();
+        Assert.True(true); // No exception means success
     }
 
 }

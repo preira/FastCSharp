@@ -1,9 +1,4 @@
 // filepath: c:\Users\João\Projetos\Fast\Observability.sln\Observability\Source\HealthReportTest.cs
-using Xunit;
-using FastCSharp.Observability;
-using System.Threading.Tasks;
-using System.Linq;
-
 namespace FastCSharp.Observability.Tests
 {
     public class HealthReportTest
