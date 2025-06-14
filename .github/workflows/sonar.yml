@@ -7,8 +7,6 @@ on:
     types: [opened, synchronize, reopened]
 jobs:
   build:
-    solution:
-      file: BuildAll/BuildAll.sln
     runs-on: windows-latest
     steps:
       - name: Set up JDK 11
@@ -51,7 +49,7 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"preira_FastCSharp" /o:"preira" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths="coverage.xml"
-          dotnet restore
-          dotnet build --no-restore
-          dotnet-coverage collect "dotnet test --no-build --verbosity normal" -f xml -o "coverage.xml"
+          dotnet restore ./BuildAll/BuildAll.sln
+          dotnet build ./BuildAll/BuildAll.sln --no-restore
+          dotnet-coverage collect "dotnet test ./BuildAll/BuildAll.sln --no-build --verbosity normal" -f xml -o "coverage.xml"
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
