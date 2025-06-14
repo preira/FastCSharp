@@ -10,6 +10,8 @@ using RabbitMQ.Client.Exceptions;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client;
 
+namespace FastCSharp.RabbitPublisher.Tests;
+
 public class AsyncRabbitPublisherTests
 {
     private readonly Mock<IRabbitConnectionPool> poolMock = new();
@@ -163,6 +165,7 @@ public class AsyncRabbitPublisherTests
         var publisher = new AsyncRabbitPublisher<string>(poolMock.Object, loggerFactory, options);
         publisher.Dispose();
         publisher.Dispose();
+        Assert.True(true); // No exception means success
     }
 
     [Fact]
