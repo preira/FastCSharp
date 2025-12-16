@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Company>FastCSharp</Company>
+    <Product>FastCSharp</Product>
+    <PackageId>FastCSharp.RabbitCommon</PackageId>
+    <version>2.0.0</version>
+
+    <Author>João Pereira</Author>
+    <AssemblyName>FastCSharp.RabbitCommon</AssemblyName>
+
+    <Description>Package shared assets for RabbitPublisher and RabbitSubscriber.</Description>
+    <PackageTags>FastCSharp RabbitMQ Publisher Subscriber</PackageTags>
+
+   <Copyright>
+      <![CDATA[Copyright © FastCSharp 2023]]>
+    </Copyright>
+
+    <ProjectUrl>https://github.com/preira/FastCSharp/tree/main/RabbitCommon</ProjectUrl>
+
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <TargetFrameworks>net8.0; net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="LICENSE" Pack="true" PackagePath="" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Pool.sln\Pool\Pool.csproj" />
+    <ProjectReference Include="..\..\Observability.sln\Observability\Observability.csproj" />
+  </ItemGroup>
+
+</Project>
